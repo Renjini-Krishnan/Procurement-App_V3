@@ -1,239 +1,315 @@
-# Buying Channel — Analysis Framework
+---
+id: buying-channel-analysis-framework
+layer: function
+function: procurement
+pillar: buying-channel
+version: 2.0
+last_updated: 2026-05-27
+owner: kb-admin
+review_cadence: quarterly
+status: active
+---
 
-## 1. What this pillar assesses
+# Buying Channel Pillar — Analysis Framework
 
-The Buying Channel pillar evaluates **how spend flows from PR to PO** — i.e., the contracting + sourcing route chosen for each category of purchase. For each material group, it answers two questions:
+## Purpose
 
-1. **What channel is the client using today?** (Rate Contract, Outline Agreement, Catalogue, ASL, RFQ, Single Tender)
-2. **What channel should they be using?** (Based on the archetype of the spend — BULK / DIRECT / INDIRECT / SERVICE / CAPEX)
+The Buying Channel pillar answers one operational question per material group:
 
-The gap between current and recommended channels translates into quantifiable improvements in **cycle time (PR-to-PO TAT)**, **buyer bandwidth**, **process compliance**, and **sole-source risk reduction**.
+**"Given the spend profile (frequency, value, archetype, supplier landscape), what is the right buying channel — and is the client currently using it?"**
 
-This pillar is operationally focused. It does NOT quantify ₹ savings (those are owned by Op Model + Category-specific analyses). It DOES produce a directional process-improvement roadmap.
+For every reclassified category in the client's portfolio, the engine produces:
+- A **recommended buying channel** (one of 6 — see §3)
+- A **match-status flag** comparing current vs recommended channel
+- A **migration priority** for the consultant's roadmap
+- Flags for sole-source risk, cross-plant aggregation opportunities, and data-quality issues
+
+The pillar is **operationally focused.** It does NOT quantify ₹ savings (those belong to Op Model and category-specific analyses). It DOES quantify TAT improvement, buyer-bandwidth freed, and contract coverage lift.
 
 ---
 
-## 2. The Six Buying Channels
+## 1. Why this pillar exists
 
-| Channel | Description | Applicable Archetype | Benchmark TAT |
-|---|---|---|---|
-| **RC — Long-Term Contract** | Multi-year volume agreement with index-linked pricing | BULK | 1–3 days |
-| **RC — Outline Agreement (OLA)** | Annual blanket order; pre-agreed terms; call-offs without fresh negotiation | INDIRECT, SERVICE (recurring) | 3 days |
-| **RC — ROP / Catalogue** | Reorder-point system or internal catalogue; zero-touch ordering | INDIRECT (stores consumables) | 1 day |
-| **ASL — Approved Supplier List** | Pre-qualified vendor pool; competitive among qualified suppliers | DIRECT | 15–25 days |
-| **RFQ / Tendering** | Open or limited competitive bidding for each purchase event | SERVICE (project), CAPEX, UNCLASSIFIED | 45–90 days |
-| **Single Tender / PAC** | Sole-source with documented justification (Proprietary / Approved / Credibility) | Any archetype with no alternate | Varies |
+For Indian large-enterprise procurement, the typical pattern is: ~25-45% of spend flows through contracted channels; the rest is spot / repeat-PO / single-tender. Channel mismatches surface in three places:
 
-The first three (RC variants) are collectively the "contracted" channels — the discipline target for most categories. ASL is competitive-but-curated. RFQ is open-market. Single Tender is the exception-management channel.
-
----
-
-## 3. The Five Spend Archetypes
-
-Every material group falls into one of five archetypes. The archetype determines the recommended channel.
-
-| Archetype | Defining characteristics | Examples |
+| Symptom | Root cause | Cost to the business |
 |---|---|---|
-| **BULK** | High-volume commodity raw materials; continuous demand; price driven by market indices | Coal, Iron Ore, Limestone, Scrap, Diesel, Industrial Gases, DRI, Pellets |
-| **DIRECT** | Production-critical materials; technically specified; limited alternate sources | Refractories, Ferro Alloys, Work Rolls, Electrodes, Graphite, Alloy additions |
-| **INDIRECT** | MRO spares, consumables, utilities; recurring demand; wide supply market | Bearings, Pumps, Valves, PPE, Cables, Instrumentation, Lubricants, Stationery |
-| **SERVICE** | Labour, civil, maintenance, logistics, professional services | Contract Labour, Civil Works, Transport, AMC, Housekeeping, Consultancy |
-| **CAPEX** | Capital investment items; project-specific, non-recurring, high value | Power Plant equipment, Furnaces, Rolling Mills, Construction Equipment |
+| Recurring INDIRECT items raised as fresh POs every month | No catalogue / OLA programme | Buyer time per PO; 25-day cycle vs 1-day catalogue |
+| BULK commodities bought spot-by-spot | No long-term contract; commodity exposure unhedged | Price volatility; vendor risk |
+| Single-vendor critical DIRECT items with no alternate | No vendor development programme; sole-source dependency | Supply continuity risk; price leverage gone |
+| 80+ vendors for routine MRO across plants | No vendor consolidation; channel discipline absent | Master-data bloat; payment fragmentation; no leverage |
 
-A sixth implicit bucket — **UNCLASSIFIED** — is used when no archetype signal is detectable. UNCLASSIFIED items default to RFQ pending manual review.
-
----
-
-## 4. Themes (3)
-
-The pillar is decomposed into three themes that follow the natural analytical flow: describe what is → recommend what should be → quantify the gap.
-
-### Theme 1 — Current Channel State (Descriptive)
-
-**Purpose:** Establish the baseline. What does spend look like today, channel by channel, material group by material group?
-
-**Inputs (PO dump):** `Material_Group`, `Material_Group_Desc`, `Net_Value`, `Vendor_Number`, `PO_Creation_Date`, `Contract_Number`, `Outline_Agreement`, `Scheduling_Agreement`.
-
-**Computations:**
-- Per MG: total spend, spend share, PO count, distinct purchase months, vendor count
-- Per MG: contracted % (POs referencing any of the three RC fields / total POs)
-- Per MG: current channel label — `Largely Contracted (≥80%)` / `Partially Contracted (40–80%)` / `Minimally Contracted (<40%)` / `Spot / Uncontracted (0%)`
-- Portfolio rollup: channel mix by spend, channel mix by PO volume
-
-**Decision-driving:** No. This is descriptive baseline; produces no recommendations on its own.
-
-**Pillar weight:** 0.20
-
-### Theme 2 — Archetype & Recommended Channel (Decision-Driving Core)
-
-**Purpose:** The analytical core. Classify each MG into a spend archetype and apply per-archetype channel-recommendation rules.
-
-**Inputs:** Theme 1 output + `Material_Type` (MTART), `Item_Category` (PSTYP), `Account_Assignment_Category` (KNTTP), `Short_Text`.
-
-**Archetype classification** — priority order (highest signal wins):
-
-| Priority | Signal | Archetype assigned | Confidence |
-|---|---|---|---|
-| **P0** | MG Code is literally "CAPEX" / "SERVICE" / "BULK" / "INDIRECT" / "MRO" | As coded | HIGH |
-| **P1** | `Item_Category` = A (Asset) | CAPEX | HIGH |
-| **P1** | `Item_Category` = D (Service) | SERVICE | HIGH |
-| **P2** | `Material_Type` = DIEN | SERVICE | HIGH |
-| **P2** | `Material_Type` = ANLZ / FHMI | CAPEX | HIGH |
-| **P2** | `Material_Type` = ERSA / ERSZ / NLAG | INDIRECT | HIGH |
-| **P3** | Purchased in ≥ 3 distinct calendar months | INDIRECT | MEDIUM |
-| **P4** | Keyword match in `Material_Group_Desc` (see keyword banks in `analysis-config.yml`) | BULK / DIRECT / SERVICE / INDIRECT / CAPEX as matched | MEDIUM |
-| **P4-fallback** | No signal found | UNCLASSIFIED | LOW |
-
-**Channel recommendation rules** (applied to each MG after archetype is assigned):
-
-```
-ARCHETYPE = CAPEX
-  → Channel: RFQ / Open Tender
-
-ARCHETYPE = SERVICE
-  → IF MG description contains AMC/ANNUAL MAINTENANCE/CONTRACT LABOUR/HOUSEKEEPING:
-       → Channel: Outline Agreement (OLA)
-  → ELSE:
-       → Channel: RFQ / Limited Tender
-
-ARCHETYPE = BULK
-  → Channel: RC — Long-Term Contract (index-linked)
-
-ARCHETYPE = DIRECT
-  → IF PAC% > 50% for this MG:
-       → Channel: Single Tender (PAC justified)
-       → Flag: "PAC — assess vendor development; build alternate source"
-  → ELSE:
-       → Channel: ASL
-
-ARCHETYPE = INDIRECT
-  → IF PAC% > 50%:
-       → Channel: Single Tender (PAC justified)
-  → ELIF MG description contains PPE/GREASE/LUBR/OIL/TONER/STATIONERY/PACKAGING/WELDING/CONSUMABLE:
-       → Channel: RC — ROP / Catalogue
-  → ELIF vendor_count == 1:
-       → Channel: RC — Outline Agreement
-       → Flag: "SRM: single vendor — develop alternatives"
-  → ELSE:
-       → Channel: RC — Outline Agreement
-
-ARCHETYPE = UNCLASSIFIED
-  → Channel: RFQ (pending manual review)
-  → Flag: "Unclassified — verify material group description"
-```
-
-**Output:** Per MG, the recommended channel + confidence (inherited from archetype confidence) + any flags.
-
-**Decision-driving:** Yes. This is the pillar's main recommendation engine.
-
-**Pillar weight:** 0.50
-
-### Theme 3 — Gap, PAC & TAT Impact (Quantification)
-
-**Purpose:** Quantify the gap between current and recommended state. Surface compliance / risk flags.
-
-**Inputs:** Theme 1 + Theme 2 outputs + PR dump (for PR-to-PO TAT) + PAC flags.
-
-**Computations:**
-
-1. **Portfolio TAT impact:**
-   ```
-   As-Is Weighted TAT  = Σ (Channel_share_i × Channel_TAT_i)  -- using actual current channel mix
-   To-Be Weighted TAT  = Σ (Channel_share_i × Channel_TAT_i)  -- using Theme 2 recommended channels
-   TAT Improvement     = As-Is - To-Be
-   ```
-   *Transformation ceiling: To-Be RC % is capped at As-Is RC % + 25 percentage points to reflect realistic ramp-up.*
-
-2. **PAC analysis:**
-   - PAC % per MG
-   - High-PAC categories flagged (PAC% > 50%)
-   - Common PAC reason categorisation from short-text keywords (OEM / proprietary / urgency / unique spec)
-
-3. **Leakage analysis:**
-   - Contracted-but-leaking: MGs where Contract # exists but Contracted% < 40% → contract bypass
-   - Single-vendor lock-in: INDIRECT MGs with vendor_count = 1 and no PAC justification
-   - High-frequency spot: Distinct months ≥ 6 AND contracted% = 0%
-
-4. **Migration roadmap (top 20 by spend):** Priority-ranked list of MGs to migrate, with target channel + indicative timeline (Q1-Q4).
-
-**Decision-driving:** Yes. Produces the priority list + risk flags.
-
-**Pillar weight:** 0.30
+The engine surfaces each of these systematically from PO data.
 
 ---
 
-## 5. Pillar-level scoring
-
-The pillar produces a 1-5 maturity score using the same conventions as other pillars. Score = weighted average of theme scores using the pillar weights above.
-
-| Score | Label | Typical state |
-|---|---|---|
-| 1.0–1.5 | Initial | <20% contracted; no formal channel strategy; high PAC%; long PR-to-PO TAT |
-| 1.5–2.5 | Developing | 20–40% contracted; emerging strategy; PAC% concentrated in critical categories |
-| 2.5–3.5 | Defined | 40–60% contracted; documented channel matrix; PAC reviewed periodically |
-| 3.5–4.5 | Managed | 60–80% contracted; catalogue/ROP adoption growing; PAC <15%; TAT improving |
-| 4.5–5.0 | Optimised | >80% contracted; catalogue mature; PAC <5%; PR-to-PO TAT at benchmark |
-
-Maturity descriptors per theme are in `scoring-descriptors.yml`.
-
----
-
-## 6. Data requirements (summary)
-
-**Primary — PO dump:** PO Number, PO Item, PO Creation Date, Material Group, Material Group Description, Net Value, Vendor Number, Vendor Name, Short Text, Contract Number, Outline Agreement, Scheduling Agreement, Item Category, Material Type, Plant, Purchase Group, PR Reference.
-
-**Secondary — PR dump (for TAT):** PR Number, PR Item, PR Creation Date, PR Release Date, Plant, Material Group, PR Total Value, PAC Flag, Emergency Flag.
-
-**Context — engagement setup:** Annual procurement spend, FTE count, industry, plant list.
-
-Full field schema and SAP column mapping is in the data templates catalog (`data-templates/`).
-
----
-
-## 7. QREs consumed
-
-This pillar consumes **14 QRE questions** in four sections: Current Landscape (Q-BC-01 to Q-BC-07), Contract Management (Q-BC-08 to Q-BC-10), PAC & Compliance (Q-BC-11 to Q-BC-12), Governance (Q-BC-13 to Q-BC-14). Full definitions are in `qre/qre-bank.yml`.
-
-QREs feed:
-- Theme 1 reconciliation (does client's perception of channel mix match data?)
-- Theme 3 PAC & governance context (PAC reasons, DoA structure)
-- The AI-generated narrative (channel strategy maturity, contract management practices)
-
----
-
-## 8. Industry overlay
-
-Industry overlays for Buying Channel live at:
-- `industries/<ind>/by-function/procurement/buying-channel/benchmarks.yml` — industry-specific channel mix benchmarks (e.g., Steel typical RC% 35-55% vs cross-industry 30-50%)
-- `industries/<ind>/by-function/procurement/buying-channel/archetype-overrides.yml` — industry-specific keyword banks (e.g., Steel-specific BULK keywords: COAL, IRON ORE, COKING, FERRO, DRI)
-
-Steel overlay is part of Build 1; other industries come in Build 2+.
-
----
-
-## 9. Cross-pillar interactions
-
-| Other pillar | Interaction |
-|---|---|
-| **PR-to-PO** | Shares PR dump; TAT computation is duplicate-prevented via dependency on PR-to-PO outputs |
-| **Op Model — Tail Spend** | Maverick spend findings here align with tail-spend channel discipline gap |
-| **Supplier** | Single-vendor flags here feed Supplier pillar vendor-concentration analysis |
-| **Material Master** | UNCLASSIFIED MG count is a Material Master finding (MG description quality); count surfaced here |
-| **Category Classification (Stage 9)** | Archetype classification reads post-Stage-9 categories where available; falls back to raw MG if Stage 9 not complete |
-
----
-
-## 10. Scope boundaries
+## 2. Scope — IN and OUT
 
 **IN scope for Build 1:**
-- PO-dump-based analysis (1-2 years of historical POs)
-- PR dump for TAT computation (optional — TAT skipped if absent)
-- All 6 channels listed in §2
-- All 5 archetypes + UNCLASSIFIED
-- Cross-pillar flags (single-vendor, leakage)
+- PO-dump-based analysis (12-24 months of historical POs)
+- PR dump for TAT computation (optional — TAT components skip if absent)
+- All 6 channels (RC-LT, OLA, Catalogue/ROP, ASL, RFQ, Single-Tender/PAC)
+- All 5 spend archetypes (BULK, DIRECT, INDIRECT, SERVICE, CAPEX) + UNCLASSIFIED fallback
+- Per-archetype recommendation thresholds (configurable)
+- Dual-view category presentation (original client codes + reclassified canonical categories)
+- Cross-plant aggregation opportunity flagging
+- Sole-source risk identification (single-vendor + concentrated + PAC-justified sub-signals)
+- Cross-pillar handoffs to Supplier, Material Master, Op Model
 
 **OUT of scope for Build 1:**
 - ₹ savings quantification from channel migration (Op Model owns)
-- Vendor performance / OTD / quality (Supplier + Post-PO pillars)
-- e-Auction setup / catalogue platform recommendations (consulting deliverable, not engine-computable)
+- Vendor performance / OTD / quality assessment (Supplier + Post-PO pillars)
+- e-Auction setup or catalogue-platform technology recommendations (consulting deliverable, not engine-computable)
 - Real-time PR routing (this is a diagnostic engine, not an operational P2P engine)
+- Buyer-level performance assessment (Org Structure pillar)
+- Contract negotiation strategy / commercial terms (Op Model CoE theme)
+
+---
+
+## 3. The 6 Buying Channels
+
+| Channel | Description | Typical Archetype Fit | Benchmark TAT |
+|---|---|---|---|
+| **RC — Long-Term Contract (RC-LT)** | Multi-year volume agreement; index-linked pricing | BULK (commodity raw materials) | 3 days |
+| **RC — Outline Agreement (OLA)** | Annual blanket order; pre-agreed terms; call-offs without fresh negotiation | INDIRECT (recurring MRO), SERVICE (recurring AMC) | 3 days |
+| **RC — ROP / Catalogue** | Reorder-point system or internal catalogue; zero-touch ordering | INDIRECT (standard consumables) | 1 day |
+| **ASL — Approved Supplier List** | Pre-qualified vendor pool; competitive among qualified suppliers | DIRECT (spec-sensitive engineered) | 25 days |
+| **RFQ / Tendering** | Open or limited competitive bidding for each purchase event | SERVICE (project), CAPEX, UNCLASSIFIED | 70 days (45-90 band) |
+| **Single-Tender / PAC** | Sole-source with documented justification (Proprietary / Approved / Credibility) | Any archetype with no viable alternate | Varies |
+
+---
+
+## 4. The 5 Spend Archetypes
+
+Every material group is classified into one of five archetypes. The classification is owned by **Stage 9 (Category Classification)** — Buying Channel reads the archetype from `categories-master.yml`.
+
+| Archetype | Defining characteristics | Examples |
+|---|---|---|
+| **BULK** | High-volume commodity raw materials; continuous demand; market-index pricing | Coal, Iron Ore, Limestone, Scrap, Industrial Gases, Pellets |
+| **DIRECT** | Production-critical materials; technically specified; limited alternates | Refractories, Ferro Alloys, Work Rolls, Electrodes, Alloy additions |
+| **INDIRECT** | MRO spares, consumables, utilities; recurring demand; wide supply market | Bearings, Pumps, Valves, PPE, Lubricants, Stationery |
+| **SERVICE** | Labour, civil, maintenance, logistics, professional services | Contract Labour, Civil Works, AMC, Housekeeping, Transport |
+| **CAPEX** | Capital investment; project-specific, non-recurring, high value | Power Plant equipment, Furnaces, Rolling Mills |
+
+When Stage 9 cannot classify an MG (insufficient signal in client's raw data + Stage 9 keyword bank misses), the archetype is marked **UNCLASSIFIED**. These MGs route to RFQ by default and are surfaced as a Material Master data-quality finding.
+
+---
+
+## 5. Theme structure — single theme
+
+Unlike Op Model and Org Structure which decompose into 4 strategic-lever themes, Buying Channel is fundamentally **one analytical engine** answering one question (right channel per MG) through 13 analyses. Forcing a 4-theme decomposition would split the analytical pipeline artificially.
+
+**Pillar = 1 theme = 13 analyses.**
+
+The theme is **Buying Channel Strategy** (`buying-channel-strategy.md`). It is decomposed into 13 analyses (BC1-BC13) using the standard 4-question framework:
+
+| Question group | # analyses | What it computes |
+|---|---|---|
+| **Q1 — WHAT IS the channel state today?** (Baseline) | BC1-BC3 | Current channel mix; per-MG channel + profile; archetype × channel heat-map |
+| **Q2 — WHERE COULD we route differently?** (Opportunity) | BC4-BC7 | Apply recommendation engine; surface misrouted MGs; migration targets; cross-plant aggregation opportunities |
+| **Q3 — WHICH MGs won't move?** (Feasibility filter) | BC8-BC10 | Sole-source risk; project/one-off exemptions; UNCLASSIFIED MGs (cross-pillar finding) |
+| **Q4 — HOW MUCH at stake?** (Quantification) | BC11-BC13 | TAT savings; buyer bandwidth freed; contract coverage lift estimate |
+
+Full per-analysis specification (formulas, thresholds, edge cases, examples) is in `buying-channel-strategy.md`.
+
+---
+
+## 6. Pillar-wide design principles
+
+### 6.1 No ₹ cost-out
+
+Buying Channel does NOT produce ₹ savings figures. It produces TAT savings (days/year), buyer-bandwidth (FTE-equivalent freed), and contract-coverage lift (% points). Channel migration ₹ value is owned by Op Model (centralisation, SSC, CoE savings rates).
+
+**Where this surfaces:**
+- Theme outputs report process + cycle-time impact, not currency
+- AI prompts (`prompts.md`) validate output for ₹ leakage — if a draft narrative claims "₹X Cr savings from catalogue migration", regenerate without the ₹ claim
+- Recommendations (`recommendations.md`) are FTE / TAT / process-discipline framed
+
+### 6.2 Stage 9 leverage (no archetype duplication)
+
+Archetype classification is owned by Stage 9. Buying Channel reads it via:
+```
+For each MG → categories-master.yml[reclassified_category].archetype
+```
+For MGs marked UNCLASSIFIED by Stage 9, the engine falls back to a keyword bank (P0-P4 priority — see `analysis-config.yml`).
+
+### 6.3 Dual-view categories — original + reclassified
+
+Every per-MG output row carries BOTH the client's raw data AND the post-Stage-9 classification:
+
+| Field | Source | Purpose |
+|---|---|---|
+| `original_mg_code` | Client PO dump | Client recognises their own data |
+| `original_mg_desc` | Client PO dump | Familiar terminology |
+| `reclassified_category` | Stage 9 → categories-master.yml | Canonical industry taxonomy (analytical key) |
+| `archetype` | categories-master.yml | BULK / DIRECT / INDIRECT / SERVICE / CAPEX |
+| `reclassification_confidence` | Stage 9 output | HIGH / MEDIUM / LOW / UNCLASSIFIED |
+| (analysis outputs) | BC1-BC13 | Quant + qual analysis |
+
+This applies to every PPT slide, dashboard table, drill-down, and export. The client should never see ONLY a canonical category they don't recognise.
+
+### 6.4 Framework transparency (methodology explained BEFORE results)
+
+The app surfaces the analytical methodology BEFORE the client-specific outputs. The lead-in is `framework-overview.md`:
+- Why right buying channel matters
+- The 6 channels we route to
+- The 5 spend archetypes
+- The decision matrix (archetype × frequency × value → channel)
+- The 10 decision rules
+- How we read the client's data (field-availability + derivation methods)
+
+Consultants and clients see the engine logic FIRST so they understand why each MG got the recommendation it did. The KB content for this lead-in lives in `framework-overview.md`.
+
+### 6.5 Per-archetype thresholds (not universal)
+
+The engine uses **per-archetype value thresholds** rather than universal ones, reflecting real Indian large-enterprise PO distributions. Configurable defaults:
+
+| Archetype | Threshold | Default |
+|---|---|---|
+| DIRECT | `high_value_direct_avg_po_inr` | ₹50,00,000 (₹50L) |
+| INDIRECT | `low_value_indirect_avg_po_inr` | ₹50,000 |
+| INDIRECT | `medium_value_indirect_avg_po_inr` | ₹5,00,000 (₹5L) |
+| SERVICE | `high_value_service_avg_po_inr` | ₹5,00,000 (₹5L) |
+| BULK | `bulk_full_ltc_threshold_total_spend_inr_cr` | ₹5 Cr/year (on total spend, not avg PO) |
+| (universal) | `high_freq_po_count_6mo_threshold` | 5 (POs in any 6-month window) |
+| (universal) | `strategic_attention_po_inr` | ₹1,00,00,000 (₹1 Cr — single-PO escalation flag) |
+
+All in `analysis-config.yml` with `edit_risk` tags.
+
+### 6.6 Feasibility honesty (skip-if-data-missing)
+
+Analyses skip cleanly when input data is missing rather than producing dubious outputs:
+- BC11 (TAT savings) skips if PR dump unavailable or PR-PO join < 70%
+- BC8 (sole-source) downgrades confidence if PAC-flag column missing (falls back to vendor-count signal)
+- BC10 (unclassified) surfaces % UNCLASSIFIED as a Material Master finding; doesn't try to "fix" it within Buying Channel
+
+Skip-logic is documented per component in `analysis-config.yml`.
+
+### 6.7 No pillar maturity rollup
+
+Themes are scored individually 1-5 (see `scoring-descriptors.yml`). There is NO overall pillar maturity score — the pillar's value is in per-MG recommendations + migration roadmap, not a single rollup number. (This differs from Op Model and Org Structure, which DO produce rollup scores.)
+
+---
+
+## 7. Data dependencies
+
+### Primary — PO dump
+
+Mandatory fields:
+- `PO_Number`, `PO_Item`, `PO_Creation_Date`
+- `Material_Group`, `Material_Group_Desc`
+- `Net_Value`, `Currency`
+- `Vendor_ID`, `Vendor_Name`
+- `Plant`
+
+Strongly recommended (drives confidence):
+- `Contract_Number` / `Outline_Agreement` / `Scheduling_Agreement` — for current channel derivation
+- `Item_Category` (PSTYP) — Stage 9 archetype signal
+- `Material_Type` (MTART) — Stage 9 archetype signal
+- `Account_Assignment_Category` (KNTTP) — Stage 9 archetype signal
+- `Short_Text` — Stage 9 keyword fallback + sole-source heuristics
+- `Purchase_Group` — buyer-level analysis
+
+Sometimes-present (lifts BC8 to HIGH confidence):
+- `PAC_Flag` / `Single_Source_Flag`
+- `Justification` / `Approval_Note` text
+
+### Secondary — PR dump (for TAT computation)
+
+- `PR_Number`, `PR_Item`, `PR_Creation_Date`, `PR_Release_Date`
+- `PR_Total_Value`, `Plant`, `Material_Group`
+- `Emergency_Flag`, `PAC_Flag`
+
+If PR dump unavailable, BC11 (TAT impact) skips and the pillar narrative explicitly states "TAT impact not computed — PR dump required".
+
+### Stage 9 output (HARD dependency for primary path)
+
+- `reclassified_category` per PO line
+- `categories-master.yml` with `archetype` field populated per canonical category
+
+Without Stage 9 output, every MG falls to the UNCLASSIFIED fallback path (keyword bank P0-P4 priority logic in `analysis-config.yml`). Pillar still runs but confidence drops materially.
+
+### QREs (14 total — see `qre/qre-bank.yml`)
+
+Q-BC-01 through Q-BC-14 across 4 sections (Current Landscape / Contract Mgmt / PAC / Governance). Engine uses QREs for:
+- Reconciliation with data findings (does client's perception match the data?)
+- Confidence lift (QRE Q-BC-12 confirms PAC reasoning → BC8 confidence HIGH)
+- Narrative context (AI prompts pull QRE responses for the report)
+
+QREs don't gate analyses — every analysis runs with whatever PO+PR data is available; QRE adds qualitative colour.
+
+---
+
+## 8. Industry overlay structure
+
+For each industry that the pillar serves:
+
+```
+shared-kb/industries/<industry>/by-function/procurement/buying-channel/
+├── benchmarks.yml             — industry-specific channel mix + TAT overrides
+├── archetype-overrides.yml    — industry-specific keyword banks + archetype hints
+└── (rule-overrides.yml)       — industry-specific channel routing rules (Build 2 if needed)
+```
+
+Steel overlay (Build 1):
+- `benchmarks.yml` — Steel typical channel mix (e.g., BULK 70-90% RC-LT vs cross-industry 60-80%)
+- `archetype-overrides.yml` — Steel-specific BULK keywords (COKING COAL, IRON ORE, FERRO ALLOY...)
+
+Industry overlays follow the cascade: **Engagement Override > Industry Overlay > Function Default**.
+
+---
+
+## 9. Outputs (what the pillar produces)
+
+### MG-level table (the main analytical output)
+
+One row per MG with these columns (full schema in `buying-channel-strategy.md` §3):
+
+| Column | Source |
+|---|---|
+| original_mg_code, original_mg_desc | PO dump |
+| reclassified_category, archetype, reclassification_confidence | Stage 9 |
+| total_spend, spend_share_pct, po_count, distinct_months_6mo, avg_po_value, vendor_count | BC2 |
+| current_channel, contracted_pct | BC2 |
+| recommended_channel | BC4 |
+| match_status (Already Right / Misrouted / Over-Engineered / Unrecoverable) | BC5 |
+| migration_priority (HIGH / MEDIUM / LOW) | BC6 |
+| flags (PAC / single-vendor / unclassified / cross-plant-aggregation) | BC7, BC8, BC10 |
+
+### Portfolio rollups
+
+- Channel mix today vs target (BC1, BC4 → BC6 aggregated)
+- Match-status distribution (BC5 aggregated)
+- TAT impact (BC11)
+- Contract coverage lift estimate (BC13)
+- Cross-plant aggregation opportunities (BC7)
+- Sole-source risk register (BC8)
+
+### Cross-pillar handoffs
+
+| Handoff | Goes to | Used by |
+|---|---|---|
+| Single-vendor MGs (BC8) | Supplier pillar | Vendor concentration analysis |
+| UNCLASSIFIED MGs (BC10) | Material Master pillar | MG description quality finding |
+| Cross-plant aggregation opportunities (BC7) | Op Model — Centralisation theme | Validates centralisation opportunity from a complementary angle |
+
+---
+
+## 10. Files in this pillar
+
+| File | Purpose |
+|---|---|
+| `analysis-framework.md` | (This file) Pillar overview, scope, design principles, dependencies |
+| `framework-overview.md` | Consultant-facing methodology explainer (renders FIRST in the app) |
+| `buying-channel-strategy.md` | Theme deep-dive: 13 analyses (BC1-BC13) with formulas + examples |
+| `analysis-config.yml` | Engine config: thresholds, rules, channel definitions, archetype keyword banks |
+| `benchmarks.yml` | Function-default channel mix benchmarks + TAT benchmarks |
+| `scoring-descriptors.yml` | 1-5 maturity descriptors per theme (single theme) |
+| `rca-rules.yml` | Deterministic IF-THEN RCA rules |
+| `rca-patterns.md` | Narrative RCA patterns (AI side) |
+| `recommendations.md` | Recommendation library (per finding) |
+| `prompts.md` | LLM prompts the engine uses for AI-generated narrative |
+
+Plus Steel overlay (`shared-kb/industries/steel/by-function/procurement/buying-channel/`):
+- `benchmarks.yml`
+- `archetype-overrides.yml`
