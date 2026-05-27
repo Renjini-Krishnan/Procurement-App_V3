@@ -27,188 +27,188 @@ rules:
   # -------- STRUCTURAL / FILE-LEVEL --------
 
   - id: detect_sheet_structure
-name: Detect file structure
-description: For multi-sheet workbooks, identify which sheets are data, which are summary/instructions/totals.
-action: flag
-severity: info
-when: bronze
-auto_apply: true
+    name: Detect file structure
+    description: For multi-sheet workbooks, identify which sheets are data, which are summary/instructions/totals.
+    action: flag
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: identify_column_headers
-name: Identify column header row
-description: First row is the column header by default, but handle multi-row headers.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Identify column header row
+    description: First row is the column header by default, but handle multi-row headers.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: strip_header_repetitions
-name: Remove repeated header rows
-description: In multi-section files, header rows often repeat. Detect and remove.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Remove repeated header rows
+    description: In multi-section files, header rows often repeat. Detect and remove.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: strip_totals_rows
-name: Strip totals/footer rows
-description: Detect rows containing "TOTAL", "GRAND TOTAL", "Subtotal" at the start; remove.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Strip totals/footer rows
+    description: Detect rows containing "TOTAL", "GRAND TOTAL", "Subtotal" at the start; remove.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: handle_merged_cells
-name: Un-merge merged cells
-description: For merged cells, propagate the value down to all spanned rows.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Un-merge merged cells
+    description: For merged cells, propagate the value down to all spanned rows.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   # -------- BLANK / EMPTY --------
 
   - id: remove_fully_blank_rows
-name: Remove fully blank rows
-description: Drop rows where every cell is empty / null / whitespace-only.
-action: drop
-severity: info
-when: bronze
-auto_apply: true
+    name: Remove fully blank rows
+    description: Drop rows where every cell is empty / null / whitespace-only.
+    action: drop
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: remove_fully_blank_columns
-name: Remove fully blank columns
-description: Drop columns where every cell is empty / null.
-action: drop
-severity: info
-when: bronze
-auto_apply: false
-notes: "Show consultant the dropped column names; they can choose to add back."
+    name: Remove fully blank columns
+    description: Drop columns where every cell is empty / null.
+    action: drop
+    severity: info
+    when: bronze
+    auto_apply: false
+    notes: "Show consultant the dropped column names; they can choose to add back."
 
   - id: empty_required_field
-name: Empty required field
-description: For columns marked required in the template schema, flag rows with empty/null values.
-action: flag
-severity: warn
-when: bronze
-auto_apply: false
+    name: Empty required field
+    description: For columns marked required in the template schema, flag rows with empty/null values.
+    action: flag
+    severity: warn
+    when: bronze
+    auto_apply: false
 
   # -------- DATA TYPES --------
 
   - id: normalise_date_format
-name: Normalise date formats
-description: Detect dates in mixed formats and normalise to ISO 8601.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
-notes: "Indian default: dd/mm/yyyy interpretation when ambiguous."
+    name: Normalise date formats
+    description: Detect dates in mixed formats and normalise to ISO 8601.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
+    notes: "Indian default: dd/mm/yyyy interpretation when ambiguous."
 
   - id: normalise_numeric_format
-name: Normalise numeric formats
-description: Strip currency symbols, thousands separators, units; preserve decimal precision.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Normalise numeric formats
+    description: Strip currency symbols, thousands separators, units; preserve decimal precision.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: detect_data_type_mismatch
-name: Detect data type mismatch
-description: For columns expected as numeric, flag rows with non-numeric values.
-action: flag
-severity: warn
-when: bronze
-auto_apply: false
+    name: Detect data type mismatch
+    description: For columns expected as numeric, flag rows with non-numeric values.
+    action: flag
+    severity: warn
+    when: bronze
+    auto_apply: false
 
   - id: trim_whitespace
-name: Trim whitespace
-description: Strip leading and trailing whitespace from all text cells.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Trim whitespace
+    description: Strip leading and trailing whitespace from all text cells.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: fix_encoding
-name: Fix character encoding
-description: Convert Latin-1, Windows-1252, and other legacy encodings to UTF-8.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Fix character encoding
+    description: Convert Latin-1, Windows-1252, and other legacy encodings to UTF-8.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   - id: normalise_yes_no
-name: Normalise Yes/No fields
-description: Convert variants (Yes/No, Y/N, True/False, 1/0) to canonical lowercase yes/no.
-action: fix
-severity: info
-when: bronze
-auto_apply: true
+    name: Normalise Yes/No fields
+    description: Convert variants (Yes/No, Y/N, True/False, 1/0) to canonical lowercase yes/no.
+    action: fix
+    severity: info
+    when: bronze
+    auto_apply: true
 
   # -------- CASE / TEXT --------
 
   - id: normalise_text_case
-name: Normalise text case (where appropriate)
-description: For lookup-type fields preserve source. For canonical fields, normalise to defined case.
-action: normalise
-severity: info
-when: bronze
-auto_apply: true
+    name: Normalise text case (where appropriate)
+    description: For lookup-type fields preserve source. For canonical fields, normalise to defined case.
+    action: normalise
+    severity: info
+    when: bronze
+    auto_apply: true
 
   # -------- DUPLICATES --------
 
   - id: detect_exact_duplicate_rows
-name: Detect exact duplicate rows
-description: Identify rows where every cell matches another row exactly.
-action: flag
-severity: warn
-when: bronze
-auto_apply: false
+    name: Detect exact duplicate rows
+    description: Identify rows where every cell matches another row exactly.
+    action: flag
+    severity: warn
+    when: bronze
+    auto_apply: false
 
   # -------- TIME PERIOD --------
 
   - id: detect_period_coverage
-name: Detect time period coverage
-description: For date columns, determine min and max date.
-action: flag
-severity: info
-when: bronze
-auto_apply: false
+    name: Detect time period coverage
+    description: For date columns, determine min and max date.
+    action: flag
+    severity: info
+    when: bronze
+    auto_apply: false
 
   - id: detect_period_gaps
-name: Detect period gaps
-description: For time-series data, identify months with zero transactions in active range.
-action: flag
-severity: warn
-when: gold
-auto_apply: false
+    name: Detect period gaps
+    description: For time-series data, identify months with zero transactions in active range.
+    action: flag
+    severity: warn
+    when: gold
+    auto_apply: false
 
   # -------- ANOMALIES --------
 
   - id: detect_extreme_outliers
-name: Detect extreme numeric outliers
-description: For numeric columns, flag values > 5 std dev from mean.
-action: flag
-severity: warn
-when: gold
-auto_apply: false
+    name: Detect extreme numeric outliers
+    description: For numeric columns, flag values > 5 std dev from mean.
+    action: flag
+    severity: warn
+    when: gold
+    auto_apply: false
 
   - id: detect_zero_negative_values
-name: Detect zero or negative values where unexpected
-description: For columns expected positive, flag zero or negative values.
-action: flag
-severity: warn
-when: gold
-auto_apply: false
+    name: Detect zero or negative values where unexpected
+    description: For columns expected positive, flag zero or negative values.
+    action: flag
+    severity: warn
+    when: gold
+    auto_apply: false
 
   # -------- CROSS-FILE INTEGRITY --------
 
   - id: cross_file_id_check
-name: Cross-file ID referential integrity
-description: For files that reference IDs from other files, check that referenced IDs exist.
-action: flag
-severity: warn
-when: gold
-auto_apply: false
+    name: Cross-file ID referential integrity
+    description: For files that reference IDs from other files, check that referenced IDs exist.
+    action: flag
+    severity: warn
+    when: gold
+    auto_apply: false
 
 execution_order_bronze:
   - detect_sheet_structure

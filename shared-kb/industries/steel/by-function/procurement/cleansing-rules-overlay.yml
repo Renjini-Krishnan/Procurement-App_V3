@@ -1,0 +1,53 @@
+# =============================================================================
+# Steel Industry — Procurement Cleansing Rules Overlay
+# =============================================================================
+# Purpose: Steel-industry-specific extensions / overrides on procurement
+# cleansing rules. Used when industry-specific cleansing logic differs from
+# function defaults.
+#
+# Cascade: Engagement Override > Industry Overlay (this file) > Function Default
+# Function default: proc-app/kb/functions/procurement/_meta/cleansing-rules.yml
+# =============================================================================
+
+metadata:
+  id: steel-procurement-cleansing-rules-overlay
+  layer: industry
+  industry: steel
+  function: procurement
+  inherits_from: proc-app/kb/functions/procurement/_meta/cleansing-rules.yml
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# =============================================================================
+# OVERRIDES — Steel-specific changes to function-default rules
+# =============================================================================
+# Currently no Steel-specific overrides. Function defaults work cleanly for Steel.
+# Placeholder for future engagement-driven additions.
+
+overrides: []
+
+# =============================================================================
+# ADDITIONS — Steel-specific cleansing rules
+# =============================================================================
+# Currently no Steel-specific additions. Function defaults cover all
+# observed Steel cleansing needs (vendor dedup, currency normalisation,
+# PR-PO join, etc.).
+#
+# Future candidates (not yet authored):
+#   - steel.heat_number_extraction (parse heat number from PO short text
+#     for metallurgical traceability)
+#   - steel.commodity_index_mapping (map BULK MGs to commodity index for
+#     index-linked pricing analysis)
+#
+# Authored only when an engagement surfaces the need.
+
+additions: []
+
+# =============================================================================
+# Editable Configuration
+# Adding override: HIGH risk (changes function-default behaviour for Steel)
+# Adding new Steel-specific rule: MEDIUM (peer KB lead review)
+# =============================================================================

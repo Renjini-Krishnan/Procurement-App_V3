@@ -1,0 +1,816 @@
+# =============================================================================
+# Procurement Function — Data Cleansing Rules
+# =============================================================================
+# Procurement-specific data cleansing rules. Complements the universal rules
+# in shared-kb/standards/data-quality-universal.yml.
+#
+# Universal vs procurement-specific:
+#   - data-quality-universal.yml (Stages 5, 7) → structural, blanks, types,
+#     dates, encoding, generic outliers. Applies to any uploaded file.
+#   - cleansing-rules.yml (Stages 5/6, 8, 9 interface) → procurement-specific:
+#     entity mapping, vendor dedup, currency normalisation, contract reference
+#     derivation, archetype classification interface.
+#
+# Stage map:
+#   Stage 4-5  Upload + AI Validation     → universal rules (data-quality-universal)
+#   Stage 5    Column Mapping Confirm.    → cleansing-rules (this file, 1 HITL rule)
+#   Stage 6    User Validation (HITL)     → cleansing-rules (this file, 8 HITL rules)
+#   Stage 7    Bronze Data Set            → universal rules (data-quality-universal)
+#   Stage 8    Gold Data Set              → cleansing-rules (this file, 8 rules)
+#   Stage 9    Category Classification    → cleansing-rules (this file, 1 interface rule)
+#                                            (engine owned by separate Stage 9 module)
+#
+# Cross-references:
+#   - Rule consumers listed in 'consumed_by' field of each rule.
+#   - Authoritative consumer list also in analysis-requirements-tracker.yml
+#     aggregate_data_cleaning_rules section.
+#   - Industry overlay placeholder at
+#     shared-kb/industries/<ind>/by-function/procurement/cleansing-rules-overlay.yml
+# =============================================================================
+
+metadata:
+  id: procurement-cleansing-rules
+  layer: function
+  function: procurement
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: quarterly
+  status: active
+  complements: shared-kb/standards/data-quality-universal.yml
+  schema_source: data-templates/   # canonical schema lives in data-templates (to be authored separately)
+
+# =============================================================================
+# RULE SCHEMA
+# =============================================================================
+# Each rule has:
+#   id              — namespaced (procurement.*)
+#   name            — human-readable
+#   stage           — 5 / 6 / 8 / 9
+#   description     — what the rule does
+#   inputs          — primary_file, primary_fields, cross_reference_file, cross_reference_fields
+#   output          — modifies, adds_fields, produces_report
+#   logic           — cleansing / mapping algorithm description
+#   hitl_required   — boolean. If true, hitl_prompt + hitl_screen fields required.
+#   hitl_prompt     — UI text shown to consultant (when hitl_required: true)
+#   error_handling  — what the rule does on failure / ambiguous case
+#   consumed_by     — analyses that depend on this rule (cross-ref to tracker)
+#   edit_risk       — LOW / MEDIUM / HIGH
+# =============================================================================
+
+rules:
+
+  # ==========================================================================
+  # STAGE 5 — COLUMN MAPPING CONFIRMATION (HITL)
+  # ==========================================================================
+  # Runs once per uploaded file. Establishes the canonical column mapping that
+  # ALL subsequent rules depend on. Without this, no analytical rule can fire.
+
+  - id: procurement.column_mapping_confirmation
+    name: "Column Mapping Confirmation (Client Raw → Canonical Schema)"
+    stage: 5
+    description: |
+      For each uploaded data file (PO, PR, Vendor Master, Material Master,
+      Org Structure, GRN, Invoice, etc.), the engine AI-suggests a mapping
+      from the client's raw column names to the canonical schema fields
+      defined in data-templates/. The consultant confirms or overrides each
+      mapping. Required fields without a mapping block the file from
+      proceeding to Stage 6.
+    inputs:
+      primary_file: any   # PO / PR / Vendor_Master / Material_Master / Org_Structure / GRN / Invoice / Contract_Master
+      primary_fields: ALL_RAW_COLUMNS
+    output:
+      modifies: file_schema_metadata
+      adds_fields:
+        - canonical_column_mapping   # table: raw_column → canonical_field
+        - unmapped_columns_list      # raw columns with no canonical match
+        - missing_required_fields    # canonical fields with no raw match
+      produces_report: |
+        Column mapping confirmation summary:
+        - N raw columns mapped to canonical fields
+        - N raw columns unmapped (consultant decision: ignore or add to canonical)
+        - N required canonical fields missing (BLOCKING if not resolved)
+    logic: |
+      1. AI scans raw column names + sample values for each column
+      2. For each canonical field in data-templates/<file>.yml:
+         a. Fuzzy-match canonical field name + alias list against raw column names
+         b. Type-check sample values against expected canonical type
+         c. Confidence score: HIGH (exact match) / MEDIUM (fuzzy match) / LOW (type-only)
+      3. Present mapping UI to consultant:
+         - Auto-confirm HIGH-confidence matches (consultant can override)
+         - Require explicit confirmation for MEDIUM / LOW matches
+         - Highlight unmapped raw columns (consultant: ignore / add to schema)
+         - Block on missing required canonical fields (consultant: provide mapping or abort)
+    hitl_required: true
+    hitl_prompt: |
+      "We've identified your file as <file_type>. Please confirm the column mapping below.
+
+       Columns we matched with HIGH confidence are pre-confirmed (you can change).
+       Columns marked MEDIUM/LOW need your review.
+
+       Any of your columns that don't fit our schema are shown separately — you can
+       choose to ignore them or tell us they're a custom field.
+
+       Required fields that we couldn't find in your file are listed at the bottom in
+       red. We can't proceed until these are mapped (or you confirm they don't exist
+       in your data — some analyses will then skip)."
+    hitl_screen: column_mapping_grid   # UI component reference
+    error_handling: |
+      If consultant cannot map a required field: rule logs the gap + flags every
+      downstream analysis that requires that field as 'skipped due to missing field'.
+      File proceeds to Stage 6 with degraded analytical coverage.
+    consumed_by: ALL   # every analysis depends on canonical column mapping
+    edit_risk: HIGH    # changing this rule's behaviour affects every file upload
+
+  # ==========================================================================
+  # STAGE 6 — USER VALIDATION (HITL)
+  # ==========================================================================
+  # Stage 6 is the heavy HITL stage. Consultant validates AI-suggested mappings
+  # for master data classification (entities, plant codes, vendor types,
+  # roles, dates, currencies, UoMs).
+
+  - id: procurement.entity_classification_via_stage6_mapping
+    name: "Entity Classification (Central / Plant / BU mapping)"
+    stage: 6
+    description: |
+      For PO data with classifying fields (EKORG / Purchase_Group / Cost_Center /
+      Buyer_ID), AI suggests a mapping from each unique value to one of:
+      central / plant_X / BU_X. Consultant confirms or overrides.
+    inputs:
+      primary_file: PO
+      primary_fields: [EKORG, Purchase_Group, Cost_Center, Buyer_ID]   # any one used as classifying field
+      cross_reference_file: Org_Structure   # optional; for cross-check
+      cross_reference_fields: [entity]
+    output:
+      modifies: PO
+      adds_fields:
+        - buying_entity   # canonical: central / plant_<X> / BU_<X>
+        - buying_entity_confidence   # HIGH / MEDIUM / LOW
+      produces_report: |
+        Entity mapping summary: N unique source values mapped, N consultant-overridden.
+    logic: |
+      1. Extract distinct values of primary classifying field
+      2. AI scans:
+         - Value text (e.g., "Corporate Procurement" → central; "PL01 Buying" → plant_jamshedpur)
+         - Cross-reference Org_Structure entity column if available
+         - Spend distribution (central typically high concentration; plants typically distributed)
+      3. Suggest mapping per source value
+      4. Consultant confirms / overrides via mapping grid
+    hitl_required: true
+    hitl_prompt: |
+      "We've grouped your buying-entity values. Please confirm each one is mapped to the
+       right entity (Central / a specific Plant / a Business Unit).
+
+       Suggestions in green are HIGH confidence (text + cross-reference match).
+       Suggestions in yellow are MEDIUM confidence (you should review).
+       Items in red have no suggestion — please map manually."
+    hitl_screen: entity_mapping_grid
+    error_handling: |
+      If consultant skips mapping for a source value: PO rows with that value tagged as
+      'unmapped' — counted toward analytics confidence-reduction.
+    consumed_by:
+      - opmodel.centralisation.c0_baseline
+      - opmodel.centralisation.c1_multi_plant_detection
+      - orgstructure.distribution.ds0_current_state
+      - orgstructure.distribution.ds1_bw_mapping
+      - orgstructure.distribution.ds2_per_entity_productivity
+    edit_risk: HIGH
+
+  - id: procurement.plant_code_mapped_to_canonical
+    name: "Plant Code Mapping to Canonical Plant List"
+    stage: 6
+    description: |
+      Client's plant codes in PO + other files mapped to the engagement's
+      canonical plant list (defined at engagement setup). Handles aliases,
+      typos, abbreviations.
+    inputs:
+      primary_file: PO
+      primary_fields: [Plant, Plant_Code, Plant_Description]
+      cross_reference_file: engagement_setup
+      cross_reference_fields: [canonical_plant_list]
+    output:
+      modifies: PO
+      adds_fields:
+        - canonical_plant
+        - plant_mapping_confidence
+      produces_report: "Plant code mapping: N unique source codes mapped to canonical plant list."
+    logic: |
+      1. Extract distinct plant values from PO
+      2. Fuzzy-match against canonical plant list (Levenshtein + alias bank)
+      3. Consultant confirms / overrides
+      4. Apply mapping across all PO rows + cross-apply to PR, GRN, Org_Structure where plant column exists
+    hitl_required: true
+    hitl_prompt: |
+      "Map each of your plant codes to one of the canonical plants we listed at engagement setup.
+       High-confidence matches are pre-filled."
+    hitl_screen: plant_mapping_grid
+    error_handling: |
+      Unmapped plant codes: rows tagged 'unmapped_plant'. Multi-plant analyses skip these rows
+      with explicit count flag.
+    consumed_by:
+      - opmodel.centralisation.c1_multi_plant_detection
+      - opmodel.centralisation.c2_vendor_pattern_insight
+      - orgstructure.distribution.ds1_bw_mapping
+      - orgstructure.distribution.ds2_per_entity_productivity
+      - buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity
+    edit_risk: HIGH
+
+  - id: procurement.vendor_type_classification_review
+    name: "Vendor Type Classification (Captive / Group / Open-Market / Approved-Only)"
+    stage: 6
+    description: |
+      Each vendor in vendor master tagged with vendor type. Captive (subsidiary
+      of client), Group (parent-group entity), Open-Market (third-party), or
+      Approved-Only (qualified panel member). Used by centralisation +
+      sole-source analyses.
+    inputs:
+      primary_file: Vendor_Master
+      primary_fields: [vendor_name, vendor_address, GST_number, vendor_type (raw)]
+    output:
+      modifies: Vendor_Master
+      adds_fields:
+        - vendor_type_canonical
+        - vendor_type_confidence
+      produces_report: "Vendor type classification: N vendors classified."
+    logic: |
+      1. AI scans vendor_name + address for captive/group signals (matches client name pattern)
+      2. Check raw vendor_type column if present
+      3. Suggest classification per vendor
+      4. Consultant validates (especially for captive/group — often consultant has explicit list)
+    hitl_required: true
+    hitl_prompt: |
+      "Confirm vendor type for each vendor. Captive = your subsidiary; Group = parent-group
+       entity; Open-Market = third-party; Approved-Only = pre-qualified panel."
+    hitl_screen: vendor_type_grid
+    error_handling: "Default to Open-Market if consultant skips. Flagged in narrative."
+    consumed_by:
+      - opmodel.centralisation.c2_vendor_pattern_insight
+      - opmodel.tail_spend.ts2_vendor_footprint
+      - opmodel.coe.ce1_strategic_identification
+    edit_risk: MEDIUM
+
+  - id: procurement.org_entity_mapped_to_canonical
+    name: "Org Structure Entity Mapping"
+    stage: 6
+    description: |
+      Org Structure / Employee Master entity column mapped to canonical entity list
+      (same canonical list as plant code mapping but for org structure).
+    inputs:
+      primary_file: Org_Structure
+      primary_fields: [entity, business_unit, plant_assigned, function]
+      cross_reference_file: engagement_setup
+      cross_reference_fields: [canonical_plant_list, canonical_bu_list]
+    output:
+      modifies: Org_Structure
+      adds_fields:
+        - canonical_entity
+        - canonical_entity_type   # central / plant / BU
+    logic: |
+      Similar to plant_code_mapped_to_canonical but for org structure data.
+      Consultant confirms mapping per source value.
+    hitl_required: true
+    hitl_prompt: "Map each entity value in your Org Structure file to a canonical entity."
+    hitl_screen: org_entity_mapping_grid
+    error_handling: "Unmapped: tagged for review; Org Structure analyses skip with flag."
+    consumed_by:
+      - orgstructure.distribution.ds0_current_state
+      - orgstructure.distribution.ds1_bw_mapping
+    edit_risk: HIGH
+
+  - id: procurement.org_role_title_canonicalised
+    name: "Role Title Canonicalisation (3-Step Pipeline)"
+    stage: 6
+    description: |
+      Map client's raw role titles to canonical role-type taxonomy:
+      Category Manager / Transactional Buyer / Specialist (sub-type) / Leadership.
+      Uses 3-step pipeline: rule-based → level-entity tiebreaker → AI prompt.
+      Consultant validates at Stage 6.
+    inputs:
+      primary_file: Org_Structure
+      primary_fields: [role_title, level, entity, function]
+    output:
+      modifies: Org_Structure
+      adds_fields:
+        - classified_role_type
+        - classified_specialist_subtype   # Analytics / SRM / FBP / Risk / Sustainability / Digital / etc.
+        - classified_confidence   # HIGH / MEDIUM / LOW
+    logic: |
+      Step 1 — Rule-based: regex against role_title (e.g., "buyer" → Transactional;
+        "category manager" / "sourcing manager" → Category Manager; "head" / "director"
+        → Leadership; specialist titles → Specialist + subtype).
+      Step 2 — Level-entity tiebreaker: ambiguous titles (e.g., "Manager") disambiguated
+        by level (senior level → Category Manager; junior → Transactional) + entity
+        (central → more likely Cat Mgr; plant → more likely Transactional).
+      Step 3 — AI prompt: for remaining LOW-confidence cases, AI prompt with role
+        title + level + entity + function → returns classification + confidence.
+      Step 4 — Consultant validation: review all classifications, override as needed.
+        Stage 6 screen presents the pipeline output for confirmation.
+    hitl_required: true
+    hitl_prompt: |
+      "We've classified each role into Category Manager / Transactional / Specialist /
+       Leadership. Please review each role's classification.
+
+       HIGH-confidence classifications are pre-confirmed; please review MEDIUM/LOW."
+    hitl_screen: role_classification_grid
+    error_handling: |
+      Roles still unclassified after consultant review: tagged 'unclassified_role'.
+      Org Structure analyses report degraded confidence based on % unclassified.
+    consumed_by:
+      - orgstructure.fte_sizing.ft0_current_state
+      - orgstructure.fte_sizing.ft2_pos_per_fte
+      - orgstructure.fte_sizing.ft3_role_composition_mix
+      - orgstructure.fte_sizing.ft4_specialist_roles_audit
+    edit_risk: HIGH
+
+  - id: procurement.date_format_confirmation
+    name: "Date Format Confirmation"
+    stage: 6
+    description: |
+      When universal rule normalise_date_format flags ambiguous dates
+      (dd/mm/yyyy vs mm/dd/yyyy in mixed-format files), consultant confirms the
+      intended interpretation.
+    inputs:
+      primary_file: any
+      primary_fields: [date_columns]   # all date-typed columns
+    output:
+      modifies: file
+      adds_fields: [date_format_confirmed]
+    logic: |
+      1. Universal date normalisation flags ambiguous date columns
+      2. Engine shows consultant a sample of dates + both interpretations
+      3. Consultant picks the right one (often dd/mm/yyyy for Indian clients but not always)
+    hitl_required: true
+    hitl_prompt: |
+      "Some dates in your file could be interpreted as dd/mm/yyyy or mm/dd/yyyy.
+       Please confirm the format used in your data."
+    hitl_screen: date_format_picker
+    error_handling: "Default to dd/mm/yyyy (Indian convention)."
+    consumed_by: ALL_DATE_DEPENDENT_ANALYSES
+    edit_risk: MEDIUM
+
+  - id: procurement.currency_default_confirmation
+    name: "Currency Default Confirmation"
+    stage: 6
+    description: |
+      For rows where currency column is blank, consultant confirms the default
+      currency assumption (typically INR for Indian engagements but PO data may
+      include USD/EUR for imports).
+    inputs:
+      primary_file: PO
+      primary_fields: [currency, Net_Value, Vendor_Name]
+    output:
+      modifies: PO
+      adds_fields: [currency_assumed]
+    logic: |
+      1. Find PO rows with blank currency
+      2. Cross-check vendor (foreign vendor likely USD/EUR; domestic likely INR)
+      3. Suggest default currency per blank row
+      4. Consultant confirms blanket default or row-level overrides
+    hitl_required: true
+    hitl_prompt: |
+      "Some PO rows have no currency value. Confirm the default to assume.
+       (Indian engagements typically INR but check for imports.)"
+    hitl_screen: currency_default_picker
+    error_handling: "Default to INR if consultant skips."
+    consumed_by:
+      - opmodel.centralisation.c4_savings_quantification
+      - opmodel.shared_services.ss1_volume_value_quadrant
+      - opmodel.shared_services.ss4_fte_productivity
+      - opmodel.tail_spend.ts1_quantification
+      - opmodel.coe.ce4_value_quantification
+      - buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+    edit_risk: MEDIUM
+
+  - id: procurement.uom_normalisation_review
+    name: "UoM Normalisation Review"
+    stage: 6
+    description: |
+      Engine normalises Unit of Measure values (KG / Kg / kilograms → kg; MT / Tonne / TON → tonne).
+      Consultant reviews ambiguous cases (e.g., "PCS" vs "NOS" vs "EA" — all "count" units but
+      consultant confirms equivalence per MG).
+    inputs:
+      primary_file: PO
+      primary_fields: [UoM, Material_Group_Desc]
+    output:
+      modifies: PO
+      adds_fields: [canonical_uom]
+    logic: |
+      1. Auto-normalise common variants (case, spacing, common synonyms)
+      2. Flag distinct UoMs per MG that engine can't equate confidently
+      3. Consultant confirms equivalence or marks MG as multi-UoM (split for analysis)
+    hitl_required: true
+    hitl_prompt: |
+      "We've normalised most UoM values automatically. Please review these ambiguous cases —
+       confirm whether 'PCS' and 'NOS' for this MG mean the same unit."
+    hitl_screen: uom_review_grid
+    error_handling: "Multi-UoM MGs split per UoM in analysis; flag in narrative."
+    consumed_by: ALL_QUANTITY_DEPENDENT_ANALYSES   # most analyses are spend-based, not quantity, so impact is selective
+    edit_risk: LOW
+
+  # ==========================================================================
+  # STAGE 8 — GOLD DATA (SEMANTIC CLEANSING)
+  # ==========================================================================
+  # Mostly automated; HITL only for fuzzy matches that need consultant validation.
+
+  - id: procurement.vendor_dedup_semantic
+    name: "Vendor Semantic Deduplication"
+    stage: 8
+    description: |
+      Detect and merge vendor records that refer to the same legal entity despite
+      different name spellings, suffixes, or abbreviations
+      (e.g., "ABC Industries", "ABC INDUSTRIES PVT LTD", "A.B.C. Inds").
+    inputs:
+      primary_file: Vendor_Master
+      primary_fields: [vendor_id, vendor_name, vendor_address, GST_number]
+      cross_reference_file: PO
+      cross_reference_fields: [vendor_id, vendor_name]
+    output:
+      modifies: Vendor_Master
+      adds_fields:
+        - canonical_vendor_id
+        - dedup_group_id
+        - dedup_confidence
+      produces_report: "List of merged vendor groups for consultant review."
+    logic: |
+      1. Normalise vendor_name: uppercase, strip punctuation, remove common suffixes
+         (PVT LTD, LIMITED, PRIVATE LIMITED, INDUSTRIES, INDS, CORPORATION, etc.)
+      2. Exact match on GST_number → confident merge (auto-apply)
+      3. Fuzzy match on normalised vendor_name (Levenshtein < 0.15) AND address overlap
+         → propose merge (consultant validates)
+      4. Manual merge UI for consultant to confirm proposed merges
+    hitl_required: true   # only for fuzzy proposals; exact GST matches auto-apply
+    hitl_prompt: |
+      "We've grouped vendors we suspect are the same entity. Please confirm each merge
+       proposal. Exact GST matches are auto-confirmed."
+    hitl_screen: vendor_dedup_grid
+    error_handling: |
+      Missing GST: fall back to fuzzy name + address.
+      Still no match: keep separate (vendor_count slightly inflated; flag in narrative).
+    consumed_by:
+      - opmodel.centralisation.c2_vendor_pattern_insight
+      - opmodel.tail_spend.ts2_vendor_footprint
+      - opmodel.coe.ce1_strategic_identification
+      - buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity
+      - buyingchannel.buying_channel_strategy.bc8_sole_source_risk_categories
+    edit_risk: HIGH
+
+  - id: procurement.po_value_currency_normalised
+    name: "PO Value Currency Normalisation to INR"
+    stage: 8
+    description: |
+      For multi-currency PO data, convert all Net_Value to INR using engagement-period FX rates.
+      Uses RBI reference rates by default; consultant can override with client-specific rates.
+    inputs:
+      primary_file: PO
+      primary_fields: [Net_Value, currency, PO_Creation_Date]
+    output:
+      modifies: PO
+      adds_fields:
+        - net_value_inr
+        - fx_rate_applied
+        - fx_rate_source
+      produces_report: "Currency normalisation summary: N rows converted, N currencies, average FX rates."
+    logic: |
+      1. For each PO row, lookup FX rate (RBI reference rate by default) for currency on PO_Creation_Date
+      2. If date-specific rate unavailable, fall back to monthly average
+      3. Multiply Net_Value × FX_rate → net_value_inr
+      4. Store fx_rate_applied + source for auditability
+    hitl_required: false   # auto-apply; consultant override available via engagement config
+    error_handling: |
+      Unknown currency code: tag row 'currency_unknown'; exclude from analytical sum; flag in narrative.
+      FX rate unavailable for date: use nearest available date; flag for review.
+    consumed_by:
+      - opmodel.centralisation.c4_savings_quantification
+      - opmodel.shared_services.ss1_volume_value_quadrant
+      - opmodel.shared_services.ss4_fte_productivity
+      - opmodel.tail_spend.ts1_quantification
+      - opmodel.tail_spend.ts4_outsourcing_savings
+      - opmodel.coe.ce1_strategic_identification
+      - opmodel.coe.ce4_value_quantification
+      - buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today
+      - buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+      - buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate
+      - buyingchannel.buying_channel_strategy.bc13_contract_coverage_lift_estimate
+    edit_risk: HIGH
+
+  - id: procurement.po_negative_value_handling
+    name: "PO Negative Value (Cancellation / Return) Handling"
+    stage: 8
+    description: |
+      Negative PO values typically represent cancellations or returns. Tag explicitly
+      and exclude from analytical sums (otherwise they net out / distort metrics).
+    inputs:
+      primary_file: PO
+      primary_fields: [Net_Value, PO_Number, PO_Item, deletion_indicator]
+    output:
+      modifies: PO
+      adds_fields:
+        - po_status_inferred   # active / cancellation / return / partial_credit
+      produces_report: "Negative PO summary: N negative rows tagged."
+    logic: |
+      1. Filter PO rows with Net_Value < 0
+      2. Inspect: paired with original PO_Number (cancellation), standalone (return), or partial-credit
+      3. Tag each row appropriately
+      4. Exclude tagged rows from positive-spend analyses; include separately in cancellation/return reports
+    hitl_required: false   # auto-apply; surfaces in QA report for consultant review
+    error_handling: "Ambiguous negative values flagged for consultant review in QA summary."
+    consumed_by: ALL_SPEND_DEPENDENT_ANALYSES
+    edit_risk: MEDIUM
+
+  - id: procurement.po_duplicate_line_detection
+    name: "PO Duplicate Line Detection"
+    stage: 8
+    description: |
+      Same PO sometimes re-entered with different PO_Number due to data-entry corrections,
+      ERP cutover issues, or accidental duplication. Detect candidates by matching
+      vendor + date + spec + value.
+    inputs:
+      primary_file: PO
+      primary_fields: [PO_Number, PO_Creation_Date, Vendor_ID, Material_Group, Net_Value, Quantity]
+    output:
+      modifies: PO
+      adds_fields:
+        - duplicate_candidate_group_id   # populated when row is a suspected duplicate
+        - duplicate_resolution   # keep_all / keep_first / consultant_review
+      produces_report: "Suspected duplicate PO groups for consultant review."
+    logic: |
+      1. Group PO rows by (Vendor_ID, PO_Creation_Date, Material_Group, Net_Value, Quantity)
+      2. Groups with 2+ rows = suspected duplicates
+      3. Flag for consultant review; default action = keep_all (conservative)
+    hitl_required: true   # only for groups flagged
+    hitl_prompt: |
+      "These PO groups look like potential duplicates. For each, choose:
+       'Keep all' (legitimate distinct POs), 'Keep first' (deduplicate), or 'Skip review'."
+    hitl_screen: duplicate_po_review_grid
+    error_handling: "Default keep_all; flag duplicate-candidate count in narrative."
+    consumed_by: ALL_PO_COUNT_DEPENDENT_ANALYSES
+    edit_risk: MEDIUM
+
+  - id: procurement.pr_po_join_via_reference
+    name: "PR-PO Join via PR Reference Field"
+    stage: 8
+    description: |
+      Join PR and PO dumps via the PR_Reference field on PO. Enables PR-to-PO TAT
+      computation. Custom rule introduced for Buying Channel BC11.
+    inputs:
+      primary_file: PO
+      primary_fields: [PO_Number, PO_Creation_Date, PR_Reference]
+      cross_reference_file: PR
+      cross_reference_fields: [PR_Number, PR_Creation_Date, PR_Release_Date]
+    output:
+      modifies: PO
+      adds_fields:
+        - pr_creation_date
+        - pr_release_date
+        - pr_to_po_tat_days
+        - join_status   # joined / unmatched_po / pr_only
+      produces_report: "PR-PO join coverage: N% joined, N PO rows without PR reference."
+    logic: |
+      1. For each PO row with PR_Reference, lookup PR by PR_Number
+      2. If match: copy pr_creation_date + pr_release_date; compute pr_to_po_tat_days
+      3. If no match: tag 'unmatched_po'
+      4. For PR rows with no matching PO: tag 'pr_only' (cancelled / abandoned PRs)
+    hitl_required: false   # auto-apply; coverage % surfaces in QA
+    error_handling: |
+      Low join coverage (<70%): BC11 (TAT analysis) skips with explicit message.
+      Date inconsistency (po_date < pr_release_date): flag row; exclude from TAT calc.
+    consumed_by:
+      - buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate
+      - prto_po.*    # future PR-to-PO pillar will use this extensively
+    edit_risk: MEDIUM
+
+  - id: procurement.uom_canonical_mapping
+    name: "UoM Canonical Mapping"
+    stage: 8
+    description: |
+      Apply Stage 6 UoM review decisions to canonicalise UoM values across PO rows.
+      Multi-UoM MGs split per canonical UoM.
+    inputs:
+      primary_file: PO
+      primary_fields: [UoM, Material_Group]
+    output:
+      modifies: PO
+      adds_fields:
+        - canonical_uom
+        - uom_split_flag   # true if MG has multiple canonical UoMs
+    logic: |
+      1. Apply mapping table from Stage 6 UoM review
+      2. For MGs with multiple canonical UoMs, tag rows with uom_split_flag
+      3. Downstream quantity-based analyses split MG by canonical UoM
+    hitl_required: false   # decisions made at Stage 6; this is execution
+    error_handling: "Unmapped UoM: tag 'uom_unknown'; quantity analyses exclude row."
+    consumed_by: ALL_QUANTITY_DEPENDENT_ANALYSES
+    edit_risk: LOW
+
+  - id: procurement.contract_reference_derivation
+    name: "Contract Reference Derivation (is_contracted Flag)"
+    stage: 8
+    description: |
+      Derive a single is_contracted flag + channel sub-type label per PO row from
+      contract reference fields (Contract_Number / Outline_Agreement / Scheduling_Agreement)
+      and short-text heuristics.
+    inputs:
+      primary_file: PO
+      primary_fields: [Contract_Number, Outline_Agreement, Scheduling_Agreement, Short_Text]
+    output:
+      modifies: PO
+      adds_fields:
+        - is_contracted   # boolean
+        - channel_sub_type   # rc_lt / ola / catalogue / spot_uncontracted
+        - channel_derivation_source   # contract_number / outline_agreement / scheduling_agreement / short_text_heuristic
+        - channel_derivation_confidence   # HIGH (field-based) / LOW (heuristic)
+    logic: |
+      1. If Contract_Number non-blank → is_contracted=true, channel_sub_type=rc_lt (default; refine via contract master if available)
+      2. ELIF Outline_Agreement non-blank → is_contracted=true, channel_sub_type=ola
+      3. ELIF Scheduling_Agreement non-blank → is_contracted=true, channel_sub_type=catalogue
+      4. ELIF Short_Text matches /ARC|agreement|contract|reference/i → is_contracted=true, channel_sub_type=ola (low confidence, flag for review)
+      5. ELSE → is_contracted=false, channel_sub_type=spot_uncontracted
+    hitl_required: false   # auto-apply
+    error_handling: |
+      If <50% of POs have any contract-reference field populated, surface in QA report;
+      BC1 (portfolio channel mix) flags contracted % as lower bound.
+    consumed_by:
+      - buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today
+      - buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+      - buyingchannel.buying_channel_strategy.bc5_match_status_per_mg
+    edit_risk: HIGH
+
+  - id: procurement.short_text_pac_detection
+    name: "Short Text PAC Detection (Sole-Source Heuristic)"
+    stage: 8
+    description: |
+      Heuristic PAC detection: scan PO Short_Text + Item_Description for PAC /
+      proprietary / OEM / sole-source keywords. Used by BC8 sole-source risk
+      detection when explicit PAC_Flag column unavailable.
+    inputs:
+      primary_file: PO
+      primary_fields: [Short_Text, Item_Description, PAC_Flag (if present)]
+    output:
+      modifies: PO
+      adds_fields:
+        - pac_flag_derived   # boolean
+        - pac_flag_source   # column / short_text_match / qre_confirmed
+    logic: |
+      1. If PAC_Flag column exists and non-blank → use directly
+      2. Else: regex match Short_Text + Item_Description against
+         /proprietary|OEM|sole.?source|PAC|single.?source/i
+      3. If matched → pac_flag_derived = true; source = short_text_match (low confidence)
+      4. If QRE Q-BC-12 response confirms PAC reasoning for MG → upgrade confidence
+    hitl_required: false   # auto-apply; QRE lift happens at analysis stage
+    error_handling: "Pure heuristic; false positives possible. Surfaced as candidate list for BC8 consultant review."
+    consumed_by:
+      - buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg
+      - buyingchannel.buying_channel_strategy.bc8_sole_source_risk_categories
+    edit_risk: MEDIUM
+
+  # ==========================================================================
+  # STAGE 9 — CATEGORY CLASSIFICATION (INTERFACE)
+  # ==========================================================================
+  # The Stage 9 engine is owned by a separate module (categories-master.yml +
+  # classification logic). This rule defines the INTERFACE that downstream
+  # pillar analyses consume.
+
+  - id: procurement.category_aligned_to_industry_taxonomy
+    name: "Category Classification — Canonical Industry Taxonomy Alignment"
+    stage: 9
+    description: |
+      For each PO row, map the raw Material_Group + Material_Group_Desc to a
+      canonical category in the industry's categories-master.yml. Output
+      includes both the canonical category and its archetype (BULK / DIRECT /
+      INDIRECT / SERVICE / CAPEX / UNCLASSIFIED).
+    inputs:
+      primary_file: PO
+      primary_fields: [Material_Group, Material_Group_Desc, Material_Type, Item_Category, Short_Text]
+      cross_reference_file: industries/<ind>/categories-master.yml
+      cross_reference_fields: [canonical_category, archetype, classification_rules]
+    output:
+      modifies: PO
+      adds_fields:
+        - reclassified_category   # canonical category from industry taxonomy
+        - archetype   # BULK / DIRECT / INDIRECT / SERVICE / CAPEX
+        - reclassification_confidence   # HIGH / MEDIUM / LOW / UNCLASSIFIED
+        - reclassification_source   # mg_code_exact / mg_desc_keyword / material_type / item_category / fallback
+      produces_report: |
+        Classification summary:
+        - N PO rows classified (HIGH / MEDIUM / LOW confidence)
+        - N PO rows UNCLASSIFIED (% of spend)
+        - Top 20 unclassified MGs by spend (for Material Master cross-pillar handoff)
+    logic: |
+      Owned by the Stage 9 engine (separate module, parallel chat).
+      Engine logic summary:
+        1. Exact match on MG code if industry taxonomy includes the client's MG codes
+        2. Keyword bank match on MG description + Short_Text
+        3. SAP field signals (MTART, PSTYP) for archetype-level fallback
+        4. Industry-overlay keyword extensions for finer matching
+        5. Consultant review for LOW-confidence and UNCLASSIFIED at Stage 9 HITL screen
+    hitl_required: true   # Stage 9 has its own consultant review screen
+    hitl_prompt: |
+      "Stage 9 has classified N% of your POs with HIGH confidence. Please review
+       the MEDIUM/LOW confidence classifications and the UNCLASSIFIED list."
+    hitl_screen: stage9_classification_review
+    error_handling: |
+      UNCLASSIFIED MGs route to Material Master cross-pillar finding.
+      LOW confidence classifications flagged in pillar narratives.
+      Industry overlay keyword banks should be expanded as new client engagements
+      surface unclassified items.
+    consumed_by:
+      # Op Model
+      - opmodel.centralisation.c1_multi_plant_detection
+      - opmodel.centralisation.c2_vendor_pattern_insight
+      - opmodel.centralisation.c3_industry_knowledge_filter
+      - opmodel.centralisation.c4_savings_quantification
+      - opmodel.shared_services.ss1_volume_value_quadrant
+      - opmodel.shared_services.ss2_industry_filter
+      - opmodel.tail_spend.ts1_quantification
+      - opmodel.tail_spend.ts3_industry_filter
+      - opmodel.coe.ce1_strategic_identification
+      - opmodel.coe.ce2_industry_filter
+      # Buying Channel
+      - buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+      - buyingchannel.buying_channel_strategy.bc3_archetype_channel_heatmap
+      - buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg
+      - buyingchannel.buying_channel_strategy.bc5_match_status_per_mg
+      - buyingchannel.buying_channel_strategy.bc6_migration_opportunities_by_target_channel
+      - buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity
+      - buyingchannel.buying_channel_strategy.bc9_project_one_off_exclusion
+      - buyingchannel.buying_channel_strategy.bc10_unclassified_mgs
+      - buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate
+      - buyingchannel.buying_channel_strategy.bc12_buyer_bandwidth_freed
+      - buyingchannel.buying_channel_strategy.bc13_contract_coverage_lift_estimate
+    edit_risk: HIGH   # interface specification; engine implementation owned by Stage 9 module
+
+# =============================================================================
+# EXECUTION ORDER PER STAGE
+# =============================================================================
+
+execution_order_stage5:
+  - procurement.column_mapping_confirmation
+
+execution_order_stage6:
+  - procurement.date_format_confirmation
+  - procurement.currency_default_confirmation
+  - procurement.plant_code_mapped_to_canonical
+  - procurement.entity_classification_via_stage6_mapping
+  - procurement.vendor_type_classification_review
+  - procurement.org_entity_mapped_to_canonical
+  - procurement.org_role_title_canonicalised
+  - procurement.uom_normalisation_review
+
+execution_order_stage8:
+  - procurement.vendor_dedup_semantic
+  - procurement.po_value_currency_normalised
+  - procurement.po_negative_value_handling
+  - procurement.po_duplicate_line_detection
+  - procurement.pr_po_join_via_reference
+  - procurement.uom_canonical_mapping
+  - procurement.contract_reference_derivation
+  - procurement.short_text_pac_detection
+
+execution_order_stage9:
+  - procurement.category_aligned_to_industry_taxonomy
+
+# =============================================================================
+# RULE CATEGORIES (for KB Editor UI grouping)
+# =============================================================================
+
+categories:
+  hitl_mappings:   # consultant-driven master data mappings
+    - procurement.column_mapping_confirmation
+    - procurement.plant_code_mapped_to_canonical
+    - procurement.entity_classification_via_stage6_mapping
+    - procurement.vendor_type_classification_review
+    - procurement.org_entity_mapped_to_canonical
+    - procurement.org_role_title_canonicalised
+
+  hitl_confirmations:   # consultant confirms engine defaults
+    - procurement.date_format_confirmation
+    - procurement.currency_default_confirmation
+    - procurement.uom_normalisation_review
+
+  semantic_cleansing:   # automated Stage 8 cleansing
+    - procurement.vendor_dedup_semantic
+    - procurement.po_value_currency_normalised
+    - procurement.po_negative_value_handling
+    - procurement.po_duplicate_line_detection
+    - procurement.uom_canonical_mapping
+    - procurement.contract_reference_derivation
+    - procurement.short_text_pac_detection
+
+  cross_file_joins:
+    - procurement.pr_po_join_via_reference
+
+  classification_interface:
+    - procurement.category_aligned_to_industry_taxonomy
+
+# =============================================================================
+# Editable Configuration
+# =============================================================================
+# Adding new rule: MEDIUM (peer KB lead review)
+# Modifying logic: HIGH (affects engine behaviour)
+# Modifying HITL prompts: LOW (UI text)
+# Modifying consumed_by: HIGH (must coincide with tracker updates)
+# Removing rule: HIGH (partner — affects downstream analyses)
+#
+# Quarterly review: confirm consumed_by lists match tracker
+# aggregate_data_cleaning_rules section.
+# =============================================================================
