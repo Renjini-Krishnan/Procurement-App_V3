@@ -1,0 +1,124 @@
+# =============================================================================
+# Steel Industry — CoE Filters (Op Model)
+# =============================================================================
+# Purpose: Steel-specific tagging for strategic candidates from CE1.
+#      Tags as CoE-Suitable / Already-Strategic / Plant-Owned.
+#      Also provides strategic_by_nature list (CE1 Lens B).
+# =============================================================================
+
+metadata:
+  id: steel-coe-filters
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: op-model
+  theme: coe
+  version: 1.0
+  last_updated: 2026-05-27
+
+# =============================================================================
+# THRESHOLDS
+# =============================================================================
+
+min_coe_addressable_spend_inr_cr: 50
+high_vendor_concentration_threshold_pct: 70
+coe_optimal_category_count_range: [8, 12]
+
+# =============================================================================
+# STRATEGIC-BY-NATURE — Strategic regardless of Volume-Value quadrant placement
+# =============================================================================
+
+strategic_by_nature:
+
+  - category_pattern: "direct.raw_materials.iron_ore_market"
+reason: "Iron ore (market portion) — THE strategic raw material for integrated steel. Always warrants CoE attention."
+
+  - category_pattern: "direct.raw_materials.coking_coal_imported"
+reason: "Imported coking coal — strategic for blast furnace. Few large vendors, commodity exposure, geopolitical risk."
+
+  - category_pattern: "direct.process_inputs.ferro_alloys"
+reason: "Ferro alloys (Si-Mn, Fe-Mn, Fe-Cr, Fe-Si) — narrow supplier base, commodity volatility, alloy mix optimisation."
+
+  - category_pattern: "direct.process_inputs.refractories"
+reason: "Spec-sensitive across kiln/ladle/converter. Strong CoE case for spec standardisation + supplier consolidation."
+
+  - category_pattern: "direct.process_inputs.mill_rolls"
+reason: "Mill rolls — high-spec engineered, narrow supplier base, significant annual spend."
+
+  - category_pattern: "direct.process_inputs.carbon_electrodes"
+reason: "Graphite electrodes for EAF — concentrated supplier base (UCAR, Showa Denko, GIL, HEG), commodity-linked pricing."
+
+  - category_pattern: "direct.logistics.outbound_finished_steel"
+reason: "Outbound logistics — high spend, complex contracting (rail/sea/road), strategic vendor relationships."
+
+# =============================================================================
+# CoE-SUITABLE — Strategic categories that should be in a formal CoE
+# =============================================================================
+
+coe_suitable:
+
+  - category_pattern: "direct.raw_materials.iron_ore_market"
+reason: "Commodity exposure + strategic supplier relationships; CoE drives market intel + price hedging"
+
+  - category_pattern: "direct.raw_materials.coking_coal_imported"
+reason: "Imported supply, geopolitical risk, large contracts; CoE provides expertise + relationship continuity"
+
+  - category_pattern: "direct.process_inputs.ferro_alloys"
+reason: "Narrow supplier base, commodity volatility; CoE drives alloy optimisation + supplier consolidation"
+
+  - category_pattern: "direct.process_inputs.refractories"
+reason: "Spec standardisation opportunity across plants; CoE drives spec rationalisation + supplier consolidation"
+
+  - category_pattern: "direct.process_inputs.mill_rolls"
+reason: "Engineered product; CoE relationship with qualified makers, life-cycle cost optimisation"
+
+  - category_pattern: "direct.process_inputs.carbon_electrodes"
+reason: "Concentrated supplier base; CoE relationship + commodity-linked pricing management"
+
+  - category_pattern: "direct.logistics.outbound_finished_steel"
+reason: "Complex contracting (rail/road/sea); CoE drives lane optimisation + rate negotiation"
+
+  - category_pattern: "indirect.it.corporate_systems"
+reason: "Strategic IT systems (ERP, MES, planning) — large multi-year contracts"
+
+  - category_pattern: "indirect.professional_services.consulting_legal"
+reason: "High-value advisory engagements; CoE drives panel rationalisation + rate framework"
+
+  - category_pattern: "indirect.engineering_services.capex_eng_consulting"
+reason: "Capex-linked engineering consulting (DPR, detailed design); high-value, technical CoE oversight"
+
+# =============================================================================
+# ALREADY-STRATEGIC-NO-CoE-NEED
+# =============================================================================
+
+already_strategic_no_coe_need:
+
+  - category_pattern: "direct.raw_materials.iron_ore_captive"
+reason: "Captive iron ore — managed at corporate strategy level (mining ops, Operations, CFO). Procurement CoE has no role."
+
+  - category_pattern: "direct.utilities.power_long_term_ppa"
+reason: "Power on long-term PPA / captive power plant — already strategic via contract structure. CoE has no incremental commercial leverage post PPA signing."
+
+  - category_pattern: "direct.process_inputs.industrial_gases_long_term_asu"
+reason: "Industrial gases on long-term ASU contracts — already strategically locked-in. CoE adds value only at renewal."
+
+  - category_pattern: "direct.raw_materials.coking_coal_long_term_offtake"
+reason: "Long-term offtake coking coal contracts — strategic by contract design; CoE may consult on renewal but doesn't actively manage during tenor."
+
+# =============================================================================
+# PLANT-OWNED — Categories operationally plant-owned despite strategic size
+# =============================================================================
+
+plant_owned:
+
+  - category_pattern: "indirect.insurance.plant_property_liability"
+reason: "Plant property + liability insurance — typically Finance/Risk function remit, not procurement."
+
+  - category_pattern: "indirect.facilities.plant_maintenance_master_contracts_large"
+reason: "Large plant-specific AMC contracts — operationally plant-owned. Local plant management retains expertise."
+
+  - category_pattern: "indirect.facilities.security_services_large_contracts"
+reason: "Plant security service master contracts — operationally plant-owned; state-licensing + plant familiarity dominate."
+
+  - category_pattern: "indirect.travel.large_contracts"
+reason: "Travel programme master contracts — typically HR + Admin remit, not procurement CoE."

@@ -1,0 +1,347 @@
+# =============================================================================
+# Org Structure — Function-Default Benchmarks
+# =============================================================================
+
+metadata:
+  id: org-structure-benchmarks-function-default
+  layer: function
+  function: procurement
+  pillar: org-structure
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# THEME 1: No quantified benchmarks (Theme 1 produces structural verdicts only).
+#      Industry-typical patterns (descriptive) live in industry overlay filters.
+
+benchmarks:
+
+  # ==========================================================================
+  # THEME 2 — FTE SIZING & ROLE COMPOSITION
+  # ==========================================================================
+
+  - id: org.fte_productivity.spend_per_fte_inr_cr
+name: "Procurement Spend per FTE (₹ Cr per FTE per year)"
+description: |
+  Annual procurement-managed spend per procurement FTE. Function default
+  is cross-industry; industry overlays narrow materially.
+metric_type: currency_range
+unit: "INR Cr per FTE per year"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [30, 100]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: Hackett-2024, value_range: [40, 120], year: 2024, confidence: medium }
+  - { source_id: APQC-2024, value_range: [25, 90], year: 2024, confidence: high }
+composite:
+  value_range: [25, 120]
+drivers_explained: |
+  Spend/FTE varies by: industry intensity, role mix, SSC presence, Direct vs Indirect mix.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [fte_productivity, sizing, function_default]
+
+  - id: org.fte_productivity.pos_per_fte_category_mgr
+name: "POs per FTE — Category Manager"
+description: "Annual POs handled per Cat Mgr FTE. Lower than Transactional (fewer, higher-value POs)."
+metric_type: count_range
+unit: "POs per FTE per year"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [200, 500]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: Hackett-2024, value_range: [250, 600], confidence: medium }
+drivers_explained: |
+  Cat Mgr POs/FTE shaped by: category complexity, strategic vs transactional weighting, PO definition.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [fte_productivity, role_type_cat_mgr, function_default]
+
+  - id: org.fte_productivity.pos_per_fte_transactional
+name: "POs per FTE — Transactional Buyer"
+description: |
+  Annual POs handled per Transactional Buyer FTE in plant-distributed model.
+  For SSC POs/FTE, see opmodel.shared_services benchmarks.
+metric_type: count_range
+unit: "POs per FTE per year"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [1500, 3000]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: APQC-2024, value_range: [1800, 3500], confidence: high }
+  - { source_id: Hackett-2024, value_range: [2000, 4000], confidence: medium }
+drivers_explained: |
+  Transactional POs/FTE driven by tooling maturity, role bundling, PO complexity, exception rate.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [fte_productivity, role_type_transactional, function_default]
+
+  - id: org.role_composition.category_mgr_share_pct
+name: "Category Manager Share of Total FTE (%)"
+description: "Share of total procurement FTEs in Category Manager role."
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [25, 40]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: Hackett-2024, value_range: [30, 45], note: "Hackett world-class", confidence: medium }
+drivers_explained: |
+  Cat Mgr ratio higher in: mature procurement organisations, strategic mandate, SSC-enabled models.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [role_composition, function_default]
+
+  - id: org.role_composition.transactional_share_pct
+name: "Transactional Buyer Share of Total FTE (%)"
+description: "Share of total procurement FTEs in Transactional Buyer role."
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [30, 50]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: APQC-2024, value_range: [35, 55], confidence: high }
+drivers_explained: |
+  Higher in: plant-distributed models, no SSC, role bundling.
+  Lower in: SSC-enabled models, mature procurement.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [role_composition, function_default]
+
+  - id: org.role_composition.specialist_share_pct
+name: "Specialist Roles Share of Total FTE (%)"
+description: "Share of FTEs in specialist roles (Analytics, Contract Mgmt, SRM, FBP, Risk, Sustainability, Digital)."
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [10, 20]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: Hackett-2024, value_range: [15, 25], note: "World-class", confidence: medium }
+drivers_explained: |
+  Higher specialist ratio = sign of mature procurement capability investment.
+  Critical for strategic mandate, market intelligence, contract depth, ESG.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [role_composition, function_default]
+
+  - id: org.role_composition.leadership_share_pct
+name: "Leadership Share of Total FTE (%)"
+description: "Share of FTEs in leadership roles (CPO, Heads, Directors)."
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [5, 10]
+  confidence: high
+  year: 2024
+drivers_explained: "Leadership ratio typically narrow band. Higher = top-heavy; lower = thin oversight."
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: high
+tags: [role_composition, function_default]
+
+  # ==========================================================================
+  # THEME 3 — SPEND-FTE DISTRIBUTION
+  # ==========================================================================
+
+  - id: org.distribution.central_fte_share_pct
+name: "Central Procurement FTE Share (%)"
+description: |
+  Share of total procurement FTEs at Central (vs Plant / BU). Wide function-
+  default band — varies dramatically by industry; industry overlay narrows.
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [20, 60]
+  confidence: medium
+  year: 2024
+supporting:
+  - { source_id: APQC-2024, value_range: [20, 70], confidence: medium }
+drivers_explained: |
+  Central FTE share driven by: operating model, industry intensity, multi-plant vs single, M&A history.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [distribution, central_share, function_default]
+
+  - id: org.distribution.central_spend_share_pct
+name: "Central Procurement Spend Share (%)"
+description: |
+  Share of total procurement spend managed by Central. Often DIFFERENT from
+  FTE share — strategic categories concentrate spend at Central.
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [40, 80]
+  confidence: medium
+  year: 2024
+supporting:
+  - { source_id: APQC-2024, value_range: [30, 80], confidence: medium }
+drivers_explained: |
+  Central spend share typically EXCEEDS Central FTE share because strategic
+  categories are Central-managed with high ticket sizes.
+  - Aligned (FTE share ≈ Spend share): plant-distributed model
+  - Spend share > FTE share by 15-25 pp: strategic-mandate Centralised model (mature)
+  - Spend share < FTE share: unusual; investigate
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [distribution, central_spend_share, function_default]
+
+  - id: org.distribution.bw_imbalance_typical_threshold_pp
+name: "B/W Mapping Imbalance Threshold (percentage points)"
+description: "Threshold at which entity FTE share vs Spend share imbalance is flagged. Default 10pp."
+metric_type: percentage_point
+unit: "pp"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [10, 10]
+  confidence: medium
+  year: 2024
+drivers_explained: |
+  The 10 pp threshold catches material imbalances without false-flagging
+  small variations. Lower (5pp) over-flags; higher (20pp) misses real imbalances.
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: low
+tags: [distribution, threshold, function_default]
+
+  # ==========================================================================
+  # THEME 4 — HIERARCHY & SPAN
+  # ==========================================================================
+
+  - id: org.span.cpo_direct_reports
+name: "CPO Direct Reports — Healthy Span"
+description: "Healthy span for CPO/Head of Procurement. Narrower than lower-level (strategic decision load + executive stakeholder mgmt)."
+metric_type: count_range
+unit: "direct reports"
+primary:
+  source_id: Hackett-2024
+  value_range: [4, 7]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: ACN-Proc-Benchmark-DB, value_range: [4, 7], confidence: high }
+  - { source_id: APQC-2024, value_range: [4, 8], confidence: medium }
+drivers_explained: |
+  CPO span drivers: decision complexity, stakeholder mgmt.
+  Below 4: under-leveraged; too many layers above. Above 7: stretched.
+    applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [span_of_control, cpo, function_default]
+
+  - id: org.span.senior_management
+name: "Senior Management Span — Healthy"
+description: "Span for DGM / VP-direct / AVP / Sr GM level. Wider than CPO."
+metric_type: count_range
+unit: "direct reports"
+primary:
+  source_id: Hackett-2024
+  value_range: [5, 8]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: ACN-Proc-Benchmark-DB, value_range: [5, 8], confidence: high }
+drivers_explained: "Senior mgmt leads category teams or major plant clusters. Span driven by coordination complexity."
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [span_of_control, senior_mgmt, function_default]
+
+  - id: org.span.mid_management
+name: "Mid Management Span — Healthy"
+description: "Span for Sr Mgr / Mgr leading other Mgrs / category teams."
+metric_type: count_range
+unit: "direct reports"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [6, 10]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: APQC-2024, value_range: [6, 12], confidence: medium }
+drivers_explained: "Mid mgmt leads category sub-teams or plant procurement teams. Wider than senior."
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [span_of_control, mid_mgmt, function_default]
+
+  - id: org.span.first_line_lead
+name: "First-Line Lead Span — Healthy"
+description: "Span for Mgr / Lead managing buyers / Asst Mgrs (transactional or SSC team lead)."
+metric_type: count_range
+unit: "direct reports"
+primary:
+  source_id: Hackett-2024
+  value_range: [8, 15]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: ACN-Proc-Benchmark-DB, value_range: [8, 12], note: "Indian observation; slightly narrower than world-class", confidence: high }
+drivers_explained: "First-line leads execution teams — wider because transactional work standardised. SSC team leads can manage 12-15."
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [span_of_control, first_line, function_default]
+
+  - id: org.hierarchy.depth_levels
+name: "Procurement Hierarchy Depth — Typical Levels"
+description: |
+  Number of reporting levels from CPO to most junior procurement FTE.
+  Includes CPO as level 1.
+metric_type: count_range
+unit: "levels"
+primary:
+  source_id: Hackett-2024
+  value_range: [3, 5]
+  confidence: high
+  year: 2024
+supporting:
+  - { source_id: ACN-Proc-Benchmark-DB, value_range: [3, 5], confidence: high }
+  - { source_id: APQC-2024, value_range: [3, 6], confidence: medium }
+drivers_explained: |
+  Hierarchy depth drivers: org size, multi-plant complexity.
+  - 3 levels: very flat — small/mid orgs
+  - 5 levels: appropriate for large enterprise / multi-plant
+  - 6+ levels: bureaucracy risk
+applies_to_pillars: [org-structure]
+layer: function
+edit_risk: medium
+tags: [hierarchy_depth, function_default]
+
+# =============================================================================
+# Editable Configuration
+# All benchmark VALUE changes: HIGH risk (partner sign-off).
+# Per-benchmark approval matrix:
+#   - Value range change: HIGH
+#   - Primary source change: HIGH
+#   - Add/remove supporting source: MEDIUM
+#   - Edit drivers_explained text: LOW
+#   - Add new benchmark id: HIGH
+#   - Mark benchmark deprecated: HIGH
+# =============================================================================

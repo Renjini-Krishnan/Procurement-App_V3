@@ -1,0 +1,129 @@
+# =============================================================================
+# Steel Industry — Op Model Benchmarks Overlay
+# =============================================================================
+# Purpose: Steel-industry-specific overrides on Op Model benchmarks.
+# Inherits from: proc-app/kb/functions/procurement/op-model/benchmarks.yml
+# =============================================================================
+
+metadata:
+  id: steel-op-model-benchmarks-overlay
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: op-model
+  inherits_from: proc-app/kb/functions/procurement/op-model/benchmarks.yml
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+
+overrides:
+
+  - benchmark_id: opmodel.centralisation.savings_rate
+reason: |
+  Steel has higher sourcing intensity. Spec standardisation (refractories, ferro alloys,
+  mill rolls) drives higher band than function default 2-4%. Steel realises 4-7% on consolidated categories.
+primary:
+  source_id: WSA-2024
+  source_reference: "World Steel Association — Steel Industry Procurement Practices Survey 2024, §3.2"
+  value_range: [4, 7]
+  confidence: high
+  year: 2024
+  sample_size: "120+ integrated steel mills globally + 45 Indian mills"
+supporting:
+  - source_id: ACN-Proc-Benchmark-DB
+    value_range: [4, 7]
+  - source_id: Hackett-2024
+    value_range: [4, 6]
+    note: "Hackett world-class subset within Steel"
+composite:
+  value_range: [4, 7]
+applies_to_industries: [steel]
+
+  - benchmark_id: opmodel.centralisation.centre_led_savings_rate
+reason: |
+  Steel Centre-Led savings band is tighter than function default. MRO + lab chemicals across multiple
+  plants benefit from central contracting, but local fulfilment limits savings vs full centralisation.
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  source_reference: "Accenture Steel Centre-Led engagement studies 2019-2024"
+  value_range: [2, 4]
+  confidence: medium
+supporting:
+  - source_id: WSA-2024
+    value_range: [2, 4]
+composite:
+  value_range: [2, 4]
+applies_to_industries: [steel]
+
+  - benchmark_id: opmodel.shared_services.current_cost_per_po_inr
+reason: "Steel plants have established buyer roles + ERP tooling but complex spec-laden POs. Transactional cost mid-band."
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [3000, 4000]
+  confidence: high
+supporting:
+  - source_id: WSA-2024
+    value_range: [2800, 4200]
+applies_to_industries: [steel]
+
+  - benchmark_id: opmodel.shared_services.ssc_target_cost_per_po_inr
+reason: "Steel SSC implementations achieve mid-band cost-per-PO target."
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [1100, 1500]
+  confidence: high
+supporting:
+  - source_id: WSA-2024
+    value_range: [1000, 1800]
+applies_to_industries: [steel]
+
+  - benchmark_id: opmodel.shared_services.ssc_productivity_gain_pct
+reason: "Steel SSC productivity gain band aligned with cross-industry."
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [50, 65]
+  confidence: high
+composite:
+  value_range: [45, 65]
+applies_to_industries: [steel]
+
+  - benchmark_id: opmodel.coe.savings_rate
+reason: |
+  Steel realised CoE value-add sits above cross-industry. Steel strategic categories (iron ore market,
+  coking coal, ferro alloys, refractories, mill rolls, carbon electrodes) reward deep category expertise.
+  Function default 2-5% widens to 3-6% for Steel.
+primary:
+  source_id: WSA-2024
+  source_reference: "World Steel Association — Steel Industry Procurement Practices Survey 2024, §4.1"
+  value_range: [3, 6]
+  confidence: high
+  year: 2024
+supporting:
+  - source_id: ACN-Proc-Benchmark-DB
+    value_range: [3, 6]
+  - source_id: Hackett-2024
+    value_range: [3, 6]
+composite:
+  value_range: [3, 6]
+applies_to_industries: [steel]
+
+  - benchmark_id: opmodel.tail_spend.outsourcing_savings_rate
+reason: |
+  Steel tail outsourcing savings sit at upper end of cross-industry because:
+  (a) large-enterprise volume gives aggregators leverage;
+  (b) Indian aggregator landscape (Moglix) has strong Steel-relevant catalogue depth.
+  Steel mills underutilise this at baseline — leaving headroom of 4-7%.
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [4, 7]
+  confidence: high
+supporting:
+  - source_id: Hackett-2024
+    value_range: [4, 7]
+  - source_id: WSA-2024
+    value_range: [3, 6]
+composite:
+  value_range: [4, 7]
+applies_to_industries: [steel]
+
+additions: []

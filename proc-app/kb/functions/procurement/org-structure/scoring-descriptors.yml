@@ -1,0 +1,291 @@
+# =============================================================================
+# Org Structure — Scoring Descriptors (1-5 Maturity)
+# =============================================================================
+
+metadata:
+  id: org-structure-scoring-descriptors
+  layer: function
+  function: procurement
+  pillar: org-structure
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# =============================================================================
+# UNIVERSAL 1-5 SCALE LABELS (from shared-kb/standards/scoring-scale.yml)
+# 1 — Initial: Ad-hoc, undefined; significant capability gap
+# 2 — Developing:  Some structure emerging; substantial gap remains
+# 3 — Defined:     Documented + applied; partial gap
+# 4 — Managed: Measured + improving; minor gap to optimised
+# 5 — Optimised:   Best-practice level; minor refinement only
+# =============================================================================
+
+# =============================================================================
+# THEME 1 — POSTURE & REPORTING DESCRIPTORS
+# =============================================================================
+
+posture_reporting_score_descriptors:
+
+  - level: 1
+label: "Initial"
+signals:
+  alignment_verdict: "Fundamentally mis-aligned"
+  reporting_line_diagnostic: "Sub-optimal-for-Stated-Mandate"
+  typical_reporting_line: "Plant Head / Admin / Other (below C-suite)"
+  industry_position: "Outlier — < 10% of peers in this pattern"
+narrative: |
+  Procurement structurally misaligned with business posture; reporting line
+  far below stated mandate. Often: Embedded-in-BU without central function;
+  OR CPO equivalent reports to Plant Head / Admin. Significant structural issue.
+typical_finding: "Structural realignment + reporting line elevation needed."
+
+  - level: 2
+label: "Developing"
+signals:
+  alignment_verdict: "Mis-aligned but functional"
+  reporting_line_diagnostic: "Sub-optimal OR Indeterminate"
+  typical_reporting_line: "CAO / shared admin function"
+  industry_position: "Less common pattern (< 20% of peers)"
+narrative: |
+  Mis-alignment exists (e.g., Centralised procurement on a Federated business)
+  but operationally functioning. Reporting line below ideal for stated mandate.
+typical_finding: "Targeted realignment + reporting line revisit."
+
+  - level: 3
+label: "Defined"
+signals:
+  alignment_verdict: "Aligned-with-Tension"
+  reporting_line_diagnostic: "Appropriate for current mandate"
+  typical_reporting_line: "CFO (cost mandate) OR COO (operations mandate)"
+  industry_position: "Within typical band (>20% of peers)"
+narrative: |
+  Posture works with predictable manageable tension. Reporting line fits
+  stated mandate. Sub-segment-typical pattern.
+typical_finding: "No structural change; monitor mandate evolution."
+
+  - level: 4
+label: "Managed"
+signals:
+  alignment_verdict: "Aligned"
+  reporting_line_diagnostic: "Appropriate + clear mandate"
+  typical_reporting_line: "CEO / COO with mandate clarity"
+  industry_position: "Common pattern AND aligned to strategic intent"
+narrative: |
+  Aligned posture + reporting line that matches strategic intent. Mature
+  operating relationship between business and procurement.
+typical_finding: "Optional ExCo seat formalisation or governance refinement."
+
+  - level: 5
+label: "Optimised"
+signals:
+  alignment_verdict: "Aligned"
+  reporting_line_diagnostic: "Appropriate + ExCo seat + dotted-line to CEO"
+  typical_reporting_line: "CEO with ExCo + dotted-line breadth"
+  industry_position: "Top-quartile peer pattern"
+narrative: |
+  Best-practice structural setup. Procurement positioned as strategic lever
+  with executive voice + mandate clarity.
+typical_finding: "No structural action."
+
+# =============================================================================
+# THEME 2 — FTE SIZING & ROLE COMPOSITION DESCRIPTORS
+# =============================================================================
+
+sizing_composition_score_descriptors:
+
+  - level: 1
+label: "Initial"
+signals:
+  ft1_sizing_verdict: "Materially under/over-staffed (>30% delta from benchmark)"
+  ft3_composition: "Composition heavily skewed (transactional >60% OR specialist <5%)"
+  ft4_specialist_gaps: "5+ critical gaps (Analytics + SRM + FBP + Sustainability + 1 more)"
+narrative: |
+  Aggregate sizing fundamentally off + composition heavily skewed + multiple
+  critical specialist gaps. Capability foundation under-built.
+typical_finding: "Significant sizing recalibration + 5+ specialist hires + transactional redirect via SSC."
+
+  - level: 2
+label: "Developing"
+    signals:
+  ft1_sizing_verdict: "Some sizing mismatch (15-30% delta)"
+  ft3_composition: "Composition skewed (transactional 55-60%)"
+  ft4_specialist_gaps: "4 critical gaps"
+narrative: |
+  Sizing meaningfully off OR composition meaningfully skewed; 4 critical
+  specialist gaps. Material improvement needed.
+typical_finding: "Rightsize + 3-4 specialist hires + Op Model SSC for transactional redirect."
+
+  - level: 3
+label: "Defined"
+signals:
+  ft1_sizing_verdict: "Sizing roughly right (within ±15% of benchmark)"
+  ft3_composition: "Composition partially skewed (transactional 50-55%)"
+  ft4_specialist_gaps: "2-3 critical gaps"
+narrative: |
+  Aggregate sizing in band; composition mostly within range with some skew;
+  2-3 critical specialist gaps remain. Refinement-stage.
+typical_finding: "Add 2-3 priority specialists; minor composition rebalance."
+
+  - level: 4
+label: "Managed"
+signals:
+  ft1_sizing_verdict: "Sizing right + within band"
+      ft3_composition: "Composition mostly aligned to benchmark"
+  ft4_specialist_gaps: "0-1 critical gaps"
+narrative: |
+  Sizing + composition both in band; only 0-1 specialist gap (often the
+  emerging Sustainability/ESG role). Capability mature.
+typical_finding: "Add the emerging-critical role (Sustainability/ESG typically)."
+
+  - level: 5
+label: "Optimised"
+signals:
+  ft1_sizing_verdict: "Sizing optimal (close to benchmark midpoint)"
+  ft3_composition: "Composition matches benchmark midpoints"
+  ft4_specialist_gaps: "All critical specialists present"
+narrative: |
+  Best-practice sizing + composition + comprehensive specialist coverage.
+typical_finding: "No structural action. Continuous capability uplift."
+
+# =============================================================================
+# THEME 3 — SPEND-FTE DISTRIBUTION DESCRIPTORS
+# =============================================================================
+
+distribution_score_descriptors:
+
+  - level: 1
+label: "Initial"
+signals:
+  ds1_bw_imbalance: "Major imbalances (>20pp gap between FTE share + spend share at multiple entities)"
+  ds2_per_entity_productivity: "Multiple entities significantly outside Steel band; outlier patterns"
+narrative: |
+  Severe distribution mismatch — some entities heavily over-allocated FTE
+  relative to spend they manage; others stretched.
+typical_finding: "Material distribution redesign (typically linked with Op Model decisions)."
+
+  - level: 2
+    label: "Developing"
+signals:
+  ds1_bw_imbalance: "Imbalance pattern (10-20pp gaps at multiple entities)"
+  ds2_per_entity_productivity: "2+ entities outside Steel band"
+narrative: |
+  Notable imbalance; multiple entities under or over-productive. Op Model
+  decisions (centralisation, SSC) likely needed to reshape.
+typical_finding: "Cross-link to Op Model recommendations; directional rebalance."
+
+  - level: 3
+label: "Defined"
+signals:
+  ds1_bw_imbalance: "Some imbalance (one or two entities show 10pp+ gap)"
+  ds2_per_entity_productivity: "One entity outside Steel band"
+narrative: |
+  Mostly balanced with one or two entities outside healthy range.
+typical_finding: "Targeted recommendation per outlier entity; defer broad change to Op Model implementation."
+
+  - level: 4
+label: "Managed"
+signals:
+  ds1_bw_imbalance: "Mostly balanced (gaps within ±10pp threshold)"
+  ds2_per_entity_productivity: "Minor outliers; mostly in Steel band"
+narrative: |
+  Distribution healthy; minor variances.
+typical_finding: "Marginal optimisation only."
+
+  - level: 5
+label: "Optimised"
+signals:
+  ds1_bw_imbalance: "All entities within tolerance; Central:Plant spend-FTE imbalance reflects healthy strategic mandate"
+  ds2_per_entity_productivity: "All entities within Steel band; Central productively high (>80 Cr/FTE)"
+narrative: |
+  Best-practice distribution: Central lean + productive; Plants appropriately
+  allocated; entity-level productivity consistent.
+typical_finding: "No structural action."
+
+# =============================================================================
+# THEME 4 — HIERARCHY & SPAN DESCRIPTORS
+# =============================================================================
+
+hierarchy_span_score_descriptors:
+
+  - level: 1
+label: "Initial"
+signals:
+  hs1_span_verdict: "Multiple stretched + under-leveraged managers"
+  hs2_hierarchy_verdict: "Too tall (≥6 levels for integrated mill) OR too flat (≤3 with stretch)"
+  jd_rr_signals: "Major gaps / overlaps surfaced; stale JDs"
+narrative: |
+  Management structure unhealthy across multiple dimensions.
+typical_finding: "Structural redesign of management layer + R&R refresh."
+
+  - level: 2
+label: "Developing"
+signals:
+  hs1_span_verdict: "Notable span issues at 1+ level (stretched or under-leveraged)"
+  hs2_hierarchy_verdict: "Off-band by 1 level"
+  jd_rr_signals: "Specific R&R overlaps OR gaps surfaced"
+narrative: Management structure has identifiable issues.
+typical_finding: "Targeted layer redesign + R&R refresh for surfaced overlaps."
+
+  - level: 3
+label: "Defined"
+signals:
+  hs1_span_verdict: "One or two managers stretched/under-leveraged; rest healthy"
+  hs2_hierarchy_verdict: "Appropriate or at upper/lower edge of typical band"
+  jd_rr_signals: "JDs current; some informal overlaps acknowledged"
+narrative: Management structure mostly healthy with specific issues at 1-2 manager roles.
+typical_finding: "Targeted redistribution at flagged managers; address surfaced R&R."
+
+  - level: 4
+label: "Managed"
+signals:
+  hs1_span_verdict: "All spans healthy"
+  hs2_hierarchy_verdict: "Appropriate for sub-segment"
+  jd_rr_signals: "JDs current + R&R explicit"
+narrative: Management structure healthy; JDs current; R&R clear.
+typical_finding: "Marginal optimisation only."
+
+  - level: 5
+label: "Optimised"
+signals:
+  hs1_span_verdict: "All spans at healthy midpoints"
+  hs2_hierarchy_verdict: "Optimal depth for sub-segment"
+  jd_rr_signals: "JDs current + R&R explicit + formal RACI maintained"
+narrative: Best-practice management structure + R&R discipline.
+typical_finding: "No structural action."
+
+# =============================================================================
+# PILLAR-LEVEL ROLL-UP DESCRIPTORS
+# =============================================================================
+
+pillar_score_descriptors:
+
+  - score_range: [1.0, 1.5]
+label: "Initial"
+narrative: "Org Structure is structurally under-built across multiple themes. Capability foundation + management shape both need rebuild. Multi-year transformation case."
+
+  - score_range: [1.5, 2.5]
+label: "Developing"
+narrative: "Org Structure has emerging shape but significant maturity gaps. Two-three themes at level 2-3. Phased build over 12-24 months."
+
+  - score_range: [2.5, 3.5]
+label: "Defined"
+narrative: "Org Structure has defined posture + composition + distribution + hierarchy. Selective refinement (specialist hires + targeted span fixes) lifts to Managed."
+
+  - score_range: [3.5, 4.5]
+label: "Managed"
+narrative: "Org Structure mature + measured. Narrow optimisation opportunities; capability uplift + emerging-role hires the priority."
+
+  - score_range: [4.5, 5.0]
+label: "Optimised"
+narrative: "Best-practice Org Structure. Sustain through continuous improvement; cross-pillar themes (Tech & Digital, Capability) likely next focus."
+
+# =============================================================================
+# Editable Configuration
+# =============================================================================
+# Per-theme signal bands: MEDIUM risk
+# Per-theme narrative + typical_finding: LOW risk
+# Pillar score range mappings: MEDIUM
+# Adding signals to a theme: HIGH
+# =============================================================================

@@ -1,0 +1,202 @@
+# =============================================================================
+# Op Model — Analysis Configuration
+# =============================================================================
+# Engine-config layer for the Op Model pillar. Declarative — engine reads
+# this file to know HOW to run Op Model. Changes to theme weights / benchmarks /
+# thresholds require no code change.
+# =============================================================================
+
+metadata:
+  id: op-model-analysis-config
+  layer: function
+  function: procurement
+  pillar: op-model
+  version: 1.0
+  last_updated: 2026-05-27
+  status: active
+
+# =============================================================================
+# PILLAR-LEVEL CONFIGURATION
+# =============================================================================
+
+pillar:
+  id: op-model
+  display_name: "Operating Model"
+  scope_note: |
+"How procurement is organised to BUY — Centralisation + Shared Services +
+CoE + Tail Spend. Captive excluded (corporate strategy decision)."
+  run_order: 12   # Stage 12
+  themes_in_order: [centralisation, shared-services, coe, tail-spend]
+  synthesis_runs_after_themes: true
+
+# =============================================================================
+# THEMES (4)
+# =============================================================================
+
+themes:
+
+  centralisation:
+display_name: "Centralisation"
+pillar_weight: 0.35
+deep_dive_file: "op-model/centralization.md"
+components:
+  - id: c0_baseline
+    decision_driving: false
+  - id: c1_multi_plant_detection
+    decision_driving: true
+  - id: c2_vendor_pattern_insight
+    decision_driving: false
+  - id: c3_industry_knowledge_filter
+    decision_driving: true
+  - id: c4_savings_quantification
+    decision_driving: true
+  - id: c5_reconciliation
+    decision_driving: false
+benchmarks_consumed:
+  - id: opmodel.centralisation.savings_rate
+    applied_in: c4_savings_quantification
+  - id: opmodel.centralisation.centre_led_savings_rate
+    applied_in: c4_savings_quantification
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/centralisation-filters.yml"
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+qre_consumed: [Q-OM-01, Q-OM-02, Q-OM-EXC]
+confidence_thresholds:
+  high: {stage9_pct_min: 90, plant_codes_mapped: true, industry_overlay_loaded: true}
+  medium: {stage9_pct_min: 80}
+
+  shared-services:
+display_name: "Shared Services (SSC)"
+pillar_weight: 0.25
+deep_dive_file: "op-model/shared-services.md"
+components:
+  - id: ss0_current_coverage
+    decision_driving: false
+  - id: ss1_volume_value_quadrant
+    decision_driving: true
+    shared_with: [tail-spend, coe]   # Q1, Q3, Q4 used by other themes
+  - id: ss2_industry_filter
+    decision_driving: true
+  - id: ss3_coverage_gap
+    decision_driving: true
+  - id: ss4_fte_productivity
+    decision_driving: true
+  - id: ss5_reconciliation
+    decision_driving: false
+benchmarks_consumed:
+  - id: opmodel.shared_services.current_cost_per_po_inr
+  - id: opmodel.shared_services.ssc_target_cost_per_po_inr
+  - id: opmodel.shared_services.ssc_productivity_gain_pct
+  - id: opmodel.shared_services.ssc_pos_per_fte_annual
+  - id: opmodel.shared_services.plant_pos_per_fte_annual
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/shared-services-filters.yml"
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+qre_consumed: [Q-OM-SS-01, Q-OM-SS-02, Q-OM-SS-03, Q-OM-SS-04, Q-OM-SS-05, Q-OM-SS-EXC]
+confidence_thresholds:
+  high: {stage9_pct_min: 90, ss1_computed: true}
+  medium: {stage9_pct_min: 80}
+
+  coe:
+display_name: "Centre of Excellence"
+pillar_weight: 0.20
+deep_dive_file: "op-model/coe.md"
+components:
+  - id: ce0_current_state
+    decision_driving: false
+  - id: ce1_strategic_identification
+    decision_driving: true
+    upstream_dependency: ss1_volume_value_quadrant
+  - id: ce2_industry_filter
+    decision_driving: true
+  - id: ce3_coverage_gap
+    decision_driving: true
+  - id: ce4_value_quantification
+    decision_driving: true
+    cross_theme_overlap_check: centralisation
+  - id: ce5_reconciliation
+    decision_driving: false
+benchmarks_consumed:
+  - id: opmodel.coe.savings_rate
+    applied_in: ce4_value_quantification
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/coe-filters.yml"
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+qre_consumed: [Q-OM-COE-01, Q-OM-COE-02, Q-OM-COE-03, Q-OM-COE-04, Q-OM-COE-EXC]
+    confidence_thresholds:
+  high: {stage9_pct_min: 90, ss1_computed: true, vendor_dedup_done: true}
+  medium: {stage9_pct_min: 80}
+
+  tail-spend:
+display_name: "Tail Spend"
+pillar_weight: 0.20
+deep_dive_file: "op-model/tail-spend.md"
+components:
+  - id: ts0_current_tail_management
+    decision_driving: false
+  - id: ts1_quantification
+    decision_driving: true
+    upstream_dependency: ss1_volume_value_quadrant   # Method B
+  - id: ts2_vendor_footprint
+    decision_driving: false
+  - id: ts3_industry_filter
+    decision_driving: true
+  - id: ts4_outsourcing_savings
+    decision_driving: true
+  - id: ts5_reconciliation
+    decision_driving: false
+benchmarks_consumed:
+  - id: opmodel.tail_spend.outsourcing_savings_rate
+    applied_in: ts4_outsourcing_savings
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/tail-spend-filters.yml"
+  - file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+qre_consumed: [Q-OM-TS-01, Q-OM-TS-02, Q-OM-TS-03, Q-OM-TS-04, Q-OM-TS-EXC]
+confidence_thresholds:
+  high: {stage9_pct_min: 90, ss1_computed: true, vendor_dedup_done: true}
+  medium: {stage9_pct_min: 80}
+
+# =============================================================================
+# CROSS-THEME SYNTHESIS CONFIG
+# =============================================================================
+
+synthesis:
+  file: "op-model/cross-theme-synthesis.md"
+  runs_after: [centralisation, shared-services, coe, tail-spend]
+  overlap_rules:
+centralisation_and_coe:
+  handling: "stack_with_adjustment"
+      coe_incremental_adjustment_pct_range: [1, 2]
+centralisation_and_ssc:
+  handling: "different_basis_no_overlap"
+coe_and_ssc:
+  handling: "quadrant_exclusion"   # Q4 → CoE, Q1 → SSC by design
+centralisation_and_tail:
+  handling: "explicit_exclusion"
+  strategic_imperative_threshold_pct: 70
+
+# =============================================================================
+# GLOBAL OUTLIER + CONFIDENCE CONFIG
+# =============================================================================
+
+global:
+  outlier_detection:
+method: "percentile_iqr"
+apply_to: po_value
+alternative_methods_available: ["z_score", "modified_z_score", "none"]
+  data_quality_gates:
+minimum_stage9_classification_pct: 80
+  confidence_aggregation:
+pillar_level: "min_of_themes"
+
+# =============================================================================
+# PILLAR MATURITY SCORE
+# =============================================================================
+
+pillar_score:
+  formula: |
+op_model_score = 0.35 × centralisation + 0.25 × shared_services
+               + 0.20 × coe + 0.20 × tail_spend
+  descriptors_file: "op-model/scoring-descriptors.yml"
+  rounding: 1
+  display_format: "<score>/5"

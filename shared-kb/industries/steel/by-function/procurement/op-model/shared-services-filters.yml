@@ -1,0 +1,105 @@
+# =============================================================================
+# Steel Industry — Shared Services Filters (Op Model)
+# =============================================================================
+# Purpose: Steel-specific tagging for Q1 transactional candidates from SS1.
+#      Tags as SSC-Suitable / SSC-Unsuitable / Centre-Handled.
+# =============================================================================
+
+metadata:
+  id: steel-shared-services-filters
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: op-model
+  theme: shared-services
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+
+# =============================================================================
+# THRESHOLDS
+# =============================================================================
+
+ssc_minimum_po_count: 500
+  # Below 500 POs/year, SSC overhead exceeds benefit.
+
+ssc_minimum_annual_spend_inr_cr: 5
+  # Below ₹5 Cr, no material savings to justify SSC consolidation.
+
+# =============================================================================
+# SSC-SUITABLE — Categories ideal for SSC consolidation
+# =============================================================================
+
+ssc_suitable:
+
+  - category_pattern: "indirect.mro.consumables_common"
+reason: "MRO consumables (fasteners, gaskets, valves, instrumentation, bearings) — high-volume, low-value, standardised. Each Steel plant 4-6K POs/year for MRO alone. Ideal SSC scope."
+
+  - category_pattern: "indirect.mro.bearings_industrial"
+reason: "Bearings (SKF, Timken, NTN) — standardised specs. Central RC + SSC processing."
+
+  - category_pattern: "indirect.lab_chemicals"
+reason: "Analytical chemicals + reagents. Common across plants; vendor base 5-15 suppliers."
+
+  - category_pattern: "indirect.uniforms_ppe"
+reason: "Standard PPE specs (helmets, FR clothing, safety boots, gloves). Central RC; SSC handles call-offs."
+
+  - category_pattern: "indirect.printing_stationery"
+reason: "Office supplies, printing. High-volume, low-value. Easy SSC win."
+
+  - category_pattern: "indirect.it.hardware_endpoint"
+reason: "Laptops, desktops, peripherals. Standardised OEM contracts; SSC handles provisioning."
+
+  - category_pattern: "indirect.travel"
+reason: "Travel programme — central agreements; SSC handles policy compliance + reimbursement."
+
+  - category_pattern: "indirect.facilities.consumables_office"
+reason: "Coffee, tea, water, pantry supplies, cleaning materials."
+
+  - category_pattern: "indirect.subscription_software_saas"
+reason: "Common SaaS tools (productivity, communication). Central contracts + SSC handles renewals."
+
+# =============================================================================
+# SSC-UNSUITABLE — High-volume but should stay with plant buyers
+# =============================================================================
+
+ssc_unsuitable:
+
+  - category_pattern: "indirect.mro.emergency_breakdown_spares"
+reason: "Emergency spares — lead-time critical (hours). SSC's batch processing adds unacceptable delay."
+
+  - category_pattern: "indirect.facilities.plant_maintenance_services_local"
+reason: "Local AMC providers, plant-specific equipment expertise."
+
+  - category_pattern: "indirect.logistics.short_haul_road_local"
+reason: "Short-haul road logistics. Local fleet, plant-specific routing."
+
+  - category_pattern: "indirect.facilities.security_services"
+reason: "Plant-specific manpower deployment; state-licensed agencies."
+
+  - category_pattern: "indirect.utilities.water_chemicals_treatment"
+reason: "Plant-specific water treatment chemicals (varies by water source)."
+
+  - category_pattern: "indirect.canteen_services_local"
+reason: "Local canteen contractors per plant; menu + workforce preferences."
+
+# =============================================================================
+# CENTRE-HANDLED — Strategic categories despite high PO count; go to CoE
+# =============================================================================
+
+centre_handled:
+
+  - category_pattern: "direct.process_inputs.refractories"
+reason: "Refractories spec-sensitive + value-significant. Central category management, not SSC."
+
+  - category_pattern: "direct.process_inputs.ferro_alloys"
+reason: "Strategic commodity, narrow supplier base, central negotiation leverage."
+
+  - category_pattern: "direct.process_inputs.industrial_gases_consumables"
+reason: "Specialised gases on long-term ASU contracts."
+
+  - category_pattern: "direct.raw_materials.scrap_regional"
+reason: "Regional scrap procurement — operational tempo + specific vendor networks."
+
+  - category_pattern: "direct.process_inputs.specialised_consumables"
+reason: "Mould powders, ladle additives, specialty refractory items. Spec-sensitive."

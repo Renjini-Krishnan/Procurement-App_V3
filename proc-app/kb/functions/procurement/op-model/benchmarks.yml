@@ -1,0 +1,259 @@
+# =============================================================================
+# Op Model — Function-Default Benchmarks
+# =============================================================================
+# Purpose: Function-default benchmark values for Op Model pillar analyses.
+#      Industry overlays at industries/<ind>/by-function/procurement/op-model/benchmarks.yml
+#      override entries here on a per-benchmark_id basis.
+# =============================================================================
+
+metadata:
+  id: op-model-benchmarks-function-default
+  layer: function
+  function: procurement
+  pillar: op-model
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  status: active
+
+# ============================================================================
+# CENTRALISATION THEME
+# ============================================================================
+
+benchmarks:
+
+  - id: opmodel.centralisation.savings_rate
+name: "Centralisation Savings Rate (Combined)"
+description: |
+  Single rolled-up percentage applied to candidate spend when category tagged
+  "Suggest Centralise". Combined effect of volume aggregation + spec standardisation +
+  negotiation leverage + process efficiency.
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: APQC-2024
+  source_reference: "Open Standards Benchmarking — Procurement Transformation, p47"
+  value_range: [2, 4]
+  confidence: high
+  year: 2024
+  sample_size: "500+ procurement organisations across industries"
+  methodology: "Self-reported with ERP validation; cross-industry sample"
+supporting:
+  - source_id: Hackett-2024
+    value_range: [3, 5]
+    year: 2024
+    note: "World-class subset (top-quartile organisations)"
+    confidence: high
+  - source_id: ACN-Proc-Benchmark-DB
+    value_range: [2, 4]
+    year: 2024
+    confidence: high
+composite:
+  value_range: [2, 5]
+drivers_explained: |
+  Drivers (illustrative weighting): Volume aggregation ~50%, Spec standardisation ~25%,
+  Negotiation ~15%, Process efficiency ~10%. Applied as single rolled-up number.
+applies_to_pillars: [op-model]
+applies_to_industries: []
+layer: function
+edit_risk: high
+
+  - id: opmodel.centralisation.centre_led_savings_rate
+name: "Centre-Led Savings Rate (Combined)"
+description: |
+  Single rolled-up % applied when category tagged "Suggest Centre-Led"
+  (central contracting + local execution). Typically ~50% of full centralisation rate.
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [1, 2]
+  confidence: medium
+  year: 2024
+supporting:
+  - source_id: Hackett-2024
+    value_range: [1, 3]
+    note: "Hackett positions Centre-Led as ~50-60% of full centralisation savings"
+    confidence: medium
+  - source_id: APQC-2024
+    value_range: [1, 2]
+    confidence: high
+drivers_explained: |
+  Centre-Led savings lower than full centralisation: volume agg partial, spec std partial,
+  negotiation captured, process gain smaller.
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+# ============================================================================
+# SHARED SERVICES THEME
+# ============================================================================
+
+  - id: opmodel.shared_services.current_cost_per_po_inr
+name: "Current Cost per Transactional PO (Plant-Distributed)"
+description: "Average ₹ cost of processing single transactional PO in plant-distributed baseline."
+metric_type: currency_amount
+unit: "INR per PO"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [2500, 4000]
+  confidence: high
+  year: 2024
+  sample_size: "~80 engagements"
+supporting:
+  - source_id: Hackett-2024
+    value_range: [3000, 5000]
+    confidence: medium
+  - source_id: APQC-2024
+    value_range: [2500, 4500]
+    confidence: high
+drivers_explained: "Cost driven by: buyer time per PO (30-45 min), loaded buyer cost, tooling overhead, rework rate."
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+  - id: opmodel.shared_services.ssc_target_cost_per_po_inr
+name: "Target Cost per PO in Mature SSC"
+description: "Target ₹ cost in mature SSC. Consolidated processing + standardised workflows."
+metric_type: currency_amount
+unit: "INR per PO"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [1000, 1800]
+  confidence: high
+  year: 2024
+supporting:
+  - source_id: Hackett-2024
+    value_range: [1200, 2000]
+    note: "World-class SSC benchmark"
+composite:
+  value_range: [1000, 2000]
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+  - id: opmodel.shared_services.ssc_productivity_gain_pct
+name: "SSC Productivity Gain (Cost Reduction %)"
+description: "Single % reduction in cost-per-PO transitioning plant-distributed → mature SSC."
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: Hackett-2024
+  value_range: [40, 60]
+  confidence: high
+  year: 2024
+supporting:
+  - source_id: ACN-Proc-Benchmark-DB
+    value_range: [35, 60]
+  - source_id: APQC-2024
+    value_range: [40, 55]
+composite:
+  value_range: [35, 60]
+drivers_explained: "Process standardisation + skill specialisation (~50%), volume aggregation (~20%), tooling automation (~20%), lower-cost geography (~10%)."
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+  - id: opmodel.shared_services.ssc_pos_per_fte_annual
+name: "SSC POs Processed per FTE Annually"
+    description: "Annual PO throughput per FTE in mature SSC."
+metric_type: count_range
+unit: "POs per FTE per year"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [10000, 15000]
+  confidence: high
+supporting:
+  - source_id: Hackett-2024
+    value_range: [12000, 18000]
+    note: "World-class SSC"
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+  - id: opmodel.shared_services.plant_pos_per_fte_annual
+name: "Plant POs Processed per FTE Annually (Current State)"
+description: "Annual PO throughput per plant-buyer FTE in current plant-distributed model."
+metric_type: count_range
+unit: "POs per FTE per year"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  value_range: [4000, 6000]
+  confidence: high
+supporting:
+  - source_id: APQC-2024
+    value_range: [4500, 6500]
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+# ============================================================================
+# TAIL SPEND THEME
+# ============================================================================
+
+  - id: opmodel.tail_spend.outsourcing_savings_rate
+name: "Tail Spend Outsourcing Savings Rate (Combined)"
+description: |
+  Single rolled-up % applied to aggregator-addressable tail spend. Combined drivers:
+  price savings via aggregator volume aggregation (~30-50%), cost-to-serve reduction (~40-50%),
+  supplier management overhead reduction (~10-20%).
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  source_reference: "Accenture engagements with Indian managed-procurement aggregators (Moglix, Bizongo, Industrybuying, Power2SME, OfBusiness) 2020-2024"
+  value_range: [3, 8]
+  confidence: high
+  year: 2024
+  sample_size: "~25 Indian large-enterprise engagements with aggregator outsourcing scope"
+supporting:
+  - source_id: Hackett-2024
+    value_range: [4, 7]
+    confidence: medium
+  - source_id: APQC-2024
+    value_range: [3, 6]
+    confidence: medium
+composite:
+  value_range: [3, 8]
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high
+
+# ============================================================================
+# CoE THEME
+# ============================================================================
+
+  - id: opmodel.coe.savings_rate
+name: "Centre of Excellence Value-Add Savings Rate (Combined)"
+description: |
+  Single rolled-up % applied to CoE-addressable strategic spend (when categories
+  tagged "CoE-Suitable" AND not already in CoE).
+  IMPORTANT: CoE value-add is INCREMENTAL over baseline centralisation.
+  For categories in BOTH cent gap + CoE gap, savings NOT additive on volume aggregation —
+  only on strategic depth. Engine flags overlap categories.
+metric_type: percentage_range
+unit: "%"
+primary:
+  source_id: ACN-Proc-Benchmark-DB
+  source_reference: "Accenture CoE implementation engagements 2018-2024"
+  value_range: [2, 5]
+  confidence: high
+  year: 2024
+  sample_size: "~50 cross-industry CoE engagement learnings"
+supporting:
+  - source_id: Hackett-2024
+    value_range: [3, 6]
+    confidence: medium
+  - source_id: APQC-2024
+    value_range: [2, 4]
+    confidence: high
+composite:
+  value_range: [2, 6]
+drivers_explained: |
+  Negotiation leverage from deep category expertise (~30-40%),
+  Spec standardisation + value engineering (~25-35%),
+  Supplier consolidation + relationship management (~20-30%),
+  Market intelligence + timing (~10-15%).
+applies_to_pillars: [op-model]
+layer: function
+edit_risk: high

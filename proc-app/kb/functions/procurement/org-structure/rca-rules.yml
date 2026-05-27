@@ -1,0 +1,349 @@
+# =============================================================================
+# Org Structure — RCA Rules (Deterministic IF-THEN)
+# =============================================================================
+
+metadata:
+  id: org-structure-rca-rules
+  layer: function
+  function: procurement
+  pillar: org-structure
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: quarterly
+  status: active
+
+# =============================================================================
+# RULE SCHEMA: id, theme, trigger, root_causes, confidence, references, diagnostic_actions
+# =============================================================================
+
+rules:
+
+  # ==========================================================================
+  # POSTURE & REPORTING RULES
+  # ==========================================================================
+
+  - id: rca.posture.r01_misaligned_recent_ma
+theme: posture
+trigger: |
+  op1_alignment_verdict in ["Mis-aligned"]
+  AND qre_Q-OS-OP-04_response in ["<2 years", "2-5 years"]
+root_causes:
+  - "Recent M&A integration didn't extend to procurement function"
+  - "Acquired entities retained autonomous procurement structures"
+  - "Post-merger integration playbook missed procurement governance"
+confidence: high
+references: { pattern: rca-pat-os-posture-01, recommendation: rec-os-posture-align-via-restructure }
+diagnostic_actions:
+  - "Verify M&A history via QRE Q-CL-01"
+  - "Check whether acquired entity procurement still operates independently"
+
+  - id: rca.posture.r02_cfo_reporting_strategic_mandate
+theme: posture
+trigger: |
+  op2_reporting_line in ["CFO"]
+  AND qre_Q-OS-OP-05_mandate_includes in ["Strategic_value", "Innovation", "Sustainability"]
+root_causes:
+  - "Stated strategic mandate but cost-focused reporting line"
+  - "Procurement positioned as cost function; mandate evolved but structure didn't"
+  - "CFO may not be best positioned to advocate strategic procurement at ExCo"
+confidence: high
+references: { pattern: rca-pat-os-posture-02, recommendation: rec-os-elevate-reporting-line }
+
+  - id: rca.posture.r03_plant_head_reporting
+theme: posture
+trigger: |
+  op2_reporting_line in ["Plant_Head", "BU_Head"]
+root_causes:
+  - "Procurement is decentralised by structural design"
+  - "No corporate-level procurement mandate"
+  - "Cross-BU leverage opportunities un-captured"
+confidence: high
+references: { pattern: rca-pat-os-posture-03, recommendation: rec-os-establish-central-procurement }
+
+  - id: rca.posture.r04_aligned_with_tension_longstanding
+theme: posture
+trigger: |
+  op1_alignment_verdict in ["Aligned-with-Tension"]
+  AND qre_Q-OS-OP-04_response in [">10 years"]
+root_causes:
+  - "Tension is managed via mature governance — not actually a problem"
+  - "Operating relationship has stabilised over long tenure"
+  - "Any structural change carries significant transition cost"
+confidence: high
+references: { pattern: rca-pat-os-posture-04, recommendation: rec-os-no-change }
+
+  - id: rca.posture.r05_foreign_owned_parent_pattern
+theme: posture
+trigger: |
+  sub_segment in ["foreign_owned_indian_operation"]
+  AND op2_reporting_line in ["parent_cpo_global"]
+root_causes:
+  - "Reporting line follows parent-company global procurement structure"
+  - "Local autonomy constrained by parent company"
+  - "Expected pattern for foreign-owned Indian operations"
+confidence: high
+references: { pattern: rca-pat-os-posture-05, recommendation: rec-os-no-change }
+
+  # ==========================================================================
+  # FTE SIZING & ROLE COMPOSITION RULES
+  # ==========================================================================
+
+  - id: rca.sizing.r01_under_staffed_high_spend_per_fte
+theme: sizing-composition
+trigger: |
+  ft1_spend_per_fte > industry_benchmark_high × 1.20
+root_causes:
+  - "Team materially under-staffed for the spend it manages"
+  - "Hiring freeze OR attrition not back-filled"
+  - "Capacity strain; quality + risk implications likely"
+confidence: high
+references: { pattern: rca-pat-os-sizing-01, recommendation: rec-os-rightsize-team-add }
+
+  - id: rca.sizing.r02_over_staffed_low_spend_per_fte
+theme: sizing-composition
+trigger: |
+  ft1_spend_per_fte < industry_benchmark_low × 0.80
+root_causes:
+  - "Team larger than spend justifies — historical headcount inflation"
+  - "Plant-distributed model creating duplicate buyer roles"
+  - "Low-value-scope or sub-criticality work absorbing FTE time"
+confidence: medium
+references: { pattern: rca-pat-os-sizing-02, recommendation: rec-os-rightsize-team-reduce-or-redirect }
+
+  - id: rca.sizing.r03_transactional_overrepresentation
+theme: sizing-composition
+trigger: |
+  ft3_transactional_share_pct > industry_benchmark_high
+  AND ft4_critical_specialist_gaps >= 3
+root_causes:
+  - "Historical role definitions absorbed strategic + transactional + admin into Buyer role"
+  - "No specialist career track established"
+  - "Procurement perceived as cost function; capability investment minimal"
+confidence: high
+references: { pattern: rca-pat-os-sizing-03, recommendation: rec-os-rebalance-composition-via-specialists }
+
+  - id: rca.sizing.r04_multiple_critical_specialist_gaps
+theme: sizing-composition
+trigger: |
+  ft4_critical_specialist_gaps_count >= 4
+root_causes:
+  - "Capability investment never made — multiple foundational specialist roles absent"
+  - "Specialist hiring requires different talent profile than traditional buyer base"
+  - "Budget priorities have not allocated specialist FTE"
+confidence: high
+references: { pattern: rca-pat-os-sizing-04, recommendation: rec-os-add-specialists-batch }
+
+  - id: rca.sizing.r05_sustainability_esg_missing_steel
+theme: sizing-composition
+trigger: |
+  industry in ["steel"]
+  AND ft4_role_missing in ["sustainability_esg"]
+root_causes:
+  - "Decarbonisation pressure (EU CBAM, India BRSR) increasing — role critical but not yet hired"
+  - "Emerging-but-critical role; talent pipeline still building"
+  - "Often deferred to Sustainability team rather than Procurement-embedded"
+confidence: high
+references: { pattern: rca-pat-os-sizing-05, recommendation: rec-os-add-sustainability-esg-role }
+
+  - id: rca.sizing.r06_srm_missing_high_concentration
+theme: sizing-composition
+trigger: |
+  ft4_role_missing in ["srm"]
+  AND coe_ce1_high_vendor_concentration_categories_count >= 3
+root_causes:
+  - "Strategic supplier relationships un-curated despite high concentration risk"
+  - "SRM seen as 'category mgr work' rather than dedicated function"
+  - "Single-point-of-failure risk unmanaged"
+confidence: high
+references: { pattern: rca-pat-os-sizing-06, recommendation: rec-os-add-srm-role }
+
+  # ==========================================================================
+  # SPEND-FTE DISTRIBUTION RULES
+  # ==========================================================================
+
+  - id: rca.distribution.r01_central_lean_productive
+theme: distribution
+trigger: |
+  central_spend_share_pct - central_fte_share_pct >= 15
+  AND central_spend_per_fte_inr_cr > steel_benchmark_high
+root_causes:
+  - "Strategic mandate well-resourced relative to capacity — HEALTHY pattern"
+  - "Centralisation working as designed"
+  - "NOT a problem — typical for mature procurement"
+confidence: high
+references: { pattern: rca-pat-os-distribution-01, recommendation: rec-os-distribution-no-change }
+
+  - id: rca.distribution.r02_plants_systematically_under_productive
+theme: distribution
+trigger: |
+  plant_count_under_steel_band >= 2
+  AND ssc_implementation_recommended_in_op_model is True
+root_causes:
+  - "Plant-distributed operating model creates duplication"
+  - "Transactional volume drag — SSC absent or partial"
+  - "Op Model SSC theme already addresses this — not a separate fix"
+confidence: high
+references: { pattern: rca-pat-os-distribution-02, recommendation: rec-os-defer-to-ssc-implementation }
+
+  - id: rca.distribution.r03_central_overstaffed_for_spend
+theme: distribution
+trigger: |
+  central_fte_share_pct > central_spend_share_pct + 10
+root_causes:
+  - "Central team allocation exceeds spend share — top-heavy"
+  - "Leadership share too high (cross-link with FT3)"
+  - "Functional roles (legal, compliance) misclassified as procurement central"
+confidence: medium
+references: { pattern: rca-pat-os-distribution-03, recommendation: rec-os-investigate-central-top-heaviness }
+
+  - id: rca.distribution.r04_one_plant_outlier
+theme: distribution
+trigger: |
+      one_plant_significantly_outside_distribution_pattern is True
+root_causes:
+  - "Plant-specific resourcing issue (newly acquired / different category mix / specific reason)"
+  - "Plant Head priorities differ"
+  - "Investigate plant-specific context"
+confidence: medium
+references: { pattern: rca-pat-os-distribution-04, recommendation: rec-os-investigate-plant-specific }
+
+  # ==========================================================================
+  # HIERARCHY & SPAN RULES
+  # ==========================================================================
+
+  - id: rca.hierarchy.r01_plant_sr_mgr_stretched
+theme: hierarchy-span
+trigger: |
+  hs1_plant_sr_mgr_span_avg > 12
+  AND industry in ["steel"]
+root_causes:
+  - "Common Steel pattern (60% prevalence) — plant transactional team reports to single Sr Mgr"
+  - "SSC absent — transactional volume hits manager"
+  - "Tool maturity low — manual oversight required for many POs"
+confidence: high
+references: { pattern: rca-pat-os-hierarchy-01, recommendation: rec-os-plant-layer-redesign }
+
+  - id: rca.hierarchy.r02_dgm_layer_under_leveraged
+theme: hierarchy-span
+trigger: |
+  dgm_under_leveraged_count >= 1
+  AND dgm_direct_reports < 5
+root_causes:
+  - "Intermediate coordination layer added historically — may not add value now"
+  - "Coordination function could collapse into another DGM role"
+  - "Worth questioning whether plants can report directly to CPO"
+confidence: high
+references: { pattern: rca-pat-os-hierarchy-02, recommendation: rec-os-question-intermediate-layer }
+
+  - id: rca.hierarchy.r03_hierarchy_too_tall
+theme: hierarchy-span
+trigger: |
+  hierarchy_depth >= 6
+  AND sub_segment in ["integrated_steel_mill_multi_plant"]
+root_causes:
+  - "One layer deeper than 4-5 typical for integrated Steel"
+  - "Often historical accretion — intermediate role added for specific person"
+  - "Possible bureaucracy / slow decision flow"
+confidence: medium
+references: { pattern: rca-pat-os-hierarchy-03, recommendation: rec-os-delayer }
+
+  - id: rca.hierarchy.r04_cpo_stretched
+theme: hierarchy-span
+trigger: |
+  cpo_direct_reports > 8
+root_causes:
+  - "No DGM layer between CPO and Sr Mgrs"
+  - "CPO bandwidth absorbed by direct supervision of too many roles"
+      - "Strategic decision-making time crowded out"
+confidence: high
+references: { pattern: rca-pat-os-hierarchy-04, recommendation: rec-os-add-dgm-layer }
+
+  - id: rca.hierarchy.r05_rr_overlap_surfaced
+theme: hierarchy-span
+trigger: |
+      qre_Q-OS-HS-03_indicates_overlap_or_gap
+root_causes:
+  - "Adjacent role responsibilities not clearly delineated"
+  - "JD refresh not done since role evolution"
+  - "Common pattern (~70% in Indian Steel) — Sr Buyer + Asst Mgr boundary"
+    confidence: high
+references: { pattern: rca-pat-os-hierarchy-05, recommendation: rec-os-rr-refresh }
+
+  # ==========================================================================
+  # CROSS-THEME (STRATEGIC IMPERATIVE) RULES
+  # ==========================================================================
+
+  - id: rca.synthesis.si_under_resourced_central_capability
+theme: synthesis
+trigger: |
+  posture_score <= 2
+  AND sizing_composition_score <= 2
+  AND distribution_score <= 2
+  AND hierarchy_span_score <= 2
+root_causes:
+  - "Procurement function under-built across all dimensions"
+  - "Capability investment historically minimal"
+  - "Often: plant-distributed legacy + cost-focused mandate"
+confidence: high
+references: { pattern: rca-pat-os-si-01, recommendation: rec-os-si-under-resourced-build }
+
+  - id: rca.synthesis.si_strategic_mandate_mismatch
+theme: synthesis
+trigger: |
+  posture_score <= 2
+  AND sizing_composition_score <= 3
+  AND specialist_gaps_critical_count >= 3
+root_causes:
+  - "Stated mandate (strategic value / sustainability) mismatched with structure"
+  - "Reporting line + composition reflect cost-focused mandate"
+  - "Capability hires needed to deliver strategic mandate"
+confidence: high
+references: { pattern: rca-pat-os-si-02, recommendation: rec-os-si-strategic-mismatch }
+
+  - id: rca.synthesis.si_operational_healthy_capability_gaps
+theme: synthesis
+trigger: |
+  posture_score >= 3
+  AND distribution_score >= 3
+  AND hierarchy_span_score >= 3
+  AND sizing_composition_score <= 3
+  AND specialist_gaps_critical_count >= 3
+root_causes:
+  - "Structural shape works; gap is capability"
+  - "Strategic categories handled by generalist Cat Mgrs"
+  - "Specialist roles (Analytics / SRM / FBP / Sustainability) absent"
+confidence: high
+references: { pattern: rca-pat-os-si-03, recommendation: rec-os-si-fill-capability-gaps }
+
+  - id: rca.synthesis.si_composition_led_rebalance
+theme: synthesis
+trigger: |
+  ft3_transactional_share_pct > 55
+  AND ft4_critical_specialist_gaps >= 3
+  AND ds1_plant_fte_over_allocated is True
+root_causes:
+  - "Aggregate sizing fine but composition heavily skewed"
+  - "Op Model SSC implementation creates redirect opportunity"
+  - "Composition rebalance through redeployment, not net headcount addition"
+confidence: high
+references: { pattern: rca-pat-os-si-04, recommendation: rec-os-si-composition-rebalance }
+
+  - id: rca.synthesis.si_already_balanced
+theme: synthesis
+trigger: |
+  posture_score >= 4
+  AND sizing_composition_score >= 4
+  AND distribution_score >= 4
+  AND hierarchy_span_score >= 4
+root_causes: []   # no RCA — "no major issue" outcome
+confidence: high
+references: { pattern: rca-pat-os-si-05, recommendation: rec-os-si-no-change }
+
+# =============================================================================
+# Editable Configuration
+# Adding new rule: MEDIUM (peer KB lead). Modifying trigger: MEDIUM.
+# Modifying root_causes text: LOW. Removing rule: HIGH (partner).
+# Confidence level: MEDIUM.
+# Rule additions informed by real engagement learnings. Quarterly review.
+# =============================================================================

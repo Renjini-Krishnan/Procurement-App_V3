@@ -1,0 +1,106 @@
+# =============================================================================
+# Steel Industry — Spend-FTE Distribution Filters
+# =============================================================================
+
+metadata:
+  id: steel-spend-fte-distribution-filters
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: org-structure
+  theme: spend-fte-distribution
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# =============================================================================
+# SUB-SEGMENT DISTRIBUTION EXPECTATIONS
+# Each sub-segment has expected Central:Plant FTE share + Spend share bands.
+# Used for descriptive context (where the client sits relative to peers).
+# =============================================================================
+
+sub_segment_distribution_expectations:
+
+  integrated_steel_mill_multi_plant:
+central_fte_share_pct_band: [30, 50]
+central_spend_share_pct_band: [55, 75]
+typical_imbalance_pp_band: [15, 25]   # Central spend share typically exceeds Central FTE share by 15-25 pp
+notes: |
+  Indian integrated steel mills typically have:
+  - Central FTE 30-50% (Cat Mgrs + Leadership + Specialists at corporate)
+  - Central spend share 55-75% (strategic high-value categories concentrated)
+  - Imbalance (Central spend share > Central FTE share by 15-25 pp) is
+    EXPECTED and indicates healthy strategic-mandate posture, not a problem.
+  - Plant FTE handles transactional + plant-local services + some MRO
+
+  mini_mill_single_plant:
+central_fte_share_pct_band: [0, 30]
+central_spend_share_pct_band: [0, 30]
+typical_imbalance_pp_band: [0, 10]
+notes: |
+  Mini-mills typically have small or no "Central" — most FTE at plant.
+  For single-plant operations, "Central:Plant" framing doesn't strongly
+  apply; framework defaults to plant-level analysis only.
+
+  specialty_or_electrical_steel:
+central_fte_share_pct_band: [40, 60]
+central_spend_share_pct_band: [60, 80]
+typical_imbalance_pp_band: [15, 25]
+notes: |
+  Specialty steel mills are more Central-heavy because:
+  - Technical complexity rewards centralised expertise
+  - Smaller plant operations don't justify deep plant procurement teams
+  - High specialist share at Central
+
+  steel_multi_business_conglomerate:
+central_fte_share_pct_band: [25, 45]
+central_spend_share_pct_band: [40, 65]
+typical_imbalance_pp_band: [10, 20]
+notes: |
+  Conglomerate steel BUs sit within broader corporate structure.
+  "Central" here means group-corporate procurement; BU procurement
+  counts as "Plant" equivalent. Lower Central share than integrated
+  mills because BU autonomy is higher.
+
+  foreign_owned_indian_operation:
+central_fte_share_pct_band: [25, 50]
+central_spend_share_pct_band: [50, 80]
+typical_imbalance_pp_band: [20, 35]
+notes: |
+  Foreign-owned operations often have leaner local Central (parent global
+  procurement absorbs strategic categories) but Central locally still
+  manages high-share spend through global contracts.
+  Imbalance higher than typical because local Central is very lean.
+
+# =============================================================================
+# CENTRAL-VS-PLANT ATTRIBUTION FEASIBILITY (Steel context)
+# =============================================================================
+
+attribution_feasibility_observation:
+  typical_steel_engagements:
+feasible_pct: 35
+notes: |
+  In ~35% of Indian Steel engagements, Stage 6 mapping of buyer_id /
+  cost_centre to Central vs Plant org is successful. In the other 65%,
+  SAP MM has generic Purchaser IDs (e.g., "PROC_DEPT", "MM_USER") or
+  cost centres that mix Central + Plant operations.
+
+common_blockers:
+  - "Generic Purchaser IDs in SAP MM (single ID used across multiple buyers)"
+  - "Cost centres named by plant but used by central buyers for plant POs"
+  - "Vendor master assigned to Central but PO executed by plant buyer"
+  - "ERP migration legacy — pre-migration buyer codes carried forward"
+
+workarounds_when_blocked:
+  - "Use vendor master + category combination to infer (Central typically manages strategic categories)"
+  - "Q-OS-DS-02 QRE estimate as fallback"
+  - "Skip Central-vs-Plant component; report plant-level + acknowledge gap"
+
+# =============================================================================
+# Editable Configuration
+# sub_segment_distribution_expectations bands: HIGH risk (partner)
+# attribution_feasibility_observation percentages: LOW (observational data; annual)
+# Notes text: LOW
+# =============================================================================

@@ -1,0 +1,292 @@
+# =============================================================================
+# Org Structure — Analysis Configuration
+# =============================================================================
+
+metadata:
+  id: org-structure-analysis-config
+  layer: function
+  function: procurement
+  pillar: org-structure
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: quarterly
+  status: active
+
+# =============================================================================
+# PILLAR-LEVEL CONFIGURATION
+# =============================================================================
+
+pillar:
+  id: org-structure
+  display_name: "Org Structure"
+  scope_note: |
+Procurement team shape — Posture & Reporting, FTE Sizing & Role Composition,
+Spend-FTE Distribution, Hierarchy & Span. Pillar-wide boundary: NO ₹ cost-out
+produced. Directional recommendations only. Data feasibility honesty —
+components skip when data missing.
+  run_order: 13   # Stage 13 (Org Structure)
+  themes_in_order:
+- organisation-posture
+- fte-sizing-role-composition
+- spend-fte-distribution
+- hierarchy-span
+  synthesis_runs_after_themes: true
+
+themes:
+
+  # ===========================================================================
+  # THEME 1 — ORGANISATION POSTURE & REPORTING
+  # ===========================================================================
+  organisation-posture:
+display_name: "Organisation Posture & Reporting"
+pillar_weight: 0.20
+deep_dive_file: "org-structure/organisation-posture.md"
+
+components:
+  - id: op0_current_state
+    type: qualitative-qre
+    decision_driving: false
+  - id: op1_alignment
+    type: structural-verdict
+    decision_driving: true
+  - id: op2_reporting_line_diagnostic
+    type: qualitative-diagnostic
+    decision_driving: true
+    explicit_boundary: "NO ₹ savings / working-capital quantification"
+  - id: op3_industry_typical_patterns
+    type: industry-overlay-descriptive
+    decision_driving: true
+    explicit_boundary: "DESCRIPTIVE, not prescriptive — does not say what client should do"
+  - id: op4_reconciliation
+    type: qualitative
+    decision_driving: false
+
+benchmarks_consumed: []
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/organisation-posture-filters.yml"
+    applied_in: [op3_industry_typical_patterns]
+qre_consumed: [Q-OS-OP-01, Q-OS-OP-02, Q-OS-OP-03, Q-OS-OP-04, Q-OS-OP-05]
+
+confidence_thresholds:
+  high: { all_qre_answered: 5_of_5, industry_overlay_loaded: true, sub_segment_identified: true }
+  medium: { qre_answered: 3_of_5 }
+  low: { else: true }
+
+  # ===========================================================================
+  # THEME 2 — FTE SIZING & ROLE COMPOSITION
+  # ===========================================================================
+  fte-sizing-role-composition:
+display_name: "FTE Sizing & Role Composition"
+pillar_weight: 0.35   # heaviest weight — most actionable theme
+deep_dive_file: "org-structure/fte-sizing-role-composition.md"
+
+components:
+  - id: ft0_current_state
+    type: data-plus-qre
+    decision_driving: false
+    data_required: org_structure_or_employee_master
+    role_classification_pipeline: true
+  - id: ft1_spend_per_fte
+    type: quantitative
+    decision_driving: true
+    feasibility: reliable
+    skip_logic: "Skip if total FTE OR total spend missing"
+  - id: ft2_pos_per_fte
+    type: quantitative
+    decision_driving: true
+    feasibility_breakdown: { overall: reliable, by_role: semi-reliable }
+    skip_logic:
+      overall: "Skip if total POs OR total FTE missing"
+      by_role: "Skip if role classification < 80% High OR buyer_id-FTE join not feasible"
+    cross_theme_commentary:
+      links_to: op-model.shared-services
+      quantified_linkage: false
+  - id: ft3_role_composition_mix
+    type: cascade
+    decision_driving: true
+    feasibility: semi-reliable
+    cascade_logic: "Data-primary (if ≥70% Medium+ confidence) → QRE Q-OS-FT-02 fallback → skip if neither"
+  - id: ft4_specialist_roles_audit
+    type: dual-source
+    decision_driving: true
+    feasibility: reliable
+    dual_source: "Q-OS-FT-03 + Org excel title scan"
+  - id: ft5_reconciliation
+    type: qualitative
+    decision_driving: false
+
+benchmarks_consumed:
+  - { id: org.fte_productivity.spend_per_fte_inr_cr, applied_in: ft1_spend_per_fte }
+  - { id: org.fte_productivity.pos_per_fte_category_mgr, applied_in: ft2_pos_per_fte }
+  - { id: org.fte_productivity.pos_per_fte_transactional, applied_in: ft2_pos_per_fte }
+  - { id: org.role_composition.category_mgr_share_pct, applied_in: ft3_role_composition_mix }
+  - { id: org.role_composition.transactional_share_pct, applied_in: ft3_role_composition_mix }
+  - { id: org.role_composition.specialist_share_pct, applied_in: ft3_role_composition_mix }
+  - { id: org.role_composition.leadership_share_pct, applied_in: ft3_role_composition_mix }
+
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/fte-sizing-role-composition-filters.yml"
+    applied_in: [ft3_role_composition_mix, ft4_specialist_roles_audit]
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/benchmarks.yml"
+    applied_in: [ft1_spend_per_fte, ft3_role_composition_mix]
+
+qre_consumed: [Q-OS-FT-01, Q-OS-FT-02, Q-OS-FT-03, Q-OS-FT-04, Q-OS-FT-05, Q-OS-FT-EXC]
+
+confidence_thresholds:
+  high: { org_excel_complete: true, role_classification_high_pct_min: 80, all_qre_answered: true }
+  medium: { org_excel_complete: true, role_classification_high_pct_min: 60 }
+  low: { else: true }
+
+  # ===========================================================================
+  # THEME 3 — SPEND-FTE DISTRIBUTION
+  # ===========================================================================
+  spend-fte-distribution:
+display_name: "Spend-FTE Distribution"
+pillar_weight: 0.20
+deep_dive_file: "org-structure/spend-fte-distribution.md"
+
+components:
+  - id: ds0_current_state
+    type: data-plus-qre
+    decision_driving: false
+    feasibility_breakdown:
+      fte_per_entity: reliable
+      spend_per_plant: reliable
+      spend_central_vs_plant: opportunistic
+  - id: ds1_bw_mapping
+    type: quantitative
+    decision_driving: true
+    feasibility: reliable_at_plant_level
+    central_vs_plant_view: opportunistic
+  - id: ds2_per_entity_productivity
+    type: quantitative
+    decision_driving: true
+    feasibility: reliable
+  - id: ds3_reconciliation
+    type: qualitative
+    decision_driving: false
+
+benchmarks_consumed:
+  - { id: org.distribution.central_fte_share_pct }
+  - { id: org.distribution.central_spend_share_pct }
+  - { id: org.distribution.bw_imbalance_typical_threshold_pp }
+  - { id: org.fte_productivity.spend_per_fte_inr_cr }  # reused from Theme 2
+
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/spend-fte-distribution-filters.yml"
+    applied_in: [ds0_current_state, ds1_bw_mapping]
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/benchmarks.yml"
+    applied_in: [ds1_bw_mapping, ds2_per_entity_productivity]
+
+qre_consumed: [Q-OS-DS-01, Q-OS-DS-02, Q-OS-DS-03]
+
+confidence_thresholds:
+  high:
+    org_excel_entity_column: complete
+    po_plant_column: complete
+    stage6_entity_mapping: done
+    central_vs_plant_attribution: feasible
+  medium: { plant_level_data: clean, central_vs_plant_attribution: not_feasible }
+  low: { else: true }
+
+  # ===========================================================================
+  # THEME 4 — HIERARCHY & SPAN
+  # ===========================================================================
+  hierarchy-span:
+display_name: "Hierarchy & Span"
+pillar_weight: 0.25
+deep_dive_file: "org-structure/hierarchy-span.md"
+
+components:
+  - id: hs0_current_state
+    type: data-plus-qre
+    decision_driving: false
+    jd_rr_qualitative_bullet: true
+  - id: hs1_span_of_control
+    type: quantitative
+    decision_driving: true
+    feasibility: semi-reliable
+    skip_logic: "Skip data-derived view if reports_to < 70% populated; QRE Q-OS-HS-02 fallback if available"
+  - id: hs2_hierarchy_depth
+    type: quantitative
+    decision_driving: true
+    feasibility: semi-reliable
+    skip_logic: "Same as HS1; Q-OS-HS-01 fallback"
+  - id: hs3_reconciliation
+    type: qualitative
+    decision_driving: false
+
+benchmarks_consumed:
+  - { id: org.span.cpo_direct_reports }
+  - { id: org.span.senior_management }
+  - { id: org.span.mid_management }
+  - { id: org.span.first_line_lead }
+  - { id: org.hierarchy.depth_levels }
+
+industry_overlays_consumed:
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/hierarchy-span-filters.yml"
+    applied_in: [hs1_span_of_control, hs2_hierarchy_depth, hs3_reconciliation]
+  - file_pattern: "industries/<ind>/by-function/procurement/org-structure/benchmarks.yml"
+    applied_in: [hs2_hierarchy_depth]
+
+qre_consumed: [Q-OS-HS-01, Q-OS-HS-02, Q-OS-HS-03, Q-OS-HS-04]
+
+confidence_thresholds:
+  high: { reports_to_populated_pct_min: 80, all_qre_answered: true }
+  medium: { reports_to_populated_pct_min: 70 }
+  low: { else: true }
+
+# =============================================================================
+# CROSS-THEME SYNTHESIS CONFIG
+# =============================================================================
+synthesis:
+  file: "org-structure/cross-theme-synthesis.md"
+  runs_after: [organisation-posture, fte-sizing-role-composition, spend-fte-distribution, hierarchy-span]
+  strategic_imperative_threshold_pct: 70
+  # No overlap rules needed because no ₹ savings to double-count
+
+# =============================================================================
+# GLOBAL CONFIG
+# =============================================================================
+global:
+  data_quality_gates:
+    minimum_org_structure_completeness_pct: 60
+
+  role_classification:
+pipeline_steps: [rule_based, level_entity_tiebreaker, ai_prompt, consultant_validation]
+high_confidence_threshold_pct: 80
+medium_plus_confidence_threshold_pct: 70
+
+  reports_to_handling:
+raw_typical_population_pct: 60
+post_stage6_lift_target_pct: 78
+minimum_for_hs1_hs2_pct: 70
+
+  confidence_aggregation:
+pillar_level: "min_of_themes"
+
+# =============================================================================
+# PILLAR MATURITY SCORE COMPUTATION
+# =============================================================================
+pillar_score:
+  formula: |
+org_structure_score =
+    0.20 × posture_score
+  + 0.35 × sizing_composition_score
+  + 0.20 × distribution_score
+  + 0.25 × hierarchy_span_score
+  descriptors_file: "org-structure/scoring-descriptors.yml"
+  rounding: 1
+  display_format: "<score>/5"
+
+# =============================================================================
+# Editable Configuration
+# =============================================================================
+# themes.<theme>.pillar_weight: MEDIUM risk; must sum to 1.00
+# themes.<theme>.confidence_thresholds.*: MEDIUM risk
+# global.role_classification.high_confidence_threshold_pct: MEDIUM (default 80)
+# global.reports_to_handling.minimum_for_hs1_hs2_pct: MEDIUM (default 70)
+# synthesis.strategic_imperative_threshold_pct: LOW
+# Components / benchmark wiring: HIGH (partner)
+# =============================================================================

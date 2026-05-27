@@ -1,0 +1,156 @@
+# =============================================================================
+# Steel Industry — Hierarchy & Span Filters
+# =============================================================================
+
+metadata:
+  id: steel-hierarchy-span-filters
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: org-structure
+  theme: hierarchy-span
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# =============================================================================
+# SUB-SEGMENT HIERARCHY DEPTH EXPECTATIONS
+# =============================================================================
+
+sub_segment_hierarchy_depth_expectations:
+
+  integrated_steel_mill_multi_plant:
+typical_depth_levels: [4, 5]
+common_levels: [CPO, DGM/AGM, Sr_Mgr, Mgr, Officer]
+notes: |
+  Most Indian integrated mills run 4-5 levels:
+  CPO → DGM/AGM → Sr Mgr → Mgr → Officer/Asst Mgr.
+  6 levels (adding intermediate DGM or AVP layer) is at upper edge —
+  typically signals plant-vs-corporate coordination layer that may be
+  under-leveraged.
+
+  mini_mill_single_plant:
+typical_depth_levels: [3, 4]
+common_levels: [Head_Procurement, Sr_Mgr, Mgr, Officer]
+notes: |
+  Mini-mills typically flatter — 3-4 levels. "Head of Procurement" rather
+  than full CPO; smaller team.
+
+  specialty_or_electrical_steel:
+typical_depth_levels: [4, 5]
+common_levels: [CPO, DGM/AGM, Sr_Mgr, Mgr, Officer]
+notes: |
+  Similar to integrated mills despite smaller scale, because technical
+  specialisation drives separation between strategic Cat Mgr roles and
+  execution roles.
+
+  steel_multi_business_conglomerate:
+typical_depth_levels: [5, 6]
+common_levels: [Group_CPO, BU_Procurement_Head, DGM, Sr_Mgr, Mgr, Officer]
+notes: |
+  Conglomerate adds a layer because Group CPO + BU procurement heads.
+  6 levels considered typical for conglomerate, not "too tall."
+
+  foreign_owned_indian_operation:
+typical_depth_levels: [3, 5]
+common_levels: [Local_Head, Sr_Mgr, Mgr, Officer]
+notes: |
+  Local operation flatter because parent global procurement absorbs
+  strategic decisions. Local hierarchy supports execution.
+
+# =============================================================================
+# SUB-SEGMENT SPAN ADJUSTMENTS (if any)
+# =============================================================================
+
+sub_segment_span_adjustments:
+
+  integrated_steel_mill_multi_plant:
+notes: |
+  Function-default spans apply broadly. Specific observation: plant
+  Sr Mgrs often have 10-15 direct reports (transactional team) — sits
+  at upper edge of mid-mgmt band [6-10] OR straddles into first-line
+  lead band [8-15]. Consultant judgement on whether this represents
+  stretch OR appropriate first-line management.
+
+  mini_mill_single_plant:
+notes: |
+  Spans tend wider at every level due to flatter hierarchy + smaller
+  team. Senior management may have 8-12 reports — wider than typical [5-8]
+  but appropriate for single-plant flatter structure.
+
+  specialty_or_electrical_steel:
+notes: |
+  Similar to integrated mills; technical specialist roles sometimes
+  report dotted-line to multiple Cat Mgrs.
+
+# =============================================================================
+# COMMON STRUCTURAL PATTERNS OBSERVED IN INDIAN STEEL
+# =============================================================================
+
+common_patterns_observed:
+
+  - pattern: "Plant Procurement Sr Mgr with 10-15 direct reports"
+frequency_pct_approx: 60
+typical_assessment: |
+  Common in Indian integrated mills due to plant-distributed transactional
+  buying. Sits at boundary between mid-mgmt (6-10) and first-line lead
+  (8-15) bands. Whether this is "stretched" depends on:
+  - SSC presence (absent → stretched)
+  - Tool maturity (low → stretched)
+  - Plant procurement scope (broad → stretched; narrow → OK)
+
+  - pattern: "DGM Plant Coordination role with 2-4 direct reports"
+frequency_pct_approx: 30
+typical_assessment: |
+  Often under-leveraged. Added historically to coordinate plant procurement
+  heads but doesn't always add value. Worth questioning whether plants can
+  report directly to CPO.
+
+  - pattern: "CPO with 8+ direct reports"
+frequency_pct_approx: 15
+typical_assessment: |
+  Stretched at executive level. Common in mid-cap integrated mills that
+  don't have DGM layer. Adding a DGM layer (one direct report to CPO
+  managing 6-7 reports) typically improves decision flow.
+
+  - pattern: "Hierarchy 6 levels for integrated mill"
+frequency_pct_approx: 20
+typical_assessment: |
+  One layer deeper than 4-5 typical. Often the DGM Plant Coordination
+  layer. Worth reviewing whether the layer adds value.
+
+# =============================================================================
+# JD / R&R OBSERVATIONS — Steel context
+# =============================================================================
+
+jd_rr_observations_steel:
+  - observation: "Sr Buyer / Asst Mgr overlap at plant level"
+frequency_pct_approx: 70
+typical_narrative: |
+  Very common in Indian Steel — Sr Buyer (operator-level role with
+  experience) and Asst Mgr (supervisory role) often have overlapping
+  day-to-day execution responsibilities, leading to ambiguous accountability.
+
+  - observation: "JDs refreshed within last 3 years"
+frequency_pct_approx: 55
+typical_narrative: |
+  About half of Indian Steel procurement teams have JDs refreshed in
+  last 3 years; others have JDs dating to pre-2020. Stale JDs miss
+  Sustainability/ESG, Digital, and emerging specialist roles.
+
+  - observation: "Formal R&R matrix maintained"
+frequency_pct_approx: 25
+typical_narrative: |
+  Only ~25% of Indian Steel procurement teams maintain a formal R&R
+  matrix (separate from JDs). Most rely on JDs + informal team
+  knowledge. Refresh during structural change is recommended.
+
+# =============================================================================
+# Editable Configuration
+# sub_segment_hierarchy_depth_expectations: HIGH risk (partner)
+# common_patterns_observed: HIGH risk (descriptive but feeds RCA pattern matching)
+# jd_rr_observations_steel: LOW (observational)
+# Notes text: LOW
+# =============================================================================

@@ -1,0 +1,86 @@
+# =============================================================================
+# 1–5 Maturity Scoring Scale — UNIVERSAL
+# =============================================================================
+# This file defines the 1–5 maturity scale used across ALL function apps
+# (Procurement now, Finance/HR later) and ALL industries.
+#
+# It defines the GENERIC meaning of each level.
+# Pillar-specific descriptors (what "3" means for Op Model specifically) live in:
+#   proc-app/kb/functions/procurement/<pillar>/scoring-descriptors.yml
+# =============================================================================
+
+metadata:
+  id: scoring-scale
+  layer: universal
+  applies_to: all-functions-all-industries
+  version: 1.0
+  updated: 2026-05-25
+  owner: kb-admin
+
+scale:
+  - level: 1
+label: Ad-hoc
+summary: >
+  No defined approach. Activities happen reactively, driven by individuals,
+  with no documentation or repeatability.
+indicators:
+  - No defined process or governance
+  - Knowledge resides with individuals; high key-person dependency
+  - Outcomes unpredictable
+  - Tools used inconsistently or absent
+
+  - level: 2
+label: Defined
+summary: >
+  Basic approach defined and documented but inconsistently applied.
+  Mostly manual, individual-driven, with limited tools.
+indicators:
+  - Documented process exists but not consistently followed
+  - Some standardization across teams; gaps across geographies/BUs
+  - Heavily manual / spreadsheet-driven
+  - Limited oversight or measurement
+
+  - level: 3
+label: Managed
+summary: >
+  Consistent process across the organization with clear ownership,
+  defined KPIs, and basic automation. Outcomes are predictable.
+indicators:
+  - Standard process documented and followed
+  - Clear roles, accountabilities, and decision rights
+  - KPIs tracked with regular reporting
+  - Basic tooling in place (ERP modules, contract repository, etc.)
+
+  - level: 4
+label: Optimized
+summary: >
+  Process is data-driven and continuously improved. High automation,
+  integrated tools, proactive risk management.
+indicators:
+  - Continuous improvement embedded; periodic review cadence
+  - Advanced analytics and dashboarding
+  - Strong tool integration across upstream/downstream functions
+  - Proactive risk identification and mitigation
+
+  - level: 5
+label: Leading
+summary: >
+  Best-in-class. AI-enabled, predictive, fully integrated across functions
+  and value chain. Recognized industry benchmark.
+indicators:
+  - AI / predictive analytics drive decisions
+  - End-to-end automation including straight-through processing
+  - Cross-functional integration (with Finance, Operations, Supply Chain)
+  - Recognized as industry leader; cited as a reference case
+
+aggregation:
+  default_method: weighted_average
+  weights_source: shared-kb/standards/scoring-weights-default.yml
+  rounding: 1
+  display: "Show numeric (1.0–5.0) alongside the nearest label"
+
+usage_notes: |
+  - This scale is universal — same across all functions (Procurement, Finance, HR) and all industries.
+  - Pillar-specific descriptors live in proc-app/kb/functions/procurement/<pillar>/scoring-descriptors.yml — they REFINE this scale, they don't override it.
+  - Engagement-specific weight overrides are handled at runtime via the Primer stage (Stage 11).
+  - When a benchmark is "industry-overlayed" (e.g., Cement override of Function default), the underlying scale interpretation remains the same — only the value being measured changes.

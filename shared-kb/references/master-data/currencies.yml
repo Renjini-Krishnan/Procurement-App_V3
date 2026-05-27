@@ -1,0 +1,151 @@
+# =============================================================================
+# Currencies — Universal Master Data
+# =============================================================================
+# Currency definitions used by the app for display formatting, multi-currency
+# engagements, benchmark normalisation.
+# =============================================================================
+
+metadata:
+  id: currencies
+  layer: universal
+  applies_to: all-functions-all-industries
+  version: 1.0
+  updated: 2026-05-27
+  owner: kb-admin
+  default_currency: INR
+
+currencies:
+
+  - code: INR
+name: Indian Rupee
+symbol: "₹"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: indian
+common_units:
+  - { name: "lakh", multiplier: 100000, display: "L" }
+  - { name: "crore", multiplier: 10000000, display: "Cr" }
+iso_4217: INR
+countries: [IN]
+common_in_procurement: true
+
+  - code: USD
+name: US Dollar
+symbol: "$"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+common_units:
+  - { name: "thousand", multiplier: 1000, display: "K" }
+  - { name: "million", multiplier: 1000000, display: "M" }
+  - { name: "billion", multiplier: 1000000000, display: "B" }
+iso_4217: USD
+countries: [US]
+common_in_procurement: true
+
+  - code: EUR
+name: Euro
+symbol: "€"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: EUR
+countries: [DE, FR, IT, ES, NL, BE, AT, IE, PT, FI, GR, LU, MT, CY, EE, LV, LT, SK, SI]
+common_in_procurement: true
+
+  - code: GBP
+name: British Pound
+symbol: "£"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: GBP
+countries: [GB]
+common_in_procurement: true
+
+  - code: AED
+name: UAE Dirham
+symbol: "د.إ"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: AED
+countries: [AE]
+common_in_procurement: true
+
+  - code: SGD
+name: Singapore Dollar
+symbol: "S$"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: SGD
+countries: [SG]
+common_in_procurement: true
+
+  - code: JPY
+name: Japanese Yen
+    symbol: "¥"
+symbol_position: before
+decimal_places: 0
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: JPY
+countries: [JP]
+common_in_procurement: true
+
+  - code: CNY
+name: Chinese Yuan (Renminbi)
+symbol: "¥"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: CNY
+countries: [CN]
+common_in_procurement: true
+
+  - code: AUD
+name: Australian Dollar
+symbol: "A$"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: AUD
+countries: [AU]
+common_in_procurement: true
+
+  - code: ZAR
+name: South African Rand
+symbol: "R"
+symbol_position: before
+decimal_places: 2
+decimal_separator: "."
+thousands_separator: ","
+numbering_system: western
+iso_4217: ZAR
+countries: [ZA]
+common_in_procurement: false
+
+conversion:
+  source: "External — Reserve Bank of India reference rate (daily)"
+  refresh_cadence: "daily at 18:30 IST"
+  fallback_source: "Open Exchange Rates API"
+  storage_in_db: "Daily snapshot in fx_rates table; engagement uses date-of-engagement rate by default"
+  display_rule: "When showing converted values, always show source rate + date used for transparency"
