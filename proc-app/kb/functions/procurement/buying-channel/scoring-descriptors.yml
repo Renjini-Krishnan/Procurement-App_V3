@@ -1,0 +1,149 @@
+# =============================================================================
+# Buying Channel — Scoring Descriptors (1-5 Maturity)
+# =============================================================================
+# Defines what each maturity level means for the single Buying Channel theme.
+# Engine matches theme output against descriptor bands.
+#
+# Since the Buying Channel pillar has a single theme (no decomposition into
+# multiple strategic levers like Op Model / Org Structure), this file contains
+# only one set of 5 descriptors — for the buying-channel-strategy theme.
+#
+# NO pillar maturity rollup. Theme score IS the pillar headline.
+# =============================================================================
+
+metadata:
+  id: buying-channel-scoring-descriptors
+  layer: function
+  function: procurement
+  pillar: buying-channel
+  version: 1.0
+  last_updated: 2026-05-27
+
+# =============================================================================
+# UNIVERSAL 1-5 SCALE (from shared-kb/standards/scoring-scale.yml)
+# =============================================================================
+# 1 — Initial:     Ad-hoc, undefined; significant capability gap
+# 2 — Developing:  Some structure emerging; substantial gap remains
+# 3 — Defined:     Documented + applied; partial gap
+# 4 — Managed:     Measured + improving; minor gap to optimised
+# 5 — Optimised:   Best-practice level; minor refinement only
+
+# =============================================================================
+# BUYING CHANNEL STRATEGY THEME — DESCRIPTORS
+# =============================================================================
+# Score drivers per descriptor are the data signals the engine actually measures:
+#   - contracted_spend_pct          (from BC2 aggregation)
+#   - catalogue_penetration_indirect_pct  (from BC1 + BC3)
+#   - misrouted_spend_pct           (from BC5 aggregation — MGs flagged Misrouted)
+#   - sole_source_risk_pct          (from BC8 aggregation — % spend with sole-source flag)
+#   - unclassified_mg_pct           (from BC10 — Material Master cross-pillar flag)
+#   - portfolio_weighted_tat_days   (from BC2 channel mix × TAT benchmarks)
+
+buying_channel_strategy_score_descriptors:
+
+  - level: 1
+    label: "Initial"
+    signals:
+      contracted_spend_pct_band: "< 25%"
+      catalogue_penetration_indirect_pct_band: "< 5% (often 0% — no catalogue programme)"
+      misrouted_spend_pct_band: "> 50% (majority of spend in wrong channel)"
+      sole_source_risk_pct_band: "> 20% (concentrated sole-source dependency)"
+      unclassified_mg_pct_band: "> 20% (master data deeply degraded)"
+      portfolio_weighted_tat_days_band: "> 45 days"
+    narrative: |
+      Buying channel discipline is absent or vestigial. Most spend flows through Spot /
+      RFQ / repeat-PO. No catalogue programme; OLA usage is incidental rather than
+      systematic. PAC / sole-source concentration is material and unmanaged. Material
+      group descriptions are too generic to classify cleanly. The pillar's headline
+      recommendation: build a contract programme from near-greenfield.
+    typical_finding: |
+      Establish contract programme: identify top 20 categories for OLA / RC-LT migration;
+      stand up catalogue / ROP for INDIRECT MRO consumables; structured PAC review +
+      vendor development for sole-source critical categories; cross-pillar handoff to
+      Material Master for MG description cleanup.
+
+  - level: 2
+    label: "Developing"
+    signals:
+      contracted_spend_pct_band: "25-40%"
+      catalogue_penetration_indirect_pct_band: "5-10% (emergent programme; narrow scope)"
+      misrouted_spend_pct_band: "35-50%"
+      sole_source_risk_pct_band: "12-20%"
+      unclassified_mg_pct_band: "10-20%"
+      portfolio_weighted_tat_days_band: "30-45 days"
+    narrative: |
+      Contract programme exists but coverage partial. BULK commodities typically
+      contracted (RC-LT); INDIRECT + SERVICE coverage thin. Catalogue programme
+      emerging but limited to a narrow set of MGs (e.g., stationery, PPE). Misrouted
+      spend is the dominant migration opportunity. PAC concentration meaningful but
+      not yet under structured review.
+    typical_finding: |
+      Expand contract coverage to INDIRECT spares + recurring SERVICE (OLA programme
+      scale-up); expand catalogue scope from current narrow set to 15-25 MGs; structure
+      sole-source review + vendor development for top 5-10 PAC-justified categories.
+
+  - level: 3
+    label: "Defined"
+    signals:
+      contracted_spend_pct_band: "40-55%"
+      catalogue_penetration_indirect_pct_band: "10-20%"
+      misrouted_spend_pct_band: "20-35%"
+      sole_source_risk_pct_band: "8-12%"
+      unclassified_mg_pct_band: "5-10%"
+      portfolio_weighted_tat_days_band: "20-30 days"
+    narrative: |
+      Contract programme defined + applied across BULK + most recurring INDIRECT.
+      Catalogue penetration in target band. Documented channel policy / DoA exists.
+      Most strategic categories are in the right channel. Remaining misrouted spend is
+      mid-tier INDIRECT (engineered spares) + opportunistic SERVICE OLA expansion.
+    typical_finding: |
+      Marginal channel-mix refinement: expand catalogue to remaining standardised
+      consumables; convert remaining repeat-PO INDIRECT to OLA; SRM programme for
+      single-vendor critical categories; reduce sole-source % via vendor development.
+
+  - level: 4
+    label: "Managed"
+    signals:
+      contracted_spend_pct_band: "55-70%"
+      catalogue_penetration_indirect_pct_band: "20-30%"
+      misrouted_spend_pct_band: "10-20%"
+      sole_source_risk_pct_band: "5-8%"
+      unclassified_mg_pct_band: "< 5%"
+      portfolio_weighted_tat_days_band: "10-20 days"
+    narrative: |
+      Channel discipline mature + measured. Most MGs in the right channel; catalogue
+      programme broad; OLA + RC-LT cover the strategic + recurring base. PAC under
+      active review with documented justifications. Master-data hygiene allows engine
+      to classify >95% of MGs cleanly. Remaining gaps are narrow + specific.
+    typical_finding: |
+      Optimise mid-tier categories — convert remaining Spot to OLA where frequency
+      pattern supports; deepen catalogue automation (auto-replenishment, requisitioner
+      direct ordering); periodic PAC review formalised; contract-leakage monitoring.
+
+  - level: 5
+    label: "Optimised"
+    signals:
+      contracted_spend_pct_band: "> 70%"
+      catalogue_penetration_indirect_pct_band: "30-50%"
+      misrouted_spend_pct_band: "< 10%"
+      sole_source_risk_pct_band: "< 5%"
+      unclassified_mg_pct_band: "< 3%"
+      portfolio_weighted_tat_days_band: "< 10 days (weighted average)"
+    narrative: |
+      Best-practice channel discipline. Catalogue programme deeply embedded;
+      contracted-channel coverage at best-in-class band. Sole-source minimised through
+      structured vendor development. Material master is clean — classification engine
+      operates at high confidence. Process automation is the residual lever.
+    typical_finding: |
+      No structural action required. Continuous improvement on tooling automation
+      (e-catalogue depth, AI-suggested catalogue items, ML-driven category-channel
+      review). Periodic benchmark refresh.
+
+# =============================================================================
+# Editable Configuration
+# =============================================================================
+# Per-level signal bands: MEDIUM risk (changes how data outcomes map to maturity)
+# Per-level narrative + typical_finding text: LOW risk
+# Adding signals to the descriptor set: HIGH (changes the engine's score-driver list)
+# Re-ordering levels: HIGH (breaks downstream reporting)
+# =============================================================================

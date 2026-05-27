@@ -1,0 +1,465 @@
+# =============================================================================
+# Buying Channel — Function-Default Benchmarks
+# =============================================================================
+# Purpose: Function-default benchmark values for Buying Channel pillar analyses.
+#      Industry overlays at industries/<ind>/by-function/procurement/buying-channel/benchmarks.yml
+#      override entries here on a per-benchmark_id basis.
+#
+# Benchmark categories:
+#   1. Portfolio channel mix (contracted %, catalogue/OLA/RC-LT shares, PAC share)
+#   2. TAT benchmarks per channel (used by BC11 cycle-time impact)
+#   3. Buyer touch-time benchmarks (used by BC12 bandwidth-freed estimate)
+#   4. Transformation ceiling (used by BC11 + BC13 to cap projections realistically)
+# =============================================================================
+
+metadata:
+  id: buying-channel-benchmarks-function-default
+  layer: function
+  function: procurement
+  pillar: buying-channel
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  status: active
+
+benchmarks:
+
+  # ==========================================================================
+  # PORTFOLIO CHANNEL MIX
+  # ==========================================================================
+
+  - id: buying_channel.portfolio.contracted_spend_pct
+    name: "Portfolio Contracted Spend % (RC-LT + OLA + Catalogue combined)"
+    description: |
+      Share of total procurement spend flowing through any contracted channel
+      (RC-LT, OLA, or Catalogue/ROP). The single headline contract-discipline metric
+      for the pillar.
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      source_reference: "Accenture procurement engagements 2020-2024, Indian large enterprise sample"
+      value_range: [35, 55]
+      confidence: high
+      year: 2024
+      sample_size: "~80 Indian large-enterprise engagements"
+    supporting:
+      - source_id: APQC-2024
+        value_range: [30, 60]
+        confidence: high
+        year: 2024
+      - source_id: Hackett-2024
+        value_range: [40, 60]
+        confidence: medium
+        year: 2024
+        note: "Global benchmark; Indian sample tracks lower"
+    composite:
+      typical_low: 35
+      typical_high: 55
+      indian_large_enterprise_low: 25
+      indian_large_enterprise_high: 45
+      bic_low: 70
+      bic_high: 85
+    drivers_explained: |
+      Higher contracted % driven by: mature contract programme, RC/OLA discipline enforced
+      at PO creation, catalogue penetration in INDIRECT, strategic sourcing maturity.
+      Lower contracted % typically driven by: plant-distributed autonomy, no central
+      contracts programme, master-data discipline gaps (contract ref fields unpopulated even
+      when contracts exist).
+    applies_to_pillars: [buying-channel]
+    applies_to_industries: []
+    layer: function
+    edit_risk: high
+    tags: [portfolio_mix, contracted, function_default]
+
+  - id: buying_channel.portfolio.catalogue_penetration_indirect_pct
+    name: "Catalogue / ROP Penetration in INDIRECT Spend"
+    description: |
+      Share of INDIRECT spend on Catalogue / ROP channels. The most automation-amenable
+      lever in the pillar — catalogue items are zero-touch ordering.
+    metric_type: percentage_range
+    unit: "% of INDIRECT spend"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [5, 15]
+      confidence: high
+      year: 2024
+    supporting:
+      - source_id: Hackett-2024
+        value_range: [10, 20]
+        confidence: medium
+        note: "Global; mature catalogue programmes."
+      - source_id: APQC-2024
+        value_range: [5, 20]
+        confidence: medium
+    composite:
+      typical_low: 5
+      typical_high: 15
+      bic_low: 30
+      bic_high: 50
+    drivers_explained: |
+      Higher catalogue % driven by: ERP-integrated catalogue platform (SAP MM Catalog,
+      Ariba Catalogue, Coupa, Moglix), MG-level standardisation, requisitioner-direct
+      ordering rights, regular catalogue maintenance.
+      Most Indian large enterprises sit at the lower end (5-10%). BIC (catalogue-mature)
+      typically Fortune-500 or technology-sector clients.
+    applies_to_pillars: [buying-channel]
+    applies_to_industries: []
+    layer: function
+    edit_risk: high
+    tags: [catalogue, indirect, automation, function_default]
+
+  - id: buying_channel.portfolio.ola_share_total_pct
+    name: "OLA / Outline Agreement Share of Total Spend"
+    description: "Share of total procurement spend flowing through annual blanket OLA contracts."
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [10, 20]
+      confidence: high
+      year: 2024
+    supporting:
+      - source_id: APQC-2024
+        value_range: [10, 25]
+        confidence: medium
+    composite:
+      typical_low: 10
+      typical_high: 20
+      bic_low: 25
+      bic_high: 35
+    drivers_explained: |
+      OLA share rises when: recurring INDIRECT MGs are systematically migrated to OLA;
+      annual rate-contract programme is active; AMC + recurring SERVICE contracts use OLA.
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [ola, function_default]
+
+  - id: buying_channel.portfolio.rc_lt_share_bulk_pct
+    name: "RC-LT Share of BULK Spend (long-term contract coverage of commodity inputs)"
+    description: |
+      Share of BULK-archetype spend on long-term contracts. For integrated manufacturers,
+      this is the headline raw-material contract-coverage metric.
+    metric_type: percentage_range
+    unit: "% of BULK spend"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [60, 80]
+      confidence: high
+      year: 2024
+      sample_size: "~25 Indian Steel + Cement engagements"
+    supporting:
+      - source_id: Hackett-2024
+        value_range: [70, 90]
+        confidence: medium
+        note: "Global mature manufacturers."
+    composite:
+      typical_low: 60
+      typical_high: 80
+      bic_min: 90
+    drivers_explained: |
+      High RC-LT coverage of BULK depends on: centralised raw-material sourcing function,
+      index-linked pricing acceptance, multi-year commitments, hedging capability.
+      Indian integrated steel/cement: typically 70-85% for top BULK MGs. Mini-mills /
+      smaller players: lower (40-60%) due to thinner sourcing teams.
+    applies_to_pillars: [buying-channel]
+    applies_to_industries: [steel, cement, oil-gas, chemicals]
+    layer: function
+    edit_risk: high
+    tags: [rc_lt, bulk, function_default]
+
+  - id: buying_channel.portfolio.pac_share_total_pct
+    name: "PAC / Single-Tender Share of Total Spend"
+    description: |
+      Share of total spend on PAC-justified single-tender. Acts as a sole-source risk
+      indicator at portfolio level.
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [5, 15]
+      confidence: medium
+      year: 2024
+      note: "Hard to measure precisely — many PAC POs lack explicit flags; estimate based on combined Short_Text + vendor concentration signals."
+    composite:
+      typical_low: 5
+      typical_high: 15
+      bic_max: 5
+    drivers_explained: |
+      High PAC % driven by: spec-protectionism (engineering-led sole-source preferences),
+      OEM spares dependencies, urgent purchases bypassing competitive process, narrow
+      supplier markets (specialty refractories, mill rolls, specific instrumentation).
+      BIC: <5% via active vendor development + structured PAC review.
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [pac, single_source, function_default]
+
+  # ==========================================================================
+  # TAT BENCHMARKS (PER CHANNEL) — used by BC11
+  # ==========================================================================
+
+  - id: buying_channel.tat.rc_lt_days
+    name: "TAT — RC Long-Term Contract (PR-to-PO)"
+    description: "Typical PR-to-PO cycle time for a release against an existing RC-LT."
+    metric_type: count
+    unit: "days"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 3
+      confidence: high
+      year: 2024
+    supporting:
+      - source_id: WSA-2024
+        value_range: [2, 4]
+        confidence: medium
+    composite:
+      typical_value: 3
+      typical_range: [1, 5]
+    drivers_explained: "RC-LT call-offs are mostly automated — pricing + terms pre-agreed; PO is a release."
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [tat, rc_lt, function_default]
+
+  - id: buying_channel.tat.ola_days
+    name: "TAT — OLA Call-Off"
+    description: "Typical PR-to-PO cycle for a call-off against an Outline Agreement."
+    metric_type: count
+    unit: "days"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 3
+      confidence: high
+      year: 2024
+    composite:
+      typical_value: 3
+      typical_range: [2, 5]
+    drivers_explained: "OLA call-offs require limited buyer touch — quantity confirmation + scheduled delivery."
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [tat, ola, function_default]
+
+  - id: buying_channel.tat.catalogue_days
+    name: "TAT — Catalogue / ROP Ordering"
+    description: "Typical PR-to-PO cycle for catalogue / reorder-point automated ordering."
+    metric_type: count
+    unit: "days"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 1
+      confidence: high
+      year: 2024
+    composite:
+      typical_value: 1
+      typical_range: [0, 2]
+    drivers_explained: "Catalogue is requisitioner-direct; PR auto-converts to PO. Zero-touch when configured."
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [tat, catalogue, function_default]
+
+  - id: buying_channel.tat.asl_days
+    name: "TAT — ASL (Limited Bid Among Approved Vendors)"
+    description: "Typical PR-to-PO cycle for a limited tender among an approved vendor panel."
+    metric_type: count
+    unit: "days"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 25
+      confidence: high
+      year: 2024
+    supporting:
+      - source_id: APQC-2024
+        value_range: [20, 30]
+        confidence: medium
+    composite:
+      typical_value: 25
+      typical_range: [15, 30]
+    drivers_explained: |
+      ASL TAT covers: limited bid issue (~5 days), vendor response window (~7-10 days),
+      technical + commercial evaluation (~5 days), negotiation + PO creation (~3-5 days).
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [tat, asl, function_default]
+
+  - id: buying_channel.tat.rfq_days
+    name: "TAT — RFQ / Open Tender"
+    description: "Typical PR-to-PO cycle for an open or limited RFQ event."
+    metric_type: count
+    unit: "days"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 70
+      confidence: high
+      year: 2024
+      note: "Midpoint of 45-90 day band typical for Indian large-enterprise RFQ events."
+    supporting:
+      - source_id: APQC-2024
+        value_range: [60, 90]
+        confidence: medium
+    composite:
+      typical_value: 70
+      typical_range: [45, 90]
+    drivers_explained: |
+      RFQ TAT covers: PR approval (~5-10 days), RFQ preparation + issue (~10 days),
+      vendor response window (~15-30 days), evaluation + negotiation (~15-25 days),
+      approval + PO creation (~5-10 days). Project-specific RFQs (engineered items,
+      capex, complex services) can stretch to 90+ days.
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [tat, rfq, function_default]
+
+  # ==========================================================================
+  # BUYER TOUCH-TIME BENCHMARKS (per channel) — used by BC12 bandwidth-freed
+  # ==========================================================================
+
+  - id: buying_channel.touch_time.spot_po_hours
+    name: "Buyer Touch-Time per Spot PO"
+    description: |
+      Estimated hours of buyer effort per spot / uncontracted PO. Covers: requisition
+      review, vendor identification, quotation collection (typically 3 quotes for spot),
+      negotiation, PO creation, follow-up.
+    metric_type: count_range
+    unit: "hours per PO"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [3, 5]
+      confidence: medium
+      year: 2024
+      note: "Buyer time-study estimates from Indian large-enterprise engagements."
+    composite:
+      typical_value: 4
+      typical_range: [3, 5]
+    drivers_explained: |
+      Higher touch-time when: PR specification incomplete, vendor identification from scratch,
+      multiple negotiation rounds, manual approvals.
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: medium
+    tags: [touch_time, spot, function_default]
+
+  - id: buying_channel.touch_time.rfq_po_hours
+    name: "Buyer Touch-Time per RFQ PO"
+    description: "Hours per PO created via formal RFQ/tendering process."
+    metric_type: count_range
+    unit: "hours per PO"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [5, 8]
+      confidence: medium
+    composite:
+      typical_value: 6
+      typical_range: [5, 8]
+    drivers_explained: |
+      RFQ POs absorb more buyer time than spot due to RFQ document preparation, vendor
+      bid evaluation, structured negotiation, approval routing.
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: medium
+    tags: [touch_time, rfq, function_default]
+
+  - id: buying_channel.touch_time.ola_calloff_hours
+    name: "Buyer Touch-Time per OLA Call-Off"
+    description: "Hours per PO that's a call-off against an existing OLA."
+    metric_type: count_range
+    unit: "hours per PO"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [0.3, 0.7]
+      confidence: medium
+    composite:
+      typical_value: 0.5
+      typical_range: [0.3, 0.7]
+    drivers_explained: "OLA call-off: confirm quantity + delivery, release PO. Minimal touch."
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: medium
+    tags: [touch_time, ola, function_default]
+
+  - id: buying_channel.touch_time.catalogue_hours
+    name: "Buyer Touch-Time per Catalogue PO"
+    description: "Hours per catalogue / ROP PO. Mostly zero-touch for buyer."
+    metric_type: count_range
+    unit: "hours per PO"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [0.05, 0.15]
+      confidence: medium
+    composite:
+      typical_value: 0.1
+      typical_range: [0.05, 0.15]
+    drivers_explained: |
+      Catalogue is requisitioner-direct; buyer involvement is exception-handling only
+      (catalogue maintenance, vendor escalations).
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: medium
+    tags: [touch_time, catalogue, function_default]
+
+  - id: buying_channel.workforce.annual_buyer_hours
+    name: "Annual Working Hours per Buyer FTE"
+    description: "Used to convert buyer hours freed into FTE-equivalent for BC12."
+    metric_type: count
+    unit: "hours/year"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 1800
+      confidence: high
+      year: 2024
+      note: "Standard Indian large-enterprise: ~225 working days × 8 hours = 1,800 productive hours/year."
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: low
+    tags: [workforce, function_default]
+
+  # ==========================================================================
+  # TRANSFORMATION CEILING — used by BC11 + BC13 to cap realistic projections
+  # ==========================================================================
+
+  - id: buying_channel.transformation.ceiling_contracted_lift_pp
+    name: "Transformation Ceiling — Max Contracted % Lift per Single Programme"
+    description: |
+      Max % point lift in portfolio contracted % achievable through a single transformation
+      programme. Caps over-optimistic projections — channel migration faces real ramp-up
+      constraints (contract negotiation, vendor qualification, ERP setup, change mgmt).
+    metric_type: percentage_point
+    unit: "pp"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 25
+      confidence: medium
+      year: 2024
+      note: |
+        Based on observed transformations across ~30 engagements. Programmes achieving
+        +25 pp in 12-18 months are top-quartile execution. +35 pp possible over 24-36
+        months but rare in a single programme cycle.
+    composite:
+      typical_value: 25
+      typical_range: [15, 35]
+    drivers_explained: |
+      Lift ceiling driven by: contract negotiation cycle (3-9 months per major category),
+      vendor qualification for ASL panels (3-6 months), ERP master-data discipline
+      (contract reference fields), change-management with plant buyers + stakeholders.
+    applies_to_pillars: [buying-channel]
+    layer: function
+    edit_risk: high
+    tags: [transformation, ceiling, function_default]
+
+# =============================================================================
+# Editable Configuration
+# All benchmark VALUE changes: HIGH risk (partner sign-off).
+# Per-benchmark approval matrix:
+#   - Value range change: HIGH
+#   - Primary source change: HIGH
+#   - Add/remove supporting source: MEDIUM
+#   - Edit drivers_explained text: LOW
+#   - Add new benchmark id: HIGH
+#   - Mark benchmark deprecated: HIGH
+# Touch-time benchmarks (buying_channel.touch_time.*) are MEDIUM — they vary
+# materially by client maturity and are easier to recalibrate per engagement.
+# =============================================================================

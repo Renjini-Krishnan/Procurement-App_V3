@@ -1,0 +1,346 @@
+# =============================================================================
+# Buying Channel — RCA Rules (Deterministic IF-THEN)
+# =============================================================================
+# Purpose: Deterministic rule set for the rule-based RCA engine path.
+#      Each rule fires on a data-detectable trigger from the 13 BC analyses
+#      and surfaces likely root causes with rule-author confidence.
+#
+# Logic Embodied: At Stage 14 (Buying Channel run), after the BC analyses
+#             produce findings, the RCA engine evaluates rules sequentially.
+#             Matched rules contribute root cause hypotheses. Multiple rules
+#             can fire on one finding — engine aggregates. Rule-based output
+#             is COMPLEMENTARY to AI-driven RCA in rca-patterns.md.
+# =============================================================================
+
+metadata:
+  id: buying-channel-rca-rules
+  layer: function
+  function: procurement
+  pillar: buying-channel
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: quarterly
+  status: active
+
+# =============================================================================
+# RULE SCHEMA
+# =============================================================================
+# Each rule:
+#   id, theme, trigger (data-detectable IF-condition), root_causes (list),
+#   confidence (high/medium/low), references (pattern + recommendation),
+#   diagnostic_actions (what consultant should verify)
+# All rules apply to the single buying-channel-strategy theme.
+# =============================================================================
+
+rules:
+
+  # ==========================================================================
+  # Q1 — BASELINE FINDINGS (rules R01-R04)
+  # ==========================================================================
+
+  - id: rca.buying_channel.r01_very_low_contracted_pct
+    theme: buying-channel-strategy
+    trigger: |
+      bc1_portfolio_contracted_spend_pct < 25%
+      AND bc10_unclassified_mg_pct < 10%
+    root_causes:
+      - "No formal contract / ARC programme — procurement function operates transactionally with each PO"
+      - "Plant-distributed autonomy without central contracts mandate; each plant negotiates its own"
+      - "Historical 'we negotiate per PO' culture — buyers see contracts as bureaucratic"
+      - "DoA / governance does not differentiate channel type, so spot buying carries same approval weight as contract call-off"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-01
+      recommendation: rec-bc-greenfield-contract-programme
+    diagnostic_actions:
+      - "Verify via QRE Q-BC-01 (channels currently in use) + Q-BC-08 (contract types) — likely confirms no formal programme"
+      - "Check Op Model centralisation theme — typically low-contracted pillars correlate with plant-distributed Op Models"
+      - "Cross-check Org Structure for central category mgr presence (likely absent or thin)"
+
+  - id: rca.buying_channel.r02_contract_field_population_low
+    theme: buying-channel-strategy
+    trigger: |
+      bc2_pct_pos_with_any_contract_ref < 50%
+    root_causes:
+      - "ERP master-data discipline gap — contracts may exist outside ERP (Excel / paper) but PO process doesn't enforce contract reference"
+      - "Buyers manually pick vendors per PO regardless of existing rate contracts"
+      - "Contract repository disconnected from PO creation workflow"
+      - "Possible (less likely): contract programme genuinely absent; contracted % reflects reality"
+    confidence: medium
+    references:
+      pattern: rca-pat-bc-02
+      recommendation: rec-bc-erp-discipline-contract-ref
+    diagnostic_actions:
+      - "QRE Q-BC-09 (contract compliance monitoring) — does the client even know contract leakage exists?"
+      - "Compare QRE-stated contract coverage (Q-BC-03) vs PO-derived — if QRE >> PO-derived, leakage confirmed"
+      - "Walk through PR-to-PO workflow with a buyer; check whether ERP nudges contract reference"
+
+  - id: rca.buying_channel.r03_bulk_mostly_spot
+    theme: buying-channel-strategy
+    trigger: |
+      bc3_bulk_archetype_spot_share_pct > 50%
+      AND total_bulk_spend_inr_cr >= 50
+    root_causes:
+      - "Strategic sourcing / commodity programme absent for top raw materials"
+      - "Contracts lapsed without renewal; spend reverted to spot"
+      - "Commodity-pricing exposure (index volatility) accepted as unmanageable rather than hedged via LTC"
+      - "Possible (less likely): commodity strategy is deliberately spot-driven (rare for high-spend BULK)"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-03
+      recommendation: rec-bc-bulk-ltc-programme
+    diagnostic_actions:
+      - "QRE Q-BC-03 — check stated RC/ARC coverage and whether top BULK categories named as covered"
+      - "Cross-check Op Model centralisation theme — BULK should ideally be centrally sourced; if Op Model also flags centralisation gap, dual finding"
+
+  - id: rca.buying_channel.r04_indirect_spot_dominant
+    theme: buying-channel-strategy
+    trigger: |
+      bc3_indirect_archetype_spot_share_pct > 60%
+      AND total_indirect_spend_inr_cr >= 20
+    root_causes:
+      - "No INDIRECT contract programme — OLA / catalogue infrastructure absent"
+      - "Plant-level buying autonomy; each plant buys spares spot from local vendors"
+      - "Procurement focus historically on direct materials; indirect deprioritised"
+      - "Master-data gaps in INDIRECT MGs may obscure the recurrence pattern, leading to per-PO spot treatment"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-04
+      recommendation: rec-bc-indirect-ola-catalogue-build
+    diagnostic_actions:
+      - "QRE Q-BC-04 (OLA usage) — likely confirms minimal OLA"
+      - "QRE Q-BC-05 (catalogue) — likely confirms no catalogue programme"
+      - "Confirm via Org Structure that INDIRECT category mgrs exist (often missing in plant-distributed Op Models)"
+
+  # ==========================================================================
+  # Q2 — OPPORTUNITY FINDINGS (rules R05-R08)
+  # ==========================================================================
+
+  - id: rca.buying_channel.r05_catalogue_opportunity_unrealised
+    theme: buying-channel-strategy
+    trigger: |
+      bc6_catalogue_migration_candidates_count >= 10
+      AND bc1_catalogue_share_total_pct < 5%
+    root_causes:
+      - "No catalogue / ROP platform in place (technology gap)"
+      - "Catalogue exists but limited scope (e.g., only stationery — never expanded)"
+      - "Catalogue maintenance lapsed — items outdated; requisitioners bypass to current vendors"
+      - "Requisitioner direct-ordering rights not granted (every catalogue request still routes through buyer)"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-05
+      recommendation: rec-bc-catalogue-build-or-expand
+    diagnostic_actions:
+      - "QRE Q-BC-05 — confirm catalogue mechanism state (none / partial / mature)"
+      - "If catalogue exists: check last-updated date; assess vendor catalogue depth"
+      - "Identify catalogue tech: SAP MM, Ariba, Coupa, Moglix-managed?"
+
+  - id: rca.buying_channel.r06_ola_opportunity_unrealised
+    theme: buying-channel-strategy
+    trigger: |
+      bc6_ola_migration_candidates_count >= 15
+      AND bc1_ola_share_total_pct < 10%
+    root_causes:
+      - "No OLA / blanket order programme; rate contracts not in place for recurring spend"
+      - "OLA programme exists in name but only narrow categories covered (e.g., only AMC)"
+      - "Annual rate-contracting cycle not institutionalised"
+      - "Plant-level buyer preference for transactional control inhibits OLA migration"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-06
+      recommendation: rec-bc-ola-programme-expand
+    diagnostic_actions:
+      - "QRE Q-BC-04 — confirm OLA state"
+      - "Top-10 OLA migration candidates: are they spec-stable (i.e., suitable for OLA)? Sometimes high-PO recurring categories have spec drift that prevents OLA"
+
+  - id: rca.buying_channel.r07_service_no_ola
+    theme: buying-channel-strategy
+    trigger: |
+      bc5_service_misrouted_spend_pct > 40%
+      AND service_recurring_spend_inr_cr >= 10
+    root_causes:
+      - "Service procurement treated as project-by-project despite recurring nature (AMC, contract labour, housekeeping, transport)"
+      - "Service contract management capability absent — no framework agreement programme"
+      - "Department-led service buying (HR for housekeeping, Maintenance for AMC) without procurement involvement"
+      - "Service-vendor pool not formalised — repeat one-off awards instead of OLAs"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-07
+      recommendation: rec-bc-service-framework-programme
+    diagnostic_actions:
+      - "QRE Q-BC-08 (contract types) — does response mention service-specific framework agreements?"
+      - "Check Org Structure for dedicated services category manager (often missing)"
+
+  - id: rca.buying_channel.r08_cross_plant_fragmentation_widespread
+    theme: buying-channel-strategy
+    trigger: |
+      bc7_cross_plant_aggregation_candidate_count >= 10
+      AND average_vendor_overlap_pct < 40%
+    root_causes:
+      - "Plant-level buying autonomy without cross-plant procurement governance"
+      - "M&A heritage — acquired plants retained existing vendor base; no post-merger integration on procurement"
+      - "No central commodity / category manager bridging plants"
+      - "Plant Heads protective of local vendor relationships (often historical / personal)"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-08
+      recommendation: rec-bc-cross-plant-consolidation
+      cross_pillar: op-model.centralisation
+    diagnostic_actions:
+      - "Cross-reference Op Model centralisation theme — high overlap with C3 + C4 findings"
+      - "QRE: confirm plant procurement governance structure; if Plant Heads control buying decisions, structural issue"
+
+  # ==========================================================================
+  # Q3 — FEASIBILITY / RISK FINDINGS (rules R09-R11)
+  # ==========================================================================
+
+  - id: rca.buying_channel.r09_high_pac_concentration
+    theme: buying-channel-strategy
+    trigger: |
+      bc8c_pac_justified_category_count >= 5
+      AND bc1_pac_share_total_pct > 10%
+    root_causes:
+      - "Spec-protectionism — engineering team specifies OEM-only or proprietary parts blocking alternates"
+      - "Vendor development programme absent — no structured approach to qualifying second sources"
+      - "Urgent procurement bypasses competitive process via PAC justification (process abuse)"
+      - "Narrow supplier markets for specialty items (refractories, mill rolls, specific instrumentation) — genuine PAC justification"
+    confidence: medium
+    references:
+      pattern: rca-pat-bc-09
+      recommendation: rec-bc-pac-review-vendor-development
+    diagnostic_actions:
+      - "QRE Q-BC-12 (PAC prevalence + reasons) — categorise PAC reasons: OEM / proprietary / urgency / spec-uniqueness"
+      - "Identify whether PAC is concentrated in a few categories (manageable) or spread across many (systemic)"
+      - "Walk through PAC approval workflow: is there structured review or is PAC rubber-stamped?"
+
+  - id: rca.buying_channel.r10_single_vendor_critical_direct
+    theme: buying-channel-strategy
+    trigger: |
+      bc8a_single_vendor_direct_category_count >= 3
+      AND single_vendor_direct_spend_inr_cr >= 30
+    root_causes:
+      - "Strategic supplier dependency unmanaged — single source for critical engineered items"
+      - "Vendor development never undertaken — historical vendor accepted as 'the only option'"
+      - "Technical spec written around incumbent vendor's capability (lock-in)"
+      - "Past alternate-vendor qualification attempts failed (technical / commercial / risk)"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-10
+      recommendation: rec-bc-srm-critical-direct
+      cross_pillar: supplier
+    diagnostic_actions:
+      - "Cross-pillar handoff to Supplier — confirm SRM programme + concentration analysis"
+      - "Identify named critical single-vendor MGs (e.g., refractory specialty, mill rolls from one OEM)"
+      - "Risk register: are supply continuity risks documented for these MGs?"
+
+  - id: rca.buying_channel.r11_high_unclassified_master_data
+    theme: buying-channel-strategy
+    trigger: |
+      bc10_unclassified_mg_pct > 15%
+      OR bc10_unclassified_spend_pct > 10%
+    root_causes:
+      - "Material group descriptions overly generic / cryptic (e.g., 'GENERAL SUPPLY', 'MISC ITEMS')"
+      - "Material master maintenance neglected — new MGs added without spec/description"
+      - "Multiple legacy ERP systems merged without MG harmonisation (M&A heritage)"
+      - "No master-data ownership / stewardship at category-manager level"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-11
+      recommendation: rec-bc-material-master-cleanup
+      cross_pillar: material-master
+    diagnostic_actions:
+      - "Cross-pillar handoff to Material Master pillar"
+      - "List top 20 UNCLASSIFIED MGs by spend; review descriptions with the client"
+      - "Check whether MG taxonomy was refreshed in last 5 years"
+
+  # ==========================================================================
+  # Q4 — QUANTIFICATION FINDINGS (rules R12-R13)
+  # ==========================================================================
+
+  - id: rca.buying_channel.r12_contracted_but_high_tat
+    theme: buying-channel-strategy
+    trigger: |
+      bc1_contracted_spend_pct > 40%
+      AND bc11_portfolio_weighted_tat_days > 20
+    root_causes:
+      - "Contract leakage — POs raised without referencing existing rate contracts (paper contracts unused)"
+      - "ERP doesn't enforce contract reference on PR/PO creation; buyers skip the field"
+      - "Contracts exist but operational handover to plant buyers incomplete (no awareness)"
+      - "PR-PO approval workflow heavy even for contract call-offs (DoA same as spot)"
+    confidence: medium
+    references:
+      pattern: rca-pat-bc-12
+      recommendation: rec-bc-contract-discipline-enforcement
+    diagnostic_actions:
+      - "QRE Q-BC-09 (contract compliance monitoring) — is contract leakage measured?"
+      - "QRE Q-BC-13 (DoA matrix) — does DoA differentiate by channel type?"
+      - "Pull a sample of recent POs in 'contracted' MGs; verify whether contract reference is populated and whether prices match contract terms"
+
+  - id: rca.buying_channel.r13_pr_dump_absent_tat_skipped
+    theme: buying-channel-strategy
+    trigger: |
+      pr_dump_unavailable = true
+      OR pr_po_join_coverage_pct < 70%
+    root_causes:
+      - "PR dump not provided in the data request (or data request scope didn't include PR)"
+      - "PR and PO systems not integrated — manual PR-to-PO process; no join key"
+      - "PR module not implemented in ERP (purchases initiated directly via PO)"
+    confidence: high
+    references:
+      pattern: rca-pat-bc-13
+      recommendation: rec-bc-pr-system-implementation
+    diagnostic_actions:
+      - "Confirm with client whether PR module is active in ERP"
+      - "If active: request PR dump; offer to re-run BC11 if data arrives"
+      - "If not active: PR-to-PO TAT is unmeasurable; flag as 'requires PR module implementation for cycle-time KPI'"
+
+  # ==========================================================================
+  # CROSS-CUTTING / SYNTHESIS RULES (R14-R15)
+  # ==========================================================================
+
+  - id: rca.buying_channel.r14_over_engineered_rc_lt
+    theme: buying-channel-strategy
+    trigger: |
+      bc5_over_engineered_category_count >= 5
+      AND over_engineered_spend_inr_cr >= 20
+    root_causes:
+      - "Historical RC-LT bias — programme oversized: RC-LT applied to categories where OLA fits"
+      - "Contract programme grew without periodic right-sizing — categories that warranted RC-LT 5 years ago may now warrant OLA"
+      - "Procurement KPI rewards 'RC-LT count' rather than channel-archetype fit, incentivising over-contracting"
+      - "RC-LT contracts auto-renewed without revisiting whether the original rationale still applies"
+    confidence: medium
+    references:
+      pattern: rca-pat-bc-14
+      recommendation: rec-bc-contract-simplification
+    diagnostic_actions:
+      - "Identify named over-engineered categories: typically mid-volume INDIRECT or stable-vendor SERVICE"
+      - "Quantify contract-management overhead per RC-LT (typically 0.1-0.3 FTE per active RC); over-engineered RC-LT = redirectable bandwidth"
+
+  - id: rca.buying_channel.r15_already_mature
+    theme: buying-channel-strategy
+    trigger: |
+      bc1_contracted_spend_pct > 70%
+      AND bc1_catalogue_share_total_pct > 25%
+      AND bc1_pac_share_total_pct < 5%
+      AND bc11_portfolio_weighted_tat_days < 12
+    root_causes: []   # no RCA — this is the "no major gap" outcome
+    confidence: high
+    references:
+      pattern: rca-pat-bc-15
+      recommendation: rec-bc-continuous-improvement-only
+    diagnostic_actions:
+      - "Confirm mature state with QRE — does client narrative align with data?"
+      - "Identify continuous-improvement levers: e-catalogue depth, ML-suggested category-channel review, automation maturity"
+
+# =============================================================================
+# Editable Configuration
+# =============================================================================
+# Adding new rule: MEDIUM risk (peer KB lead review)
+# Modifying trigger: MEDIUM risk (affects when rule fires)
+# Modifying root_causes text: LOW risk (self)
+# Removing rule: HIGH risk (partner review)
+# Confidence level: MEDIUM risk
+# Rule additions should be informed by real engagement learnings.
+# Quarterly review with engagement consultants recommended.
+# =============================================================================
