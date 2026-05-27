@@ -1,0 +1,387 @@
+# =============================================================================
+# QRE Bank — Qualitative-Response Engagement Questions
+# =============================================================================
+# Purpose: Canonical bank of all QRE questions consumed by procurement analyses.
+#         Each QRE has: id, pillar, theme, question text, answer type, options,
+#         compulsory flag, optional notes, and the list of analyses that consume it.
+#
+# Synthesises from: analysis-requirements-tracker.yml (aggregate_qre_questions
+#                   for index + per-analysis qre_questions_used for full text)
+#
+# Coverage: Op Model + Org Structure pillars (Build 1)
+# =============================================================================
+
+metadata:
+  id: procurement-qre-bank
+  layer: function
+  function: procurement
+  version: 1.0
+  last_updated: 2026-05-27
+  source_of_truth: proc-app/kb/functions/procurement/_meta/analysis-requirements-tracker.yml
+  total_qres: 37
+  pillars_covered: [op-model, org-structure]
+
+# =============================================================================
+# QRE QUESTIONS — by pillar > theme
+# =============================================================================
+
+qres:
+
+  # =============================================================================
+  # OP MODEL PILLAR
+  # =============================================================================
+
+  # ----- Theme: centralisation (3 QREs) -----
+
+  - id: Q-OM-01
+    pillar: op-model
+    theme: centralisation
+    question: "Approximately what % of your annual procurement spend is processed by a central procurement team?"
+    answer_type: range_band
+    options: ["<20%", "20-40%", "40-60%", "60-80%", ">80%"]
+    compulsory: false
+    notes: "Used to set baseline when PO data lacks classifying field. Compared against PO-computed if available."
+    used_by: [opmodel.centralisation.c0_baseline]
+
+  - id: Q-OM-02
+    pillar: op-model
+    theme: centralisation
+    question: "Of your top-10 procurement categories by spend, approximately how many are managed centrally end-to-end?"
+    answer_type: count_band
+    options: ["0-2", "3-5", "6-8", "9-10"]
+    compulsory: false
+    used_by: [opmodel.centralisation.c0_baseline]
+
+  - id: Q-OM-EXC
+    pillar: op-model
+    theme: centralisation
+    question: "Are there any procurement categories your team feels MUST stay local for reasons not captured in your data?"
+    answer_type: free_text
+    compulsory: false
+    notes: "Safety-net for edge cases industry overlay missed."
+    used_by: [opmodel.centralisation.c3_industry_knowledge_filter]
+
+  # ----- Theme: shared-services (6 QREs) -----
+
+  - id: Q-OM-SS-01
+    pillar: op-model
+    theme: shared-services
+    question: "Does your organisation have a procurement Shared Service Centre (SSC)?"
+    answer_type: enum
+    options: ["True", "False", "Partial"]
+    compulsory: true
+    used_by: [opmodel.shared_services.ss0_current_coverage, opmodel.shared_services.ss5_reconciliation]
+
+  - id: Q-OM-SS-02
+    pillar: op-model
+    theme: shared-services
+    question: "What categories does your SSC handle today?"
+    answer_type: free_text_plus_checklist
+    compulsory: conditional
+    used_by: [opmodel.shared_services.ss0_current_coverage, opmodel.shared_services.ss3_coverage_gap, opmodel.shared_services.ss5_reconciliation]
+
+  - id: Q-OM-SS-03
+    pillar: op-model
+    theme: shared-services
+    question: "How many FTEs are in your procurement SSC?"
+    answer_type: count_band
+    options: ["0", "1-5", "6-15", "16-30", "30+"]
+    compulsory: conditional
+    used_by: [opmodel.shared_services.ss0_current_coverage]
+
+  - id: Q-OM-SS-04
+    pillar: op-model
+    theme: shared-services
+    question: "Typical processing cost per PO in your SSC (if known)?"
+    answer_type: range_band_inr
+    options: ["<₹1,000", "₹1,000-2,000", "₹2,000-3,500", "₹3,500-5,000", ">₹5,000", "Don't know"]
+    compulsory: false
+    used_by: [opmodel.shared_services.ss0_current_coverage, opmodel.shared_services.ss4_fte_productivity]
+
+  - id: Q-OM-SS-05
+    pillar: op-model
+    theme: shared-services
+    question: "Beyond category-level scope, are there specific procurement ACTIVITIES (e.g., PO creation, GRN follow-up, invoice verification, vendor onboarding, payment follow-up, contract administration) that your team feels SHOULD move to an SSC — or specifically should NOT?"
+    answer_type: free_text
+    compulsory: false
+    notes: "Activity-level qualitative input; feeds narrative only (no quantified analysis)."
+    used_by: [opmodel.shared_services.ss0_current_coverage]
+
+  - id: Q-OM-SS-EXC
+    pillar: op-model
+    theme: shared-services
+    question: "Are there any transactional categories your team feels MUST stay with plant buyers (not SSC) for reasons not in your data?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [opmodel.shared_services.ss2_industry_filter]
+
+  # ----- Theme: coe (5 QREs) -----
+
+  - id: Q-OM-COE-01
+    pillar: op-model
+    theme: coe
+    question: "Does your organisation have a formal procurement Centre of Excellence (CoE) — a dedicated team owning strategy for top categories?"
+    answer_type: enum
+    options: ["True", "False", "Informal-Only"]
+    compulsory: true
+    used_by: [opmodel.coe.ce0_current_state, opmodel.coe.ce5_reconciliation]
+
+  - id: Q-OM-COE-02
+    pillar: op-model
+    theme: coe
+    question: "If yes, which categories does the CoE cover? How many?"
+    answer_type: free_text_plus_checklist
+    compulsory: conditional
+    used_by: [opmodel.coe.ce0_current_state, opmodel.coe.ce3_coverage_gap, opmodel.coe.ce5_reconciliation]
+
+  - id: Q-OM-COE-03
+    pillar: op-model
+    theme: coe
+    question: "How many FTEs sit in the CoE (or perform CoE-equivalent work informally)?"
+    answer_type: count_band
+    options: ["0", "1-3", "4-8", "9-15", "16+"]
+    compulsory: conditional
+    used_by: [opmodel.coe.ce0_current_state]
+
+  - id: Q-OM-COE-04
+    pillar: op-model
+    theme: coe
+    question: "How is the CoE positioned in the org — reporting line, BU-aligned vs corporate, decision authority?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [opmodel.coe.ce0_current_state, opmodel.coe.ce5_reconciliation]
+
+  - id: Q-OM-COE-EXC
+    pillar: op-model
+    theme: coe
+    question: "Are there any strategic categories your team feels should/should not be in a CoE for reasons not captured in your data?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [opmodel.coe.ce2_industry_filter]
+
+  # ----- Theme: tail-spend (5 QREs) -----
+
+  - id: Q-OM-TS-01
+    pillar: op-model
+    theme: tail-spend
+    question: "Does your organisation use any managed-procurement aggregator today (Moglix / Bizongo / Industrybuying / Power2SME / OfBusiness / other)?"
+    answer_type: enum
+    options: ["True", "False", "Partial"]
+    compulsory: true
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts5_reconciliation]
+
+  - id: Q-OM-TS-02
+    pillar: op-model
+    theme: tail-spend
+    question: "If yes, which aggregator(s)? Which categories? Approximate annual spend through them?"
+    answer_type: free_text_plus_checklist
+    compulsory: conditional
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts4_outsourcing_savings, opmodel.tail_spend.ts5_reconciliation]
+
+  - id: Q-OM-TS-03
+    pillar: op-model
+    theme: tail-spend
+    question: "Approximately what % of your indirect spend would you classify as 'tail' — low value, low frequency, scattered vendor base?"
+    answer_type: range_band
+    options: ["<5%", "5-10%", "10-20%", "20%+", "Don't know"]
+    compulsory: false
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts5_reconciliation]
+
+  - id: Q-OM-TS-04
+    pillar: op-model
+    theme: tail-spend
+    question: "Are there reasons aggregator use is restricted (procurement policy, supplier diversity goals, IT integration limits, contractual constraints)?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts5_reconciliation]
+
+  - id: Q-OM-TS-EXC
+    pillar: op-model
+    theme: tail-spend
+    question: "Are there any tail categories your team feels CANNOT be outsourced to an aggregator for reasons not captured in your data?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [opmodel.tail_spend.ts3_industry_filter]
+
+  # =============================================================================
+  # ORG STRUCTURE PILLAR
+  # =============================================================================
+
+  # ----- Theme: organisation-posture (5 QREs) -----
+
+  - id: Q-OS-OP-01
+    pillar: org-structure
+    theme: organisation-posture
+    question: "How is your overall business organised?"
+    answer_type: enum
+    options: ["Centralised", "Federated", "Decentralised", "Hybrid"]
+    compulsory: true
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op1_alignment, orgstructure.organisation_posture.op3_industry_typical_patterns]
+
+  - id: Q-OS-OP-02
+    pillar: org-structure
+    theme: organisation-posture
+    question: "How is your procurement organisation structured?"
+    answer_type: enum
+    options: ["Centralised", "Federated", "Decentralised", "Hybrid"]
+    compulsory: true
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op1_alignment, orgstructure.organisation_posture.op3_industry_typical_patterns]
+
+  - id: Q-OS-OP-03
+    pillar: org-structure
+    theme: organisation-posture
+    question: "Whom does the CPO (or head of procurement) report to?"
+    answer_type: enum
+    options: ["CEO", "CFO", "COO", "BU_Head", "Plant_Head", "MD_Direct", "Other"]
+    compulsory: true
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op2_reporting_line_diagnostic, orgstructure.organisation_posture.op3_industry_typical_patterns]
+
+  - id: Q-OS-OP-04
+    pillar: org-structure
+    theme: organisation-posture
+    question: "How long has the procurement function been in its current structure?"
+    answer_type: enum
+    options: ["<2 years", "2-5 years", "5-10 years", ">10 years", "Don't know"]
+    compulsory: false
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op4_reconciliation]
+
+  - id: Q-OS-OP-05
+    pillar: org-structure
+    theme: organisation-posture
+    question: "What's the stated mandate of procurement?"
+    answer_type: multi_select
+    options: ["Cost_reduction", "Strategic_value", "Compliance", "Supply_continuity", "Sustainability", "Innovation", "Mixed"]
+    compulsory: true
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op2_reporting_line_diagnostic, orgstructure.organisation_posture.op4_reconciliation]
+
+  # ----- Theme: fte-sizing-role-composition (6 QREs) -----
+
+  - id: Q-OS-FT-01
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    question: "Approximately how many FTEs are in the procurement function?"
+    answer_type: count_band
+    options: ["<20", "20-50", "50-100", "100-200", "200+", "Don't know"]
+    compulsory: true
+    used_by: [orgstructure.fte_sizing.ft0_current_state]
+
+  - id: Q-OS-FT-02
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    question: "Approximate split — Category Manager / Transactional / Specialist / Leadership?"
+    answer_type: percentage_breakdown
+    compulsory: false
+    used_by: [orgstructure.fte_sizing.ft0_current_state, orgstructure.fte_sizing.ft3_role_composition_mix]
+
+  - id: Q-OS-FT-03
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    question: "Which specialist roles are present in your procurement function?"
+    answer_type: multi_select
+    options: ["Analytics", "Contract_Mgmt", "SRM", "FBP", "Risk", "Sustainability_ESG", "Digital", "Commodity_Analyst", "Logistics_Specialist", "Other"]
+    compulsory: false
+    used_by: [orgstructure.fte_sizing.ft0_current_state, orgstructure.fte_sizing.ft4_specialist_roles_audit]
+
+  - id: Q-OS-FT-04
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    question: "Where are your FTEs located (Central / Plant / BU)?"
+    answer_type: free_text_with_counts
+    compulsory: false
+    used_by: [orgstructure.fte_sizing.ft0_current_state]
+
+  - id: Q-OS-FT-05
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    question: "How do you describe your team sizing today?"
+    answer_type: enum_with_rationale
+    options: ["Adequate", "Stretched", "Over-staffed", "Mixed"]
+    compulsory: false
+    used_by: [orgstructure.fte_sizing.ft0_current_state, orgstructure.fte_sizing.ft5_reconciliation]
+
+  - id: Q-OS-FT-EXC
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    question: "Are there specialist roles your team has but in non-standard titles, or that you're considering adding?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [orgstructure.fte_sizing.ft4_specialist_roles_audit]
+
+  # ----- Theme: spend-fte-distribution (3 QREs) -----
+
+  - id: Q-OS-DS-01
+    pillar: org-structure
+    theme: spend-fte-distribution
+    question: "What's the approximate FTE split across Central / Plants / BUs?"
+    answer_type: free_text_or_counts
+    compulsory: false
+    used_by: [orgstructure.distribution.ds0_current_state]
+
+  - id: Q-OS-DS-02
+    pillar: org-structure
+    theme: spend-fte-distribution
+    question: "What's the approximate spend split — Central vs Plant procurement?"
+    answer_type: percentage_estimate
+    compulsory: false
+    notes: "Used as fallback if Central-vs-Plant attribution from data not feasible"
+    used_by: [orgstructure.distribution.ds0_current_state]
+
+  - id: Q-OS-DS-03
+    pillar: org-structure
+    theme: spend-fte-distribution
+    question: "How does your team perceive the FTE distribution — appropriate, top-heavy, plant-heavy, or imbalanced toward specific entities?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [orgstructure.distribution.ds0_current_state, orgstructure.distribution.ds3_reconciliation]
+
+  # ----- Theme: hierarchy-span (4 QREs) -----
+
+  - id: Q-OS-HS-01
+    pillar: org-structure
+    theme: hierarchy-span
+    question: "How many reporting levels are there from CPO to the most junior procurement role?"
+    answer_type: count_band
+    options: ["3", "4", "5", "6+", "Don't know"]
+    compulsory: false
+    notes: "Fallback for HS2 if reports_to data insufficient"
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs2_hierarchy_depth]
+
+  - id: Q-OS-HS-02
+    pillar: org-structure
+    theme: hierarchy-span
+    question: "What's the typical span of control at different levels (CPO / Sr Mgmt / Mid Mgmt / First-line)?"
+    answer_type: free_text_or_structured_estimate
+    compulsory: false
+    notes: "Fallback for HS1 if reports_to data insufficient"
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs1_span_of_control]
+
+  - id: Q-OS-HS-03
+    pillar: org-structure
+    theme: hierarchy-span
+    question: "Do you have current JDs for all procurement roles? Are there known overlaps or gaps in R&R?"
+    answer_type: free_text
+    compulsory: false
+    notes: "JD/R&R qualitative signal; feeds narrative only (no standalone JD audit)"
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs3_reconciliation]
+
+  - id: Q-OS-HS-04
+    pillar: org-structure
+    theme: hierarchy-span
+    question: "How does your team perceive the hierarchy + span — appropriate, top-heavy, layered, or stretched?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs3_reconciliation]
+
+
+# =============================================================================
+# CONTEXT QRES — Client-library questions consumed by analyses but not pillar-bound
+# =============================================================================
+
+context_qres:
+
+  - id: Q-CL-XX
+    question: "Industry sub-segment (for Steel: integrated mill / mini-mill / specialty / conglomerate / foreign-owned)"
+    consumed_from: client_segment_context
+    compulsory: true_for_op3
+    notes: "Industry sub-segment identifier (e.g., Steel: integrated mill / mini-mill / specialty / conglomerate / foreign-owned). Sourced from client onboarding, not pillar QRE collection."
+    used_by: [orgstructure.organisation_posture.op3_industry_typical_patterns]
