@@ -28,49 +28,49 @@ metadata:
 
 centralisation_score_descriptors:
   - level: 1
-label: "Initial"
-signals:
-  spend_central_pct_band: "< 30%"
+    label: "Initial"
+    signals:
+      spend_central_pct_band: "< 30%"
       c1_candidate_categories_addressable_pct_band: "> 60%"
-  c2_vendor_overlap_band: "< 30% — plants use different vendors"
-narrative: "Procurement plant-distributed; no meaningful central buying entity. Each plant a sourcing island. Centralisation theme dominates Op Model recommendations."
-typical_finding: "Centralise high-commonality multi-plant categories; establish category management capability."
+      c2_vendor_overlap_band: "< 30% — plants use different vendors"
+    narrative: "Procurement plant-distributed; no meaningful central buying entity. Each plant a sourcing island. Centralisation theme dominates Op Model recommendations."
+    typical_finding: "Centralise high-commonality multi-plant categories; establish category management capability."
 
   - level: 2
-label: "Developing"
-signals:
-  spend_central_pct_band: "30-50%"
+    label: "Developing"
+    signals:
+      spend_central_pct_band: "30-50%"
       c1_candidate_categories_addressable_pct_band: "40-60%"
-  c2_vendor_overlap_band: "30-50%"
-narrative: "Some central buying exists (top commodities / regulated items) but coverage partial. Material centralisation opportunity remains."
-typical_finding: "Expand centralisation scope to N additional categories; formalise category management."
+      c2_vendor_overlap_band: "30-50%"
+    narrative: "Some central buying exists (top commodities / regulated items) but coverage partial. Material centralisation opportunity remains."
+    typical_finding: "Expand centralisation scope to N additional categories; formalise category management."
 
   - level: 3
-label: "Defined"
-signals:
-  spend_central_pct_band: "50-70%"
+    label: "Defined"
+    signals:
+      spend_central_pct_band: "50-70%"
       c1_candidate_categories_addressable_pct_band: "20-40%"
-  c2_vendor_overlap_band: "50-70%"
-narrative: "Central procurement established with documented scope. Top categories centralised; mid-tier partially."
-typical_finding: "Marginal scope expansion in mid-tier categories; refine governance."
+      c2_vendor_overlap_band: "50-70%"
+    narrative: "Central procurement established with documented scope. Top categories centralised; mid-tier partially."
+    typical_finding: "Marginal scope expansion in mid-tier categories; refine governance."
 
   - level: 4
-label: "Managed"
-signals:
-  spend_central_pct_band: "70-85%"
+    label: "Managed"
+    signals:
+      spend_central_pct_band: "70-85%"
       c1_candidate_categories_addressable_pct_band: "10-20%"
-  c2_vendor_overlap_band: "70-85%"
-narrative: "Centralisation mature + measured. Residual opportunity narrow."
-typical_finding: "Fine-tuning; consider Centre-Led for residual local categories."
+      c2_vendor_overlap_band: "70-85%"
+    narrative: "Centralisation mature + measured. Residual opportunity narrow."
+    typical_finding: "Fine-tuning; consider Centre-Led for residual local categories."
 
   - level: 5
-label: "Optimised"
-signals:
-  spend_central_pct_band: "> 85%"
+    label: "Optimised"
+    signals:
+      spend_central_pct_band: "> 85%"
       c1_candidate_categories_addressable_pct_band: "< 10%"
-  c2_vendor_overlap_band: "> 85%"
-narrative: "Best-practice centralisation. Remaining local buying is deliberate."
-typical_finding: "No structural action."
+      c2_vendor_overlap_band: "> 85%"
+    narrative: "Best-practice centralisation. Remaining local buying is deliberate."
+    typical_finding: "No structural action."
 
 # =============================================================================
 # THEME 2 — SHARED SERVICES (SSC) DESCRIPTORS
@@ -78,34 +78,34 @@ typical_finding: "No structural action."
 
 shared_services_score_descriptors:
   - level: 1
-label: "Initial"
-signals: {ssc_current_pct_band: "0% — no SSC"}
-narrative: "No procurement SSC. Plant buyers handle all transactional POs. High cost-per-PO, fragmented processes."
-typical_finding: "Greenfield SSC opportunity; sequence with SSC-suitable transactional categories."
+    label: "Initial"
+    signals: {ssc_current_pct_band: "0% — no SSC"}
+    narrative: "No procurement SSC. Plant buyers handle all transactional POs. High cost-per-PO, fragmented processes."
+    typical_finding: "Greenfield SSC opportunity; sequence with SSC-suitable transactional categories."
 
   - level: 2
-label: "Developing"
-signals: {ssc_current_pct_band: "Single plant OR single narrow category only"}
-narrative: "Partial / pilot SSC. Coverage narrow. Significant scope-expansion opportunity."
-typical_finding: "Expand SSC scope across plants + categories per data-suggested list."
+    label: "Developing"
+    signals: {ssc_current_pct_band: "Single plant OR single narrow category only"}
+    narrative: "Partial / pilot SSC. Coverage narrow. Significant scope-expansion opportunity."
+    typical_finding: "Expand SSC scope across plants + categories per data-suggested list."
 
   - level: 3
-label: "Defined"
-signals: {ssc_current_pct_band: "Multi-plant for 1-3 categories OR single-plant for 3-5"}
-narrative: "SSC established with defined scope but not yet comprehensive."
-typical_finding: "Add 2-4 categories to SSC scope."
+    label: "Defined"
+    signals: {ssc_current_pct_band: "Multi-plant for 1-3 categories OR single-plant for 3-5"}
+    narrative: "SSC established with defined scope but not yet comprehensive."
+    typical_finding: "Add 2-4 categories to SSC scope."
 
   - level: 4
-label: "Managed"
-signals: {ssc_current_pct_band: "Most SSC-suitable categories in SSC across all plants"}
-narrative: "SSC well-established + broad in scope. Residual opportunity narrow."
-typical_finding: "Optional scope refinement; consider activity-level expansion."
+    label: "Managed"
+    signals: {ssc_current_pct_band: "Most SSC-suitable categories in SSC across all plants"}
+    narrative: "SSC well-established + broad in scope. Residual opportunity narrow."
+    typical_finding: "Optional scope refinement; consider activity-level expansion."
 
   - level: 5
-label: "Optimised"
-signals: {ssc_current_pct_band: "Comprehensive — all SSC-suitable categories in SSC"}
-narrative: "Best-practice SSC. Productivity meets world-class benchmarks (₹1,000-1,500/PO; 10K-15K POs/FTE/year)."
-typical_finding: "No structural action. Continuous improvement on automation + tooling."
+    label: "Optimised"
+    signals: {ssc_current_pct_band: "Comprehensive — all SSC-suitable categories in SSC"}
+    narrative: "Best-practice SSC. Productivity meets world-class benchmarks (₹1,000-1,500/PO; 10K-15K POs/FTE/year)."
+    typical_finding: "No structural action. Continuous improvement on automation + tooling."
 
 # =============================================================================
 # THEME 3 — CoE DESCRIPTORS
@@ -113,34 +113,34 @@ typical_finding: "No structural action. Continuous improvement on automation + t
 
 coe_score_descriptors:
   - level: 1
-label: "Initial"
-signals: {coe_current_state_band: "No CoE; generalist buyers handle strategic categories"}
-narrative: "Strategic categories without dedicated category-management expertise. Significant value left on table."
-typical_finding: "Establish formal CoE; staff with category strategists."
+    label: "Initial"
+    signals: {coe_current_state_band: "No CoE; generalist buyers handle strategic categories"}
+    narrative: "Strategic categories without dedicated category-management expertise. Significant value left on table."
+    typical_finding: "Establish formal CoE; staff with category strategists."
 
   - level: 2
-label: "Developing"
-signals: {coe_current_state_band: "Informal-Only — a few category strategists; no formal structure"}
-narrative: "Informal category management for top commodities; lacks formal structure, charter, KPIs."
-typical_finding: "Formalise CoE; expand scope from informal to comprehensive strategic universe."
+    label: "Developing"
+    signals: {coe_current_state_band: "Informal-Only — a few category strategists; no formal structure"}
+    narrative: "Informal category management for top commodities; lacks formal structure, charter, KPIs."
+    typical_finding: "Formalise CoE; expand scope from informal to comprehensive strategic universe."
 
   - level: 3
-label: "Defined"
-signals: {coe_current_state_band: "Formal CoE covering 50-75% of CoE-suitable categories"}
-narrative: "CoE exists with defined scope but not comprehensive coverage."
-typical_finding: "Expand CoE scope by 3-5 categories; strengthen market intelligence + tooling."
+    label: "Defined"
+    signals: {coe_current_state_band: "Formal CoE covering 50-75% of CoE-suitable categories"}
+    narrative: "CoE exists with defined scope but not comprehensive coverage."
+    typical_finding: "Expand CoE scope by 3-5 categories; strengthen market intelligence + tooling."
 
   - level: 4
-label: "Managed"
-signals: {coe_current_state_band: "Formal CoE covering 75-90% with KPIs + market intel"}
-narrative: "CoE well-established with comprehensive scope, charter, KPIs, market intelligence."
-typical_finding: "Marginal scope refinement; deepen capability."
+    label: "Managed"
+    signals: {coe_current_state_band: "Formal CoE covering 75-90% with KPIs + market intel"}
+    narrative: "CoE well-established with comprehensive scope, charter, KPIs, market intelligence."
+    typical_finding: "Marginal scope refinement; deepen capability."
 
   - level: 5
-label: "Optimised"
-signals: {coe_current_state_band: "Comprehensive CoE with full scope + advanced capability"}
-narrative: "Best-practice CoE. Strategic categories optimally managed."
-typical_finding: "No structural action."
+    label: "Optimised"
+    signals: {coe_current_state_band: "Comprehensive CoE with full scope + advanced capability"}
+    narrative: "Best-practice CoE. Strategic categories optimally managed."
+    typical_finding: "No structural action."
 
 # =============================================================================
 # THEME 4 — TAIL SPEND DESCRIPTORS
@@ -148,34 +148,34 @@ typical_finding: "No structural action."
 
 tail_spend_score_descriptors:
   - level: 1
-label: "Initial"
-signals: {ts0_aggregator_usage_band: "No aggregator; tail entirely plant-managed"}
-narrative: "Tail entirely plant-managed. Long-tail vendor fragmentation absorbs plant buyer effort."
-typical_finding: "Onboard managed-procurement aggregator (Moglix) for SSC-suitable tail."
+    label: "Initial"
+    signals: {ts0_aggregator_usage_band: "No aggregator; tail entirely plant-managed"}
+    narrative: "Tail entirely plant-managed. Long-tail vendor fragmentation absorbs plant buyer effort."
+    typical_finding: "Onboard managed-procurement aggregator (Moglix) for SSC-suitable tail."
 
   - level: 2
-label: "Developing"
-signals: {ts0_aggregator_usage_band: "Pilot / single-category aggregator usage"}
-narrative: "Aggregator partnership in pilot form. Scope-expansion opportunity remains."
-typical_finding: "Expand aggregator scope to cover identified suitable categories."
+    label: "Developing"
+    signals: {ts0_aggregator_usage_band: "Pilot / single-category aggregator usage"}
+    narrative: "Aggregator partnership in pilot form. Scope-expansion opportunity remains."
+    typical_finding: "Expand aggregator scope to cover identified suitable categories."
 
   - level: 3
-label: "Defined"
-signals: {ts0_aggregator_usage_band: "Aggregator covers 50-75% of aggregator-suitable tail"}
-narrative: "Aggregator partnership established with defined scope."
-typical_finding: "Add remaining suitable categories; reduce long-tail vendor count further."
+    label: "Defined"
+    signals: {ts0_aggregator_usage_band: "Aggregator covers 50-75% of aggregator-suitable tail"}
+    narrative: "Aggregator partnership established with defined scope."
+    typical_finding: "Add remaining suitable categories; reduce long-tail vendor count further."
 
   - level: 4
-label: "Managed"
-signals: {ts0_aggregator_usage_band: "Aggregator covers most suitable tail categories"}
-narrative: "Tail spend comprehensively managed. Residual opportunity narrow."
-typical_finding: "Marginal optimisation; refine aggregator commercial terms at renewal."
+    label: "Managed"
+    signals: {ts0_aggregator_usage_band: "Aggregator covers most suitable tail categories"}
+    narrative: "Tail spend comprehensively managed. Residual opportunity narrow."
+    typical_finding: "Marginal optimisation; refine aggregator commercial terms at renewal."
 
   - level: 5
-label: "Optimised"
-signals: {ts0_aggregator_usage_band: "Comprehensive aggregator coverage + catalog buying / p-card integration"}
-narrative: "Best-practice tail management."
-typical_finding: "No structural action."
+    label: "Optimised"
+    signals: {ts0_aggregator_usage_band: "Comprehensive aggregator coverage + catalog buying / p-card integration"}
+    narrative: "Best-practice tail management."
+    typical_finding: "No structural action."
 
 # =============================================================================
 # PILLAR-LEVEL ROLL-UP DESCRIPTORS
@@ -183,17 +183,17 @@ typical_finding: "No structural action."
 
 pillar_score_descriptors:
   - score_range: [1.0, 1.5]
-label: "Initial"
-narrative: "Op Model structurally under-built. Multiple themes at maturity 1-2. Substantial transformation required."
+    label: "Initial"
+    narrative: "Op Model structurally under-built. Multiple themes at maturity 1-2. Substantial transformation required."
   - score_range: [1.5, 2.5]
-label: "Developing"
-narrative: "Op Model has emerging structure but significant maturity gaps. Phased transformation roadmap warranted."
+    label: "Developing"
+    narrative: "Op Model has emerging structure but significant maturity gaps. Phased transformation roadmap warranted."
   - score_range: [2.5, 3.5]
-label: "Defined"
-narrative: "Op Model defined + operational. Selective refinement across themes will lift maturity to Managed."
+    label: "Defined"
+    narrative: "Op Model defined + operational. Selective refinement across themes will lift maturity to Managed."
   - score_range: [3.5, 4.5]
-label: "Managed"
-narrative: "Op Model mature + measured. Narrow optimisation opportunities."
+    label: "Managed"
+    narrative: "Op Model mature + measured. Narrow optimisation opportunities."
   - score_range: [4.5, 5.0]
-label: "Optimised"
-narrative: "Best-practice Op Model. Sustain through continuous improvement."
+    label: "Optimised"
+    narrative: "Best-practice Op Model. Sustain through continuous improvement."
