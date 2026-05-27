@@ -7,9 +7,15 @@ Running list of work explicitly deferred. Update as items land or new ones surfa
 ### From the KB-PART bundles (foundation gap)
 | # | File | Source | Status | Notes |
 |---|---|---|---|---|
-| 1 | `proc-app/kb/functions/procurement/_meta/analysis-requirements-tracker.yml` | V5 (raw) | **Partial: `.broken.yml` saved with content intact, ~95% indent-fixed but nested-list edge cases break parse.** Needs proper YAML-aware reflow or clean source re-upload. | Build-time artefact; not consumed at runtime per its own header. All ~50 analysis entries, all aggregate views present in `.broken.yml` — content loss = 0; only indent inconsistencies remain. |
+| 1 | `proc-app/kb/functions/procurement/_meta/analysis-requirements-tracker.yml` | V5 (raw) | **Broken YAML — content intact in `.broken.yml`, same Word-induced indent corruption as the 16 YAMLs below** | See QA-FINDINGS.md |
 | 2 | `shared-kb/references/sources-library.yml` | V6 regeneration prompt | Deferred | Regenerate when first referenced by analysis that needs source citations |
 | 3 | `shared-kb/references/master-data/units-of-measure.yml` | V6 regeneration prompt | Deferred | Regenerate when first UoM normalisation is needed |
+
+### YAML files with Word-induced indent corruption (16 files)
+**See `docs/QA-FINDINGS.md` for full details.** All 20 MD files came through clean; all 16 YAML files have systemic indent corruption from the docx round-trip and don't parse. Heuristic repair is risky (inconsistent corruption across lines). Awaiting decision from user:
+- Re-acquire from clean source (best)
+- LLM-repair each file by hand (~3-4 hours of work)
+- Re-author each YAML from its sibling MD (slow but guaranteed correct)
 
 ### Steel industry-wide foundation (referenced by every Steel overlay; not authored)
 | File | Referenced by | Status |
