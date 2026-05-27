@@ -20,11 +20,11 @@ metadata:
 # =============================================================================
 
 tail_po_threshold_inr_lakh: 1
-  # POs below ₹1 lakh considered tail individually (Method A in TS1)
+# POs below ₹1 lakh considered tail individually (Method A in TS1)
 min_aggregator_addressable_spend_inr_cr: 0.5
-  # Below ₹0.5 Cr annual spend, aggregator setup overhead exceeds benefit
+# Below ₹0.5 Cr annual spend, aggregator setup overhead exceeds benefit
 tail_spend_share_threshold_pct: 5
-  # Indicative cumulative tail share — bottom 5% of spend by value
+# Indicative cumulative tail share — bottom 5% of spend by value
 
 # =============================================================================
 # AGGREGATOR-SUITABLE — Tail categories ideal for managed-procurement outsourcing
@@ -33,34 +33,34 @@ tail_spend_share_threshold_pct: 5
 aggregator_suitable:
 
   - category_pattern: "indirect.printing_stationery"
-reason: "Standardised SKUs; available across all aggregator catalogues — Moglix, Industrybuying. Easy first move."
-typical_aggregators: [Moglix, Industrybuying]
+    reason: "Standardised SKUs; available across all aggregator catalogues — Moglix, Industrybuying. Easy first move."
+    typical_aggregators: [Moglix, Industrybuying]
 
   - category_pattern: "indirect.mro.consumables_common_tail"
-reason: "Generic MRO items falling in tail by ticket size (small POs for fasteners, gaskets, valves, basic instrumentation, lubricants). Moglix specialty."
-typical_aggregators: [Moglix, Industrybuying]
+    reason: "Generic MRO items falling in tail by ticket size (small POs for fasteners, gaskets, valves, basic instrumentation, lubricants). Moglix specialty."
+    typical_aggregators: [Moglix, Industrybuying]
 
   - category_pattern: "indirect.lab_consumables_general"
-reason: "Standard lab consumables — glassware, pipettes, general reagents, filter papers. Aggregator catalogues cover well."
-typical_aggregators: [Moglix]
+    reason: "Standard lab consumables — glassware, pipettes, general reagents, filter papers. Aggregator catalogues cover well."
+    typical_aggregators: [Moglix]
 
   - category_pattern: "indirect.ppe_consumables_top_up"
-reason: "Top-up PPE purchases outside central rate contract. Aggregator catalogue handles one-off/replenishment POs."
-typical_aggregators: [Moglix, Industrybuying]
+    reason: "Top-up PPE purchases outside central rate contract. Aggregator catalogue handles one-off/replenishment POs."
+    typical_aggregators: [Moglix, Industrybuying]
 
   - category_pattern: "indirect.it.peripherals_consumables"
-reason: "Cables, adapters, peripherals, mice, keyboards, headsets — small repeat purchases."
-typical_aggregators: [Moglix, Industrybuying]
+    reason: "Cables, adapters, peripherals, mice, keyboards, headsets — small repeat purchases."
+    typical_aggregators: [Moglix, Industrybuying]
 
   - category_pattern: "indirect.facilities.pantry_supplies_top_up"
-reason: "Top-up pantry items outside central contract. Aggregator + auto-replenishment."
-typical_aggregators: [Moglix, Industrybuying]
+    reason: "Top-up pantry items outside central contract. Aggregator + auto-replenishment."
+    typical_aggregators: [Moglix, Industrybuying]
 
   - category_pattern: "indirect.subscription_software_minor"
-reason: "Small SaaS subscriptions / online tools for individual teams. Aggregator-mediated procurement + central visibility."
+    reason: "Small SaaS subscriptions / online tools for individual teams. Aggregator-mediated procurement + central visibility."
 
   - category_pattern: "indirect.miscellaneous_indirects"
-reason: "Catch-all small POs (small repairs, one-off equipment, sundry supplies). Aggregator + catalog buying / p-card."
+    reason: "Catch-all small POs (small repairs, one-off equipment, sundry supplies). Aggregator + catalog buying / p-card."
 
 # =============================================================================
 # CONSOLIDATE-INTERNALLY — Tail better served by vendor consolidation
@@ -69,19 +69,19 @@ reason: "Catch-all small POs (small repairs, one-off equipment, sundry supplies)
 consolidate_internally:
 
   - category_pattern: "indirect.mro.specialty_consumables_tail"
-reason: "Specialty consumables (mill-specific lubricants, niche industrial chemicals) — aggregator catalogue too generic; internal vendor consolidation."
+    reason: "Specialty consumables (mill-specific lubricants, niche industrial chemicals) — aggregator catalogue too generic; internal vendor consolidation."
 
   - category_pattern: "indirect.lab_chemicals_specialty_tail"
-reason: "Specialty analytical chemicals (rare reagents, specific metallurgical testing standards). Spec-sensitive."
+    reason: "Specialty analytical chemicals (rare reagents, specific metallurgical testing standards). Spec-sensitive."
 
   - category_pattern: "indirect.facilities.amc_local_tail"
-reason: "Tail AMC contracts (small equipment AMCs at specific plants). Plant-local expertise + state contract labour considerations."
+    reason: "Tail AMC contracts (small equipment AMCs at specific plants). Plant-local expertise + state contract labour considerations."
 
   - category_pattern: "indirect.engineering_services_minor"
-reason: "Small engineering / drafting / design services tail. Need technical fit; consolidate to approved-vendor panel."
+    reason: "Small engineering / drafting / design services tail. Need technical fit; consolidate to approved-vendor panel."
 
   - category_pattern: "indirect.training_external_tail"
-reason: "Small external training programs / niche skill courses. L&D-led vendor panel."
+    reason: "Small external training programs / niche skill courses. L&D-led vendor panel."
 
 # =============================================================================
 # NOT-ADDRESSABLE — Tail that must stay direct-managed
@@ -90,19 +90,19 @@ reason: "Small external training programs / niche skill courses. L&D-led vendor 
 not_addressable:
 
   - category_pattern: "indirect.mro.emergency_breakdown_spares"
-reason: "Emergency spares — lead-time critical (hours). Aggregator's batch fulfilment unsuitable even at low ticket size."
+    reason: "Emergency spares — lead-time critical (hours). Aggregator's batch fulfilment unsuitable even at low ticket size."
 
   - category_pattern: "direct.process_inputs.refractories_minor_topups"
-reason: "Refractory top-up POs spec-sensitive even at small ticket size. Plant metallurgist judgment."
+    reason: "Refractory top-up POs spec-sensitive even at small ticket size. Plant metallurgist judgment."
 
   - category_pattern: "indirect.facilities.security_services"
-reason: "Plant-specific manpower, state-licensed agencies. Cannot be aggregator-mediated."
+    reason: "Plant-specific manpower, state-licensed agencies. Cannot be aggregator-mediated."
 
   - category_pattern: "indirect.facilities.canteen_services"
-reason: "Local canteen contractors per plant; plant-specific menu + workforce preferences."
+    reason: "Local canteen contractors per plant; plant-specific menu + workforce preferences."
 
   - category_pattern: "indirect.statutory_consultancy_fees_minor"
-reason: "Small legal / statutory / regulatory consultancy spend tail. Direct engagement; aggregator not relevant."
+    reason: "Small legal / statutory / regulatory consultancy spend tail. Direct engagement; aggregator not relevant."
 
   - category_pattern: "indirect.utilities.water_chemicals_local_tail"
-reason: "Plant-specific water treatment chemicals (varies by source). Local supplier base + quick replacement essential."
+    reason: "Plant-specific water treatment chemicals (varies by source). Local supplier base + quick replacement essential."

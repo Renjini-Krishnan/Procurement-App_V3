@@ -19,7 +19,7 @@ metadata:
 
 # Material threshold: below this spend, categories don't surface as centralisation candidates
 material_threshold_inr_cr: 3
-  # Reasoning: ₹3 Cr × 4% Steel rate = ₹12 lakh minimum savings.
+# Reasoning: ₹3 Cr × 4% Steel rate = ₹12 lakh minimum savings.
 
 # =============================================================================
 # NATURALLY LOCAL — categories that should NOT be centralised
@@ -28,40 +28,40 @@ material_threshold_inr_cr: 3
 naturally_local:
 
   - category_pattern: "direct.raw_materials.iron_ore_captive"
-reason: "Captive iron ore mines typical for integrated Indian steel mills (Tata, SAIL, Jindal). Plant-specific logistics, royalty, transfer-pricing. Centralisation moot — already 'central' by ownership."
+    reason: "Captive iron ore mines typical for integrated Indian steel mills (Tata, SAIL, Jindal). Plant-specific logistics, royalty, transfer-pricing. Centralisation moot — already 'central' by ownership."
 
   - category_pattern: "direct.raw_materials.iron_ore_inland_proximity"
-reason: "Plants source non-captive iron ore from nearest mining region (Odisha for Eastern; Bellary-Hospet for Southern). Logistics economics favour local sourcing."
+    reason: "Plants source non-captive iron ore from nearest mining region (Odisha for Eastern; Bellary-Hospet for Southern). Logistics economics favour local sourcing."
 
   - category_pattern: "direct.raw_materials.scrap_regional"
-reason: "Steel scrap is heavy, low-value-density. Inbound freight 8-15% of cost. Local scrap networks dominate."
+    reason: "Steel scrap is heavy, low-value-density. Inbound freight 8-15% of cost. Local scrap networks dominate."
 
   - category_pattern: "direct.raw_materials.limestone_steel"
-reason: "Flux from nearby limestone deposits. Similar logic to iron ore."
+    reason: "Flux from nearby limestone deposits. Similar logic to iron ore."
 
   - category_pattern: "indirect.utilities.power_purchase"
-reason: "State-level electricity contracts (Odisha SLDC, KSEBL etc.). State regulator-governed."
+    reason: "State-level electricity contracts (Odisha SLDC, KSEBL etc.). State regulator-governed."
 
   - category_pattern: "indirect.utilities.water_industrial"
-reason: "Local water sources (riparian rights, groundwater, sea water at coastal). No leverage."
+    reason: "Local water sources (riparian rights, groundwater, sea water at coastal). No leverage."
 
   - category_pattern: "indirect.utilities.gas_natural_state"
-reason: "Natural gas pipeline access plant-specific (GAIL connectivity). State allocations from MoPNG."
+    reason: "Natural gas pipeline access plant-specific (GAIL connectivity). State allocations from MoPNG."
 
   - category_pattern: "indirect.facilities.plant_maintenance_services_local"
-reason: "Local AMC providers, plant-specific equipment expertise."
+    reason: "Local AMC providers, plant-specific equipment expertise."
 
   - category_pattern: "indirect.facilities.security_services"
-reason: "Local manpower; state-licensed agencies; plant familiarity."
+    reason: "Local manpower; state-licensed agencies; plant familiarity."
 
   - category_pattern: "indirect.mro.emergency_breakdown_spares"
-reason: "Lead-time critical (hours). Plant-level stocking + local supplier relationships."
+    reason: "Lead-time critical (hours). Plant-level stocking + local supplier relationships."
 
   - category_pattern: "indirect.logistics.short_haul_road_local"
-reason: "Short-haul road logistics. Local fleet operators, plant-specific routing."
+    reason: "Short-haul road logistics. Local fleet operators, plant-specific routing."
 
   - category_pattern: "direct.consumables.refractories_emergency_repair"
-reason: "Emergency refractory repair (vs planned-shutdown). Lead-time + plant-specific kiln configurations."
+    reason: "Emergency refractory repair (vs planned-shutdown). Lead-time + plant-specific kiln configurations."
 
 # =============================================================================
 # NATURALLY CENTRAL — categories that SHOULD be centrally managed
@@ -70,43 +70,43 @@ reason: "Emergency refractory repair (vs planned-shutdown). Lead-time + plant-sp
 naturally_central:
 
   - category_pattern: "direct.raw_materials.iron_ore_market_open"
-reason: "Open-market iron ore. Large volumes, NMDC contracts, e-auction. Volume aggregation across plants."
+    reason: "Open-market iron ore. Large volumes, NMDC contracts, e-auction. Volume aggregation across plants."
 
   - category_pattern: "direct.raw_materials.coking_coal"
-reason: "Largely imported (Australia, USA, Mozambique). Large international contracts (US$ 200+ Mn for integrated mill). Central captures FX hedging, vessel chartering."
+    reason: "Largely imported (Australia, USA, Mozambique). Large international contracts (US$ 200+ Mn for integrated mill). Central captures FX hedging, vessel chartering."
 
   - category_pattern: "direct.raw_materials.coal_non_coking"
-reason: "Non-coking coal for power + boiler. Coal India e-auction, BTPS allocations, import alternatives — central market intelligence."
+    reason: "Non-coking coal for power + boiler. Coal India e-auction, BTPS allocations, import alternatives — central market intelligence."
 
   - category_pattern: "direct.raw_materials.ferro_alloys"
-reason: "Specialised commodity (FeMn, SiMn, FeSi, FeCr). Limited Indian supplier pool (~10-15 vendors). Strong central negotiation leverage."
+    reason: "Specialised commodity (FeMn, SiMn, FeSi, FeCr). Limited Indian supplier pool (~10-15 vendors). Strong central negotiation leverage."
 
   - category_pattern: "direct.process_inputs.refractories"
-reason: "Engineered category. Refractories vendors (RHI Magnesita, Vesuvius, Calderys, IFGL, Imerys) serve multi-plant accounts. Spec standardisation is high-value lever."
+    reason: "Engineered category. Refractories vendors (RHI Magnesita, Vesuvius, Calderys, IFGL, Imerys) serve multi-plant accounts. Spec standardisation is high-value lever."
 
   - category_pattern: "direct.process_inputs.electrodes_graphite"
-reason: "Graphite electrodes are global commodity (HEG, Showa Denko, GrafTech). Central buying essential for EAF mills."
+    reason: "Graphite electrodes are global commodity (HEG, Showa Denko, GrafTech). Central buying essential for EAF mills."
 
   - category_pattern: "direct.process_inputs.industrial_gases"
-reason: "O2, N2, Ar pipeline supply via long-term ASU on-site contracts. Multi-plant negotiation lever (Linde, Air Liquide, INOX) significant."
+    reason: "O2, N2, Ar pipeline supply via long-term ASU on-site contracts. Multi-plant negotiation lever (Linde, Air Liquide, INOX) significant."
 
   - category_pattern: "direct.process_inputs.mill_rolls"
-reason: "Engineered, specialised vendor base (Kobe Steel, Sheffield Forgemasters, Union Electric Akers). Spec discipline central."
+    reason: "Engineered, specialised vendor base (Kobe Steel, Sheffield Forgemasters, Union Electric Akers). Spec discipline central."
 
   - category_pattern: "direct.process_inputs.lubricants_industrial"
-reason: "Specialised oils + greases for hot rolling, cold rolling, continuous casting. National contracts (Shell, Castrol, Indian Oil)."
+    reason: "Specialised oils + greases for hot rolling, cold rolling, continuous casting. National contracts (Shell, Castrol, Indian Oil)."
 
   - category_pattern: "indirect.logistics.outbound_rail"
-reason: "Rail rake allocation national resource (CONCOR, IR). Central planning + booking + tariff negotiation essential."
+    reason: "Rail rake allocation national resource (CONCOR, IR). Central planning + booking + tariff negotiation essential."
 
   - category_pattern: "indirect.logistics.port_handling_charges"
-reason: "Port-stevedoring for raw material imports (Paradip, Visakhapatnam, Dhamra). Central contracting captures volume."
+    reason: "Port-stevedoring for raw material imports (Paradip, Visakhapatnam, Dhamra). Central contracting captures volume."
 
   - category_pattern: "indirect.it.enterprise_software"
-reason: "ERP, MES, analytics platforms — enterprise license; single contract."
+    reason: "ERP, MES, analytics platforms — enterprise license; single contract."
 
   - category_pattern: "capital.major_equipment"
-reason: "Plant capex equipment (>₹50 Cr per order) follows formal NFA; centrally evaluated."
+    reason: "Plant capex equipment (>₹50 Cr per order) follows formal NFA; centrally evaluated."
 
 # =============================================================================
 # CENTRE-LED — categories CENTRALLY CONTRACTED but locally executed
@@ -115,22 +115,22 @@ reason: "Plant capex equipment (>₹50 Cr per order) follows formal NFA; central
 centre_led:
 
   - category_pattern: "indirect.mro.consumables_common"
-reason: "Gaskets, fasteners, valves, instrumentation — central catalogue + rate contracts; plant-level fulfilment."
+    reason: "Gaskets, fasteners, valves, instrumentation — central catalogue + rate contracts; plant-level fulfilment."
 
   - category_pattern: "indirect.mro.bearings_industrial"
-reason: "Bearings standardised across plants (SKF, Timken, NTN). Central rate contract + local stocking."
+    reason: "Bearings standardised across plants (SKF, Timken, NTN). Central rate contract + local stocking."
 
   - category_pattern: "indirect.lab_chemicals"
-reason: "Common analytical chemicals across plant laboratories. Central rate contract + plant call-offs."
+    reason: "Common analytical chemicals across plant laboratories. Central rate contract + plant call-offs."
 
   - category_pattern: "indirect.uniforms_ppe"
-reason: "Standard PPE specs (helmets, boots, FR clothing) — central rate contract + local distribution."
+    reason: "Standard PPE specs (helmets, boots, FR clothing) — central rate contract + local distribution."
 
   - category_pattern: "indirect.printing_stationery"
-reason: "Standard items, central rate contract feasible."
+    reason: "Standard items, central rate contract feasible."
 
   - category_pattern: "indirect.it.hardware_endpoint"
-reason: "Laptops, desktops, peripherals — central OEM contracts; plant IT teams handle local provisioning."
+    reason: "Laptops, desktops, peripherals — central OEM contracts; plant IT teams handle local provisioning."
 
   - category_pattern: "indirect.travel"
-reason: "Travel programme — central airlines/hotels/agency contracts; plant call-offs."
+    reason: "Travel programme — central airlines/hotels/agency contracts; plant call-offs."
