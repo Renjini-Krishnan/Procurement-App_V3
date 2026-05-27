@@ -8,18 +8,18 @@
 # Synthesises from: analysis-requirements-tracker.yml (aggregate_qre_questions
 #                   for index + per-analysis qre_questions_used for full text)
 #
-# Coverage: Op Model + Org Structure pillars (Build 1)
+# Coverage: Op Model + Org Structure + Buying Channel pillars (Build 1)
 # =============================================================================
 
 metadata:
   id: procurement-qre-bank
   layer: function
   function: procurement
-  version: 1.0
+  version: 1.1
   last_updated: 2026-05-27
   source_of_truth: proc-app/kb/functions/procurement/_meta/analysis-requirements-tracker.yml
-  total_qres: 37
-  pillars_covered: [op-model, org-structure]
+  total_qres: 51
+  pillars_covered: [op-model, org-structure, buying-channel]
 
 # =============================================================================
 # QRE QUESTIONS — by pillar > theme
@@ -371,6 +371,143 @@ qres:
     answer_type: free_text
     compulsory: false
     used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs3_reconciliation]
+
+
+  # =============================================================================
+  # BUYING CHANNEL PILLAR
+  # =============================================================================
+
+  # ----- Theme: current-state — Section A: Current Buying Channel Landscape (7 QREs) -----
+
+  - id: Q-BC-01
+    pillar: buying-channel
+    theme: current-state
+    question: "What buying channels are currently in use? (Annual Rate Contracts, Approved Supplier Lists, Catalogues, MRP-driven Auto PO, e-Auctions, Spot Buy, P-Card, Repeat PO / LPO basis)"
+    answer_type: multi_select_plus_free_text
+    options: ["Annual Rate Contracts", "Approved Supplier Lists", "Catalogues", "MRP-driven Auto PO", "e-Auctions", "Spot Buy", "P-Card", "Repeat PO / LPO"]
+    compulsory: true
+    notes: "Sub-prompts: Which are formally documented vs informally practised? Estimated % per channel? Is there a formal Buying Channel Strategy document — when last updated?"
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix, buyingchannel.gap_impact.gi5_reconciliation]
+
+  - id: Q-BC-02
+    pillar: buying-channel
+    theme: current-state
+    question: "How is the buying channel decision made for a purchase? Is there a decision matrix or policy that routes a PR? Is it system-enforced (SAP workflow) or manual (buyer judgement)? Are there value thresholds?"
+    answer_type: free_text
+    compulsory: false
+    notes: "Surfaces governance maturity. Engine-relevant: presence/absence of value-threshold routing affects channel-mix predictability."
+    used_by: [buyingchannel.current_state.cs1_per_mg_channel_label, buyingchannel.gap_impact.gi5_reconciliation]
+
+  - id: Q-BC-03
+    pillar: buying-channel
+    theme: current-state
+    question: "What is your current Rate Contract / ARC coverage? Which categories have ARCs? Typical duration? Renewal mechanism (automatic / annual tender / ad hoc)? Lapsed ARCs reverted to spot?"
+    answer_type: percentage_estimate_plus_free_text
+    compulsory: false
+    notes: "Cross-checked against contracted % computed from PO data; large QRE-vs-data gap = perception mismatch."
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix, buyingchannel.gap_impact.gi5_reconciliation]
+
+  - id: Q-BC-04
+    pillar: buying-channel
+    theme: current-state
+    question: "How are Outline Agreements / Blanket Orders used? For which categories are OLAs in place? Process for creating call-offs against an OLA? Is OLA utilisation tracked? OLA exists but buyers still raising spot POs?"
+    answer_type: free_text
+    compulsory: conditional
+    notes: "Compulsory IF Q-BC-01 indicates OLA is in use. Skipped otherwise."
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix, buyingchannel.gap_impact.gi3_leakage_analysis]
+
+  - id: Q-BC-05
+    pillar: buying-channel
+    theme: current-state
+    question: "Is there a catalogue buying mechanism? Internal procurement catalogue (SAP MM / Ariba / equivalent)? Which categories covered? Catalogue maintenance currency? Can requisitioners raise catalogue orders directly?"
+    answer_type: free_text
+    compulsory: conditional
+    notes: "Compulsory IF Q-BC-01 indicates Catalogue is in use. Otherwise informative for to-be design."
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix]
+
+  - id: Q-BC-06
+    pillar: buying-channel
+    theme: current-state
+    question: "How is MRP / Auto-PO used? Which material groups have scheduling agreements (MRP-driven auto-PO)? Estimated % of raw materials auto-generated vs manually placed?"
+    answer_type: free_text
+    compulsory: conditional
+    notes: "Most relevant for BULK-archetype clients. Compulsory IF Q-BC-01 indicates MRP/Auto-PO is in use."
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix]
+
+  - id: Q-BC-07
+    pillar: buying-channel
+    theme: current-state
+    question: "How prevalent is spot / emergency buying? Estimated spot-buy % of POs? Main triggers (short lead time / no ARC / stockout / PAC / urgency)? Is spot buy % tracked + reported to leadership?"
+    answer_type: percentage_estimate_plus_free_text
+    compulsory: false
+    notes: "Spot % cross-checked against contracted % from PO data. Trigger narrative feeds RCA."
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix, buyingchannel.gap_impact.gi3_leakage_analysis]
+
+  # ----- Theme: gap-impact — Section B: Contract Management (3 QREs) -----
+
+  - id: Q-BC-08
+    pillar: buying-channel
+    theme: gap-impact
+    question: "What types of contracts are used (ARC / Framework Agreements / Project-specific / Blanket POs / e-Auction contracts / Long-term supply)? Current contract coverage as % of addressable spend? Is there a contract repository system?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [buyingchannel.current_state.cs2_portfolio_channel_mix]
+
+  - id: Q-BC-09
+    pillar: buying-channel
+    theme: gap-impact
+    question: "How is contract compliance monitored? Is there a process to check PO-vs-existing-contract leakage? What % of contracted-category spend is actually on contract? Price-deviation tracking? Escalation path?"
+    answer_type: free_text
+    compulsory: true
+    notes: "Directly informs gi3_leakage_analysis. Absence of leakage monitoring is itself a finding."
+    used_by: [buyingchannel.gap_impact.gi3_leakage_analysis]
+
+  - id: Q-BC-10
+    pillar: buying-channel
+    theme: gap-impact
+    question: "For each major category — what is the current buying channel, contract coverage %, and key issue/gap? (Workshop matrix to validate analytical output)"
+    answer_type: structured_workshop_matrix
+    compulsory: false
+    notes: "Output of consultant-led workshop using engine-produced MG-level recommendations as starting point. Captures client agreement for the migration roadmap."
+    used_by: [buyingchannel.archetype_recommendation.ar2_channel_recommendation, buyingchannel.gap_impact.gi4_migration_roadmap]
+
+  # ----- Theme: gap-impact — Section C: Process Compliance & PAC (2 QREs) -----
+
+  - id: Q-BC-11
+    pillar: buying-channel
+    theme: gap-impact
+    question: "What are the minimum quotation requirements? How many quotes for different value bands? Exceptions process — approval to raise a single-tender / PAC?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [buyingchannel.gap_impact.gi5_reconciliation]
+
+  - id: Q-BC-12
+    pillar: buying-channel
+    theme: gap-impact
+    question: "How significant is PAC / Single-Source procurement? Estimated % of PRs with PAC justification? Most common PAC reasons (OEM spares / proprietary tech / urgency / unique spec)? Is there a vendor development programme to reduce sole-source dependency?"
+    answer_type: percentage_estimate_plus_free_text
+    compulsory: true
+    notes: "Critical for gi2_pac_analysis. PAC reason narrative drives RCA + recommendation tone."
+    used_by: [buyingchannel.gap_impact.gi2_pac_analysis, buyingchannel.gap_impact.gi5_reconciliation]
+
+  # ----- Theme: gap-impact — Section D: Compliance & Governance (2 QREs) -----
+
+  - id: Q-BC-13
+    pillar: buying-channel
+    theme: gap-impact
+    question: "Is there a Delegation of Authority (DoA) matrix for procurement? Does the DoA differentiate by channel type (e.g., different approval levels for spot buy vs ARC call-off)? When were approval thresholds last reviewed?"
+    answer_type: free_text
+    compulsory: true
+    notes: "Cross-pillar with DoA (Build 2). Absence of channel-differentiated DoA → process inefficiency finding."
+    used_by: [buyingchannel.gap_impact.gi5_reconciliation]
+
+  - id: Q-BC-14
+    pillar: buying-channel
+    theme: gap-impact
+    question: "What procurement compliance checks are in place? Minimum-quote enforcement (system vs policy)? LPO price-deviation alerts? Preferred vendor adherence? Buying channel policy compliance monitoring?"
+    answer_type: free_text
+    compulsory: false
+    used_by: [buyingchannel.gap_impact.gi5_reconciliation]
 
 
 # =============================================================================

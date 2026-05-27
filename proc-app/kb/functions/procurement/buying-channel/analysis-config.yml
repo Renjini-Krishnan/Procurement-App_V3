@@ -1,0 +1,397 @@
+# =============================================================================
+# Buying Channel — Analysis Configuration
+# =============================================================================
+# Engine-config layer for the Buying Channel pillar. Declarative — engine reads
+# this file to know HOW to run Buying Channel. Changes to theme weights / channel
+# rules / archetype keywords require no code change.
+# =============================================================================
+
+metadata:
+  id: buying-channel-analysis-config
+  layer: function
+  function: procurement
+  pillar: buying-channel
+  version: 1.0
+  last_updated: 2026-05-27
+  status: active
+
+# =============================================================================
+# PILLAR-LEVEL CONFIGURATION
+# =============================================================================
+
+pillar:
+  id: buying-channel
+  display_name: "Buying Channel"
+  scope_note: |
+    How spend flows from PR to PO — the contracting + sourcing route chosen per
+    category. Per MG: classify archetype (BULK/DIRECT/INDIRECT/SERVICE/CAPEX) →
+    recommend channel (RC-LT / OLA / Catalogue / ASL / RFQ / Single Tender) →
+    quantify TAT + PAC + leakage gaps. NO ₹ savings produced — process + cycle
+    time + compliance improvements only.
+  run_order: 14   # Stage 14 (Buying Channel)
+  themes_in_order: [current-state, archetype-recommendation, gap-impact]
+  synthesis_runs_after_themes: true
+
+# =============================================================================
+# THEMES (3)
+# =============================================================================
+
+themes:
+
+  current-state:
+    display_name: "Current Channel State"
+    pillar_weight: 0.20
+    deep_dive_file: "buying-channel/current-state.md"
+    components:
+      - id: cs0_baseline_profiling
+        decision_driving: false
+      - id: cs1_per_mg_channel_label
+        decision_driving: false
+      - id: cs2_portfolio_channel_mix
+        decision_driving: false
+    benchmarks_consumed:
+      - id: buying_channel.portfolio.rc_share_pct
+      - id: buying_channel.portfolio.ola_share_pct
+      - id: buying_channel.portfolio.catalogue_share_pct
+      - id: buying_channel.portfolio.asl_share_pct
+      - id: buying_channel.portfolio.rfq_share_pct
+      - id: buying_channel.portfolio.pac_share_pct
+    industry_overlays_consumed:
+      - file_pattern: "industries/<ind>/by-function/procurement/buying-channel/benchmarks.yml"
+    qre_consumed: [Q-BC-01, Q-BC-02, Q-BC-07]
+    confidence_thresholds:
+      high: {po_dump_complete: true, contract_fields_populated_pct_min: 90}
+      medium: {po_dump_complete: true, contract_fields_populated_pct_min: 70}
+      low: {else: true}
+
+  archetype-recommendation:
+    display_name: "Archetype & Recommended Channel"
+    pillar_weight: 0.50   # heaviest — the analytical core
+    deep_dive_file: "buying-channel/archetype-recommendation.md"
+    components:
+      - id: ar1_archetype_classification
+        decision_driving: true
+        classification_pipeline:
+          priority_order: [p0_mg_code, p1_item_category, p2_material_type, p3_frequency, p4_keyword]
+          frequency_rule: "purchased_in_distinct_months >= 3 → INDIRECT"
+          fallback: UNCLASSIFIED
+      - id: ar2_channel_recommendation
+        decision_driving: true
+        rule_set: buying_channel.recommendation_rules   # see rules section below
+      - id: ar3_recommendation_confidence
+        decision_driving: false
+        inherits_from: ar1_archetype_classification
+    benchmarks_consumed: []  # Theme 2 produces recommendations, not benchmark comparisons
+    industry_overlays_consumed:
+      - file_pattern: "industries/<ind>/by-function/procurement/buying-channel/archetype-overrides.yml"
+        applied_in: [ar1_archetype_classification]
+    qre_consumed: [Q-BC-03, Q-BC-04, Q-BC-05, Q-BC-06]
+    confidence_thresholds:
+      high: {material_type_populated_pct_min: 80, item_category_populated_pct_min: 80}
+      medium: {material_type_populated_pct_min: 50}
+      low: {else: true}
+
+  gap-impact:
+    display_name: "Gap, PAC & TAT Impact"
+    pillar_weight: 0.30
+    deep_dive_file: "buying-channel/gap-impact.md"
+    components:
+      - id: gi1_portfolio_tat_impact
+        decision_driving: true
+        skip_logic: "Skip if PR dump unavailable OR PR-PO join < 70%"
+        transformation_ceiling_pct: 25   # to-be RC % capped at as-is + 25 pp
+      - id: gi2_pac_analysis
+        decision_driving: true
+        thresholds:
+          high_pac_pct_min: 50
+      - id: gi3_leakage_analysis
+        decision_driving: true
+        rules:
+          contract_leakage: "Contract_Number_present AND Contracted_pct < 40"
+          single_vendor_lockin: "Archetype = INDIRECT AND vendor_count = 1 AND PAC_pct < 10"
+          high_freq_spot: "distinct_months >= 6 AND Contracted_pct = 0"
+      - id: gi4_migration_roadmap
+        decision_driving: true
+        top_n_by_spend: 20
+        timeline_buckets: [Q1, Q2, Q3, Q4]
+      - id: gi5_reconciliation
+        decision_driving: false
+    benchmarks_consumed:
+      - id: buying_channel.tat.rc_lt_days
+      - id: buying_channel.tat.ola_days
+      - id: buying_channel.tat.catalogue_days
+      - id: buying_channel.tat.asl_days
+      - id: buying_channel.tat.rfq_days
+    industry_overlays_consumed:
+      - file_pattern: "industries/<ind>/by-function/procurement/buying-channel/benchmarks.yml"
+    qre_consumed: [Q-BC-08, Q-BC-09, Q-BC-10, Q-BC-11, Q-BC-12, Q-BC-13, Q-BC-14]
+    confidence_thresholds:
+      high: {pr_dump_available: true, pr_po_join_pct_min: 80, pac_flag_present: true}
+      medium: {pr_dump_available: true, pr_po_join_pct_min: 50}
+      low: {else: true}
+
+# =============================================================================
+# CHANNEL DEFINITIONS — used throughout the pillar
+# =============================================================================
+
+channels:
+  - id: rc_long_term_contract
+    label: "RC — Long-Term Contract"
+    short_label: "RC-LT"
+    contracted: true
+    benchmark_tat_days: 3
+    typical_archetype: BULK
+    description: "Multi-year volume agreement with index-linked pricing"
+  - id: rc_outline_agreement
+    label: "RC — Outline Agreement (OLA)"
+    short_label: "OLA"
+    contracted: true
+    benchmark_tat_days: 3
+    typical_archetype: [INDIRECT, SERVICE]
+    description: "Annual blanket order with pre-agreed terms; call-offs without fresh negotiation"
+  - id: rc_rop_catalogue
+    label: "RC — ROP / Catalogue"
+    short_label: "Catalogue"
+    contracted: true
+    benchmark_tat_days: 1
+    typical_archetype: INDIRECT
+    description: "Reorder-point system or internal catalogue; zero-touch ordering for standard stores items"
+  - id: asl
+    label: "ASL — Approved Supplier List"
+    short_label: "ASL"
+    contracted: false
+    benchmark_tat_days: 25
+    typical_archetype: DIRECT
+    description: "Pre-qualified vendor pool; competitive among qualified suppliers"
+  - id: rfq_tendering
+    label: "RFQ / Tendering"
+    short_label: "RFQ"
+    contracted: false
+    benchmark_tat_days: 70   # midpoint of 45-90 day band
+    typical_archetype: [SERVICE, CAPEX, UNCLASSIFIED]
+    description: "Open or limited competitive bidding for each purchase event"
+  - id: single_tender_pac
+    label: "Single Tender / PAC"
+    short_label: "PAC"
+    contracted: false
+    benchmark_tat_days: null  # varies
+    typical_archetype: any
+    description: "Sole-source with documented justification (Proprietary / Approved / Credibility)"
+
+# =============================================================================
+# ARCHETYPE CLASSIFICATION — keyword banks for P4 fallback matching
+# =============================================================================
+# Each keyword is a stem; matching is case-insensitive whole-word match against
+# Material_Group_Desc + Short_Text. Industry overlays can append additional
+# keywords via archetype-overrides.yml.
+
+archetype_keyword_banks:
+  BULK:
+    - COAL
+    - IRON ORE
+    - LIMESTONE
+    - DOLOMITE
+    - COKE
+    - PELLET
+    - SCRAP
+    - DIESEL
+    - HSD
+    - FUEL
+    - DRI
+    - HBI
+    - SINTER
+    - NAPHTHA
+    - NATURAL GAS
+    - OXYGEN GAS
+    - ARGON
+    - FLUX
+    - SLAG
+    - CHROMITE
+    - MANGANESE ORE
+  DIRECT:
+    - REFRACTOR
+    - BRICK
+    - CASTABLE
+    - FERRO
+    - WORK ROLL
+    - BACKUP ROLL
+    - NOZZLE
+    - SLIDE GATE
+    - ELECTRODE
+    - ALLOY
+    - GRAPHITE
+    - MAGNESIA
+    - ALUMINA
+    - TUNDISH
+    - MOULD
+    - LANCE
+    - LANCE PIPE
+  SERVICE:
+    - CIVIL CONSTRUCTION
+    - ERECTION
+    - COMMISSIONING
+    - CONSULTANCY
+    - CONTRACT LABOUR
+    - LABOUR CONTRACT
+    - HOUSEKEEPING
+    - TRANSPORT
+    - LOGISTICS
+    - SHUTDOWN
+    - ANNUAL MAINTENANCE
+    - AMC
+    - ANNUAL SERVICE
+  INDIRECT:
+    - SPARE
+    - MOTOR
+    - PUMP
+    - VALVE
+    - CABLE
+    - SENSOR
+    - BEARING
+    - BELT
+    - COUPLING
+    - GEAR
+    - HYDRAULIC
+    - LUBR
+    - PPE
+    - SAFETY
+    - GOGGLE
+    - TONER
+    - LAPTOP
+    - FILTER
+    - PIPE FITTING
+    - STATIONERY
+    - CHEMICAL
+    - ELECTRICAL
+    - INSTRUMENT
+    - COMPRESSOR
+    - CRANE
+    - WELDING
+    - CONSUMABLE
+  CAPEX:
+    - POWER PLANT
+    - TURBINE
+    - GENERATOR
+    - BLAST FURNACE
+    - COKE OVEN
+    - ROLLING MILL
+    - HOT STRIP
+    - CONSTRUCTION EQUIPMENT
+    - CAPITAL EQUIP
+
+# =============================================================================
+# CHANNEL RECOMMENDATION RULES — per archetype
+# =============================================================================
+# Engine evaluates these as if-then rules in order. First match wins per MG.
+
+recommendation_rules:
+
+  - archetype: CAPEX
+    condition: always
+    recommend_channel: rfq_tendering
+    rationale: "Non-recurring, project-specific; no benefit from framework agreements"
+
+  - archetype: SERVICE
+    condition: "mg_desc_contains_any: [AMC, ANNUAL MAINTENANCE, CONTRACT LABOUR, HOUSEKEEPING, ANNUAL, 'A.M.C']"
+    recommend_channel: rc_outline_agreement
+    rationale: "Recurring service; OLA enables call-offs without fresh negotiation"
+
+  - archetype: SERVICE
+    condition: else
+    recommend_channel: rfq_tendering
+    rationale: "Project-specific service; competitive bidding appropriate"
+
+  - archetype: BULK
+    condition: always
+    recommend_channel: rc_long_term_contract
+    rationale: "Commodity raw material; long-term volume contract with index-linked pricing"
+
+  - archetype: DIRECT
+    condition: "pac_pct > 50"
+    recommend_channel: single_tender_pac
+    flag: "PAC — assess vendor development; build alternate source"
+
+  - archetype: DIRECT
+    condition: else
+    recommend_channel: asl
+    rationale: "Spec-sensitive; pre-qualified vendor panel competes per RFQ event"
+
+  - archetype: INDIRECT
+    condition: "pac_pct > 50"
+    recommend_channel: single_tender_pac
+    flag: "PAC — assess vendor development; build alternate source"
+
+  - archetype: INDIRECT
+    condition: "mg_desc_contains_any: [PPE, GREASE, LUBR, OIL, TONER, STATIONERY, PACKAGING, WELDING, CONSUMABLE]"
+    recommend_channel: rc_rop_catalogue
+    rationale: "Standardised stores consumable; catalogue / ROP enables zero-touch ordering"
+
+  - archetype: INDIRECT
+    condition: "vendor_count == 1"
+    recommend_channel: rc_outline_agreement
+    flag: "SRM: single vendor — develop alternatives"
+
+  - archetype: INDIRECT
+    condition: else
+    recommend_channel: rc_outline_agreement
+    rationale: "Recurring indirect; OLA captures volume + pre-agreed terms"
+
+  - archetype: UNCLASSIFIED
+    condition: always
+    recommend_channel: rfq_tendering
+    flag: "Unclassified — verify material group description and route"
+
+# =============================================================================
+# CROSS-THEME SYNTHESIS CONFIG
+# =============================================================================
+synthesis:
+  file: "buying-channel/cross-theme-synthesis.md"
+  runs_after: [current-state, archetype-recommendation, gap-impact]
+  no_savings_quantification: true   # this pillar produces no ₹ — TAT/process only
+  cross_pillar_handoffs:
+    - to_pillar: op-model
+      via_finding: "Single-vendor INDIRECT flags align with Tail Spend vendor footprint"
+    - to_pillar: supplier
+      via_finding: "Single-vendor + high-PAC categories feed Supplier concentration analysis"
+    - to_pillar: material-master
+      via_finding: "UNCLASSIFIED MG count → MG description quality issue"
+
+# =============================================================================
+# GLOBAL CONFIG
+# =============================================================================
+global:
+  data_quality_gates:
+    minimum_po_completeness_pct: 80
+    minimum_contract_field_population_pct: 50   # below this, current-state confidence drops
+  frequency_classification:
+    distinct_months_threshold_indirect: 3   # ≥ 3 months → INDIRECT
+  transformation_ceiling:
+    to_be_rc_pct_max_lift_pp: 25   # to-be RC % capped at as-is + 25pp (realistic ramp-up)
+  pac_thresholds:
+    high_pac_pct: 50   # PAC% above this triggers Single Tender recommendation
+    flag_pac_pct: 30   # PAC% above this flagged for review
+  confidence_aggregation:
+    pillar_level: "min_of_themes"
+
+# =============================================================================
+# PILLAR MATURITY SCORE
+# =============================================================================
+pillar_score:
+  formula: |
+    buying_channel_score = 0.20 × current_state_score
+                        + 0.50 × archetype_recommendation_score
+                        + 0.30 × gap_impact_score
+  descriptors_file: "buying-channel/scoring-descriptors.yml"
+  rounding: 1
+  display_format: "<score>/5"
+
+# =============================================================================
+# Editable Configuration
+# =============================================================================
+# themes.<theme>.pillar_weight: MEDIUM risk; must sum to 1.00
+# archetype_keyword_banks.*: MEDIUM risk; industry overlay can append (LOW)
+# recommendation_rules.*: HIGH risk (partner) — changes channel guidance per archetype
+# global.transformation_ceiling.to_be_rc_pct_max_lift_pp: MEDIUM (default 25)
+# global.pac_thresholds.high_pac_pct: MEDIUM (default 50)
+# Component IDs / structure: HIGH (partner)
+# =============================================================================
