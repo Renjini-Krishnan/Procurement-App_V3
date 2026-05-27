@@ -1736,6 +1736,462 @@ analyses:
 
     coverage: Build 1
 
+
+      # ============================================================================
+      # BUYING CHANNEL — BUYING CHANNEL STRATEGY THEME (single theme)
+      # ============================================================================
+
+  - id: buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Compute current portfolio channel mix (RC-LT / OLA / Catalogue / ASL / RFQ / Spot / PAC). Baseline view; descriptive, not decision-driving."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields:
+          - po_id
+          - po_value (numeric)
+          - contract_number (sometimes; for current channel derivation)
+          - outline_agreement_number (sometimes)
+          - scheduling_agreement_number (sometimes)
+          - po_short_text (for heuristic contract-ref derivation when fields missing)
+        criticality: critical_for_baseline   # without contract-ref fields, contracted % is a lower bound
+
+    data_cleaning_dependencies:
+      - rule: data_quality_universal.normalise_numeric_format
+      - rule: procurement.po_value_currency_normalised
+
+    category_classification_required: false   # portfolio mix doesn't need archetype
+
+    qre_questions_used:
+      - id: Q-BC-01
+        consumed_from: client_questionnaire
+      - id: Q-BC-08
+        consumed_from: client_questionnaire
+
+    industry_overlay_required:
+      - "buying-channel/benchmarks.yml — industry-specific channel mix benchmark bands"
+
+    benchmarks_consumed:
+      - id: buying_channel.portfolio.contracted_spend_pct
+      - id: buying_channel.portfolio.catalogue_penetration_indirect_pct
+      - id: buying_channel.portfolio.ola_share_total_pct
+      - id: buying_channel.portfolio.rc_lt_share_bulk_pct
+      - id: buying_channel.portfolio.pac_share_total_pct
+
+    confidence_drivers:
+      high: "Contract reference fields populated ≥ 90% of POs"
+      medium: "Contract reference fields populated 70-90%"
+      low: "Contract reference fields populated < 70% (contracted % is a lower bound; flag in narrative)"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Per-MG quantitative + qualitative profile — feeds every downstream BC analysis."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields:
+          - po_id
+          - po_value
+          - po_date
+          - material_group (raw client code — for dual-view)
+          - material_group_desc (raw client desc — for dual-view)
+          - vendor_id
+          - plant
+          - contract_number / outline_agreement / scheduling_agreement (for is_contracted derivation)
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: data_quality_universal.normalise_numeric_format
+      - rule: data_quality_universal.remove_fully_blank_rows
+      - rule: procurement.po_value_currency_normalised
+
+    category_classification_required: true   # reads reclassified_category + archetype from Stage 9
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "buying-channel/archetype-overrides.yml — keyword bank for Stage 9 fallback"
+
+    benchmarks_consumed: []   # profile data; benchmarks applied in downstream analyses
+
+    confidence_drivers:
+      high: "PO completeness ≥ 95% + Stage 9 classification ≥ 90%"
+      medium: "PO completeness ≥ 90% + Stage 9 ≥ 80%"
+      low: "Stage 9 < 80% — many MGs fall to UNCLASSIFIED fallback path"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc3_archetype_channel_heatmap
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Pivot: archetype × current channel. Heat-map output reveals where each archetype's spend actually flows today vs where it should."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields:
+          - po_value
+          - reclassified_category (from Stage 9)
+          - archetype (from categories-master.yml)
+          - current_channel (derived in BC1/BC2)
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Inherits BC2 confidence (high)"
+      medium: "Inherits BC2 confidence (medium)"
+      low: "Inherits BC2 confidence (low)"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "THE ENGINE CORE — apply 13 IF-THEN rules using per-archetype thresholds → recommend channel for each MG."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields:
+          - reclassified_category + archetype (from Stage 9)
+          - quant signals from BC2 (po_count, distinct_months, avg_po_value, vendor_count, top_vendor_share, pac_pct)
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-BC-12
+        consumed_from: client_questionnaire
+        notes: "PAC reasoning confirmation lifts BC8c confidence and informs the PAC threshold check"
+
+    industry_overlay_required:
+      - "buying-channel/archetype-overrides.yml — Steel-specific keyword extensions + channel routing hints"
+
+    benchmarks_consumed: []   # this is the rule engine; consumes thresholds from analysis-config.yml not benchmarks.yml
+
+    confidence_drivers:
+      high: "Stage 9 archetype HIGH-confidence for >80% of MGs"
+      medium: "Stage 9 MEDIUM/LOW for 20-50% of MGs (keyword fallback dominant)"
+      low: "Stage 9 < 50% confidence — keyword fallback for majority of MGs"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc5_match_status_per_mg
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Per-MG: compare current channel vs BC4 recommendation. Produces Already-Right / Misrouted / Over-Engineered / Unrecoverable buckets."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields:
+          - current_channel (from BC2)
+          - recommended_channel (from BC4)
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true   # inherits from BC4
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Inherits BC4 confidence (high)"
+      medium: "Inherits BC4 confidence (medium)"
+      low: "Inherits BC4 confidence (low)"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc6_migration_opportunities_by_target_channel
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "For each target channel, list MGs currently routed elsewhere — prioritised by spend. Headline migration roadmap input."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields: [recommended_channel, current_channel, total_spend, spend_share_pct]
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-BC-10
+        consumed_from: client_questionnaire
+        notes: "Workshop matrix validates migration list with client during workshop"
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Inherits BC4+BC5 high"
+      medium: "Inherits BC4+BC5 medium"
+      low: "Inherits BC4+BC5 low"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Identify MGs bought by ≥2 plants with vendor-overlap < 50% → cross-plant fragmentation; vendor consolidation precondition to channel migration."
+    feasibility: reliable
+    cross_pillar_handoff: op-model.centralisation
+
+    data_required:
+      - file: PO
+        fields: [reclassified_category, plant, vendor_id, po_value]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.plant_code_mapped_to_canonical
+      - rule: procurement.vendor_dedup_semantic
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Plant codes canonical-mapped + vendor master deduped + Stage 9 ≥ 90%"
+      medium: "Either plant codes OR vendor master partial"
+      low: "Both partial — vendor overlap measurement unreliable"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc8_sole_source_risk_categories
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Detect sole-source risk via 3 sub-signals: single-vendor (vendor_count=1), concentrated (top vendor ≥80%), PAC-justified (flag/short-text/QRE)."
+    feasibility: semi-reliable
+    cross_pillar_handoff: supplier
+
+    data_required:
+      - file: PO
+        fields:
+          - vendor_id (for distinct count + concentration)
+          - po_value (for concentration calc)
+          - po_short_text (for PAC regex)
+          - pac_flag (rare; if present, lifts confidence)
+        criticality: critical_for_signals_a_b; nice_to_have_for_signal_c
+
+    data_cleaning_dependencies:
+      - rule: procurement.vendor_dedup_semantic   # accurate vendor count requires deduplication
+
+    category_classification_required: false   # works on raw MG; archetype optional
+
+    qre_questions_used:
+      - id: Q-BC-12
+        consumed_from: client_questionnaire
+        notes: "QRE response confirms PAC reasoning; lifts BC8c confidence from MEDIUM heuristic to HIGH"
+
+    industry_overlay_required: []
+
+    benchmarks_consumed:
+      - id: buying_channel.portfolio.pac_share_total_pct
+
+    confidence_drivers:
+      high: "Vendor master deduped + (PAC_Flag column exists OR QRE confirms reasoning)"
+      medium: "Vendor master deduped + heuristic PAC detection only (short text regex)"
+      low: "Vendor master not deduped — single-vendor + concentration signals unreliable"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc9_project_one_off_exclusion
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Exclude CAPEX + low-frequency MGs from migration roadmap. Surfaces in report as non-actionable but maintains transparency."
+    feasibility: reliable
+
+    data_required:
+      - file: PO
+        fields: [archetype, distinct_months, po_count]
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Inherits BC4 high"
+      medium: "Inherits BC4 medium"
+      low: "Inherits BC4 low"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc10_unclassified_mgs
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Surface MGs Stage 9 could not classify. NOT a buying-channel finding — Material Master data-quality issue handed off cross-pillar."
+    feasibility: reliable
+    cross_pillar_handoff: material-master
+
+    data_required:
+      - file: PO
+        fields: [material_group, material_group_desc, reclassified_category, po_value]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true   # depends on Stage 9 outcomes including UNCLASSIFIED
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Stage 9 ran cleanly — UNCLASSIFIED count is the actual data gap"
+      medium: "Stage 9 partial — some UNCLASSIFIED may reflect engine miss vs MG description quality"
+      low: "Stage 9 < 50% — UNCLASSIFIED dominant; hard to attribute to MD vs engine"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Quantify portfolio TAT savings from channel migration. Skips cleanly if PR dump unavailable."
+    feasibility: opportunistic
+    skip_if_data_missing: |
+      Skip if PR dump unavailable OR PR-PO join coverage < 70%.
+      Theme narrative explicitly states "TAT impact not computed — PR dump required".
+
+    data_required:
+      - file: PR
+        fields: [pr_number, pr_creation_date, pr_release_date, plant, material_group, pr_total_value]
+        criticality: critical_for_BC11
+      - file: PO
+        fields: [pr_reference (join key), po_creation_date]
+        criticality: critical_for_BC11
+
+    data_cleaning_dependencies:
+      - rule: procurement.pr_po_join_via_reference   # custom rule for joining PR and PO
+
+    category_classification_required: true   # uses BC4 recommendations to compute target TAT
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "buying-channel/benchmarks.yml — industry-specific TAT benchmarks per channel"
+
+    benchmarks_consumed:
+      - id: buying_channel.tat.rc_lt_days
+      - id: buying_channel.tat.ola_days
+      - id: buying_channel.tat.catalogue_days
+      - id: buying_channel.tat.asl_days
+      - id: buying_channel.tat.rfq_days
+      - id: buying_channel.transformation.ceiling_contracted_lift_pp
+
+    confidence_drivers:
+      high: "PR dump available + PR-PO join ≥ 80% + BC4 confidence HIGH"
+      medium: "PR dump available + PR-PO join 70-80%"
+      low: "PR dump partial OR BC4 confidence LOW"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc12_buyer_bandwidth_freed
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Estimate FTE-equivalent buyer bandwidth freed via channel migration. Framed as productivity (redeployable), not cost-out."
+    feasibility: reliable_with_assumptions
+
+    data_required:
+      - file: PO
+        fields: [po_count, current_channel, recommended_channel]
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true   # inherits BC4
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed:
+      - id: buying_channel.touch_time.spot_po_hours
+      - id: buying_channel.touch_time.rfq_po_hours
+      - id: buying_channel.touch_time.ola_calloff_hours
+      - id: buying_channel.touch_time.catalogue_hours
+      - id: buying_channel.workforce.annual_buyer_hours
+
+    confidence_drivers:
+      high: "BC4 confidence HIGH + touch-time benchmarks fit client context"
+      medium: "BC4 MEDIUM"
+      low: "BC4 LOW OR client buyer-role definition differs materially from benchmark assumption"
+
+    coverage: Build 1
+
+  - id: buyingchannel.buying_channel_strategy.bc13_contract_coverage_lift_estimate
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    purpose: "Project as-is → to-be contracted % lift after migration, capped at +25pp transformation ceiling. Compares to benchmark band."
+    feasibility: reliable_with_assumptions
+
+    data_required:
+      - file: PO
+        fields: [contracted_pct_current, migration_spend_to_contracted_channels]
+        criticality: critical (computed from BC2 + BC6)
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true   # inherits BC4
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "buying-channel/benchmarks.yml — industry-specific contracted % benchmark bands"
+
+    benchmarks_consumed:
+      - id: buying_channel.portfolio.contracted_spend_pct
+      - id: buying_channel.transformation.ceiling_contracted_lift_pp
+
+    confidence_drivers:
+      high: "Migration list grounded in BC6 high-confidence recommendations"
+      medium: "Some BC6 migrations MEDIUM confidence (apply weighted)"
+      low: "BC6 LOW — projection should be flagged as directional"
+
+    coverage: Build 1
+
+
+
     # =============================================================================
     # AGGREGATE VIEWS — auto-derivable from per-analysis entries
     # =============================================================================
@@ -1970,6 +2426,92 @@ aggregate_qre_questions:
     used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs3_reconciliation]
     compulsory: false
 
+  - id: Q-BC-01
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: [buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today]
+    compulsory: true
+    notes: "Channels currently in use — Q1 of the 14-question discovery"
+  - id: Q-BC-02
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "How buying channel decision is made — governance signal for narrative"
+  - id: Q-BC-03
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "RC/ARC coverage perception — cross-check against PO-derived contracted %"
+  - id: Q-BC-04
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "OLA usage details — narrative context for catalogue/OLA recommendations"
+  - id: Q-BC-05
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "Catalogue mechanism state — informs Catalogue migration recommendation"
+  - id: Q-BC-06
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "MRP / Auto-PO usage — narrative on existing automation"
+  - id: Q-BC-07
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "Spot / emergency buying triggers — narrative for RCA"
+  - id: Q-BC-08
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: [buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today]
+    compulsory: false
+    notes: "Contract types in use — feeds portfolio narrative"
+  - id: Q-BC-09
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "Contract compliance monitoring — diagnostic for rca-pat-bc-12 (contract leakage)"
+  - id: Q-BC-10
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: [buyingchannel.buying_channel_strategy.bc6_migration_opportunities_by_target_channel]
+    compulsory: false
+    notes: "Workshop matrix to validate engine recommendations with client"
+  - id: Q-BC-11
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "Minimum quote requirements — governance / PAC narrative context"
+  - id: Q-BC-12
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: [buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg, buyingchannel.buying_channel_strategy.bc8_sole_source_risk_categories]
+    compulsory: false
+    notes: "PAC prevalence + reasons — lifts BC8c confidence + informs PAC reduction recommendation"
+  - id: Q-BC-13
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "DoA matrix — cross-pillar context for rca-pat-bc-12 (channel-differentiated DoA)"
+  - id: Q-BC-14
+    pillar: buying-channel
+    theme: buying-channel-strategy
+    used_by: []
+    compulsory: false
+    notes: "Compliance checks — narrative context for governance maturity"
+
+
 aggregate_industry_overlay_needs:
   - need: "Naturally-local categories per industry"
     used_by: [opmodel.centralisation.c3_industry_knowledge_filter]
@@ -2071,6 +2613,28 @@ aggregate_industry_overlay_needs:
     used_by: [orgstructure.hierarchy_span.hs3_reconciliation]
     file_pattern: "industries/<ind>/by-function/procurement/org-structure/hierarchy-span-filters.yml"
 
+  # Buying Channel overlay needs
+  - need: "Industry-specific channel mix benchmark bands (contracted % typical, catalogue penetration, OLA share, RC-LT share BULK, PAC share)"
+    used_by: [buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today, buyingchannel.buying_channel_strategy.bc13_contract_coverage_lift_estimate]
+    file_pattern: "industries/<ind>/by-function/procurement/buying-channel/benchmarks.yml"
+
+  - need: "Industry-specific TAT benchmarks per channel"
+    used_by: [buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate]
+    file_pattern: "industries/<ind>/by-function/procurement/buying-channel/benchmarks.yml"
+
+  - need: "Industry-specific archetype keyword bank extensions (for Stage 9 UNCLASSIFIED fallback)"
+    used_by: [buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile, buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg]
+    file_pattern: "industries/<ind>/by-function/procurement/buying-channel/archetype-overrides.yml"
+
+  - need: "Industry-specific channel routing hints (tie-breakers within BC4 rules)"
+    used_by: [buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg]
+    file_pattern: "industries/<ind>/by-function/procurement/buying-channel/archetype-overrides.yml"
+
+  - need: "Industry sub-segment channel-mix expectations (integrated mill vs mini-mill vs conglomerate etc.)"
+    used_by: [buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today, buyingchannel.buying_channel_strategy.bc3_archetype_channel_heatmap]
+    file_pattern: "industries/<ind>/by-function/procurement/buying-channel/archetype-overrides.yml"
+
+
 aggregate_data_cleaning_rules:
   critical_for_op_model_centralisation:
     - rule_id: procurement.plant_code_mapped_to_canonical
@@ -2111,6 +2675,42 @@ aggregate_data_cleaning_rules:
     - rule_id: data_quality_universal.remove_fully_blank_rows
       consumed_by: ALL
       stage: Stage 7 Bronze Data
+
+  critical_for_buying_channel:
+    - rule_id: procurement.category_aligned_to_industry_taxonomy
+      consumed_by:
+        - buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+        - buyingchannel.buying_channel_strategy.bc3_archetype_channel_heatmap
+        - buyingchannel.buying_channel_strategy.bc4_recommended_channel_per_mg
+        - buyingchannel.buying_channel_strategy.bc5_match_status_per_mg
+        - buyingchannel.buying_channel_strategy.bc6_migration_opportunities_by_target_channel
+        - buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity
+        - buyingchannel.buying_channel_strategy.bc9_project_one_off_exclusion
+        - buyingchannel.buying_channel_strategy.bc10_unclassified_mgs
+        - buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate
+        - buyingchannel.buying_channel_strategy.bc12_buyer_bandwidth_freed
+        - buyingchannel.buying_channel_strategy.bc13_contract_coverage_lift_estimate
+      stage: Stage 9 Category Classification
+    - rule_id: procurement.vendor_dedup_semantic
+      consumed_by:
+        - buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity
+        - buyingchannel.buying_channel_strategy.bc8_sole_source_risk_categories
+      stage: Stage 8 Gold Data
+    - rule_id: procurement.plant_code_mapped_to_canonical
+      consumed_by: [buyingchannel.buying_channel_strategy.bc7_cross_plant_aggregation_opportunity]
+      stage: Stage 6 User Validation
+    - rule_id: procurement.po_value_currency_normalised
+      consumed_by:
+        - buyingchannel.buying_channel_strategy.bc1_portfolio_channel_mix_today
+        - buyingchannel.buying_channel_strategy.bc2_per_mg_current_profile
+        - buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate
+        - buyingchannel.buying_channel_strategy.bc13_contract_coverage_lift_estimate
+      stage: Stage 8 Gold Data
+    - rule_id: procurement.pr_po_join_via_reference
+      consumed_by: [buyingchannel.buying_channel_strategy.bc11_tat_savings_estimate]
+      stage: Stage 8 Gold Data
+      notes: "Custom rule for joining PR and PO via pr_reference field. New rule introduced for Buying Channel BC11."
+
 
     # =============================================================================
     # Editable Configuration
