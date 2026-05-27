@@ -1,0 +1,274 @@
+# =============================================================================
+# Steel Industry — Buying Channel Benchmarks Overlay
+# =============================================================================
+# Purpose: Steel-industry-specific overrides on Buying Channel benchmarks.
+# Inherits from: proc-app/kb/functions/procurement/buying-channel/benchmarks.yml
+#
+# Cascade: Engagement Override > Industry Overlay (this file) > Function Default
+# =============================================================================
+
+metadata:
+  id: steel-buying-channel-benchmarks-overlay
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: buying-channel
+  inherits_from: proc-app/kb/functions/procurement/buying-channel/benchmarks.yml
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# =============================================================================
+# OVERRIDES — Steel-specific values that supersede function defaults
+# =============================================================================
+
+overrides:
+
+  # ==========================================================================
+  # PORTFOLIO CHANNEL MIX — Steel calibration
+  # ==========================================================================
+
+  - benchmark_id: buying_channel.portfolio.contracted_spend_pct
+    reason: |
+      Integrated Indian steel mills typically run higher contracted % than
+      cross-industry average because: (a) BULK raw materials (coal, iron ore)
+      are heavily contracted at scale, (b) INDIRECT MRO is the gap area.
+      Indian Steel sample: 30-50% contracted is typical; mature integrated
+      mills (Tata, JSW) at the upper end; mini-mills lower (15-30%).
+    primary:
+      source_id: WSA-2024
+      source_reference: "World Steel Association — Steel Industry Procurement Practices Survey 2024, §5.2"
+      value_range: [30, 50]
+      confidence: high
+      year: 2024
+      sample_size: "120+ global steel mills + 45 Indian mills"
+    supporting:
+      - source_id: ACN-Proc-Benchmark-DB
+        value_range: [30, 50]
+        year: 2024
+        note: "Accenture Indian Steel engagement portfolio"
+        confidence: high
+      - source_id: Hackett-2024
+        value_range: [35, 55]
+        year: 2024
+        note: "Global Steel; Indian sample tracks at lower end"
+        confidence: medium
+    composite:
+      typical_low: 30
+      typical_high: 50
+      indian_steel_low: 30
+      indian_steel_high: 50
+      bic_low: 65
+      bic_high: 80
+    drivers_explained: |
+      Higher contracted % vs cross-industry driven by:
+      - BULK raw material commodity-contract maturity (coal, iron ore typically RC-LT)
+      - Long-term supplier relationships in DIRECT (refractories, mill rolls)
+      Gap remains in:
+      - INDIRECT MRO (bearings, lubricants, PPE) — typically still spot-bought
+      - Recurring SERVICE (contract labour, AMC) — sometimes via OLA, often project-tendered
+    applies_to_industries: [steel]
+    applies_to_sub_segment: integrated_steel_mill_multi_plant
+    edit_risk: high
+
+  - benchmark_id: buying_channel.portfolio.catalogue_penetration_indirect_pct
+    reason: |
+      Steel mills run LOWER catalogue penetration than cross-industry. Reasons:
+      heavy-industrial nature → engineered spares dominate INDIRECT vs office
+      consumables; catalogue platforms historically underinvested in Steel;
+      plant-buyer culture prefers vendor-relationship buying.
+      Typical Indian Steel: 3-10% catalogue; BIC integrated mills hit 15-25%.
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [3, 10]
+      confidence: high
+      year: 2024
+      sample_size: "~25 Indian Steel engagements"
+    supporting:
+      - source_id: WSA-2024
+        value_range: [5, 15]
+        confidence: medium
+        note: "Global Steel; Indian sample at lower end"
+    composite:
+      typical_low: 3
+      typical_high: 10
+      indian_steel_low: 3
+      indian_steel_high: 10
+      bic_low: 15
+      bic_high: 25
+    drivers_explained: |
+      Steel-specific catalogue limiters:
+      - Engineered MRO spares (bearings to bespoke spec, lubricants to plant-specific spec) don't catalogue well
+      - Plant maintenance teams prefer direct-vendor calls for technical clarification
+      - Moglix and similar aggregators now catalogue Steel-relevant MRO but adoption nascent
+      Growth lever:
+      - Aggregator-managed catalogue (Moglix) is the typical Steel-mill entry point — catalogue without owning the platform
+    applies_to_industries: [steel]
+    edit_risk: high
+
+  - benchmark_id: buying_channel.portfolio.rc_lt_share_bulk_pct
+    reason: |
+      Steel BULK RC-LT coverage is the strongest area of channel discipline
+      for the industry. Integrated mills typically have multi-year contracts
+      for coal, iron ore, ferro alloys, scrap, industrial gases.
+      Indian integrated steel: 70-85% typical; BIC 90%+.
+      Mini-mills: lower (40-60%) due to thinner sourcing capability.
+    primary:
+      source_id: WSA-2024
+      source_reference: "World Steel Association — Raw Material Sourcing Practices 2024"
+      value_range: [70, 85]
+      confidence: high
+      year: 2024
+    supporting:
+      - source_id: ACN-Proc-Benchmark-DB
+        value_range: [70, 85]
+        confidence: high
+        note: "Accenture Indian Steel engagement portfolio"
+    composite:
+      typical_low: 70
+      typical_high: 85
+      integrated_mill_low: 70
+      integrated_mill_high: 85
+      mini_mill_low: 40
+      mini_mill_high: 60
+      bic_min: 90
+    drivers_explained: |
+      Integrated mills have mature commodity contract programmes:
+      - Coking coal: multi-year offtake or LTC with index pricing (Argus / Platts indices)
+      - Iron ore: NMDC LTCs or open-market RC-LT with index pricing
+      - Ferro alloys: annual contracts with quarterly price re-opens
+      - Industrial gases: long-term on-site ASU contracts (15+ years)
+      Mini-mills typically buy more spot due to:
+      - Smaller volumes don't command LTC terms
+      - Thinner sourcing teams; less commodity expertise
+      - Spot flexibility valued in volatile demand environment
+    applies_to_industries: [steel]
+    applies_to_sub_segments: [integrated_steel_mill_multi_plant, mini_mill_single_plant]
+    edit_risk: high
+
+  - benchmark_id: buying_channel.portfolio.pac_share_total_pct
+    reason: |
+      Steel PAC % sits at upper-end of cross-industry due to specialty
+      categories: refractories (mill-specific specs), mill rolls (limited
+      qualified makers), specialty ferro alloys, OEM-spec instrumentation.
+      Typical Indian Steel: 10-20% PAC; BIC 5-8% via active vendor development.
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [10, 20]
+      confidence: medium
+      year: 2024
+      note: "Estimated from Indian Steel engagement portfolio; precise measurement difficult given PAC flag rarity in PO dumps"
+    supporting:
+      - source_id: WSA-2024
+        value_range: [8, 18]
+        confidence: medium
+    composite:
+      typical_low: 10
+      typical_high: 20
+      bic_low: 5
+      bic_high: 8
+    drivers_explained: |
+      Steel-specific PAC drivers:
+      - Refractory specialty items (mould powders, ladle additives) — often single-source
+      - Mill rolls — narrow OEM base (Kobe, Sheffield Forgemasters, Union Electric Akers)
+      - Graphite electrodes — concentrated supplier base (HEG, Showa Denko, GrafTech, UCAR)
+      - Specialty instrumentation — OEM-spec dominant
+      Vendor development opportunity: many Steel PAC items have feasible
+      alternates with 12-18 month qualification cycles. BIC steel companies
+      run active PAC review forums.
+    applies_to_industries: [steel]
+    edit_risk: high
+
+  # ==========================================================================
+  # TAT BENCHMARKS — Steel may differ slightly for specific channels
+  # ==========================================================================
+
+  - benchmark_id: buying_channel.tat.rfq_days
+    reason: |
+      Steel RFQ TAT slightly higher than cross-industry due to: technical
+      evaluation depth for engineered items (refractories, mill rolls),
+      multi-stage qualification for new vendors, plant + corporate dual approval.
+      Indian Steel typical: 60-90 days vs cross-industry 45-90.
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value: 75
+      confidence: high
+      year: 2024
+      note: "Midpoint of Indian Steel 60-90 day band."
+    composite:
+      typical_value: 75
+      typical_range: [60, 90]
+    drivers_explained: |
+      Steel RFQ TAT extended by:
+      - Technical evaluation: metallurgist + maintenance team review of bid technical specs
+      - Plant trial requirements (refractory plant trials before contract; mill roll trials at specific plant)
+      - Plant + corporate dual sign-off for items above plant-DoA threshold
+    applies_to_industries: [steel]
+    edit_risk: high
+
+  # OLA, Catalogue, RC-LT, ASL TATs use function defaults — Steel doesn't differ materially.
+
+# =============================================================================
+# ADDITIONS — Steel-specific benchmarks with no function-default equivalent
+# =============================================================================
+additions:
+  - id: buying_channel.steel.coking_coal_contract_share_pct
+    name: "Coking Coal RC-LT / Long-Term Offtake Share"
+    description: |
+      Share of coking coal spend on long-term offtake or RC-LT (vs spot).
+      Steel-specific because coking coal is THE strategic raw material for
+      integrated mills with capex coke-oven infrastructure.
+    metric_type: percentage_range
+    unit: "% of coking coal spend"
+    primary:
+      source_id: WSA-2024
+      value_range: [75, 90]
+      confidence: high
+      year: 2024
+      note: "Integrated mill data. Mini-mills (EAF/IF) consume scrap not coking coal — N/A."
+    composite:
+      typical_low: 75
+      typical_high: 90
+      bic_min: 95
+    drivers_explained: |
+      High coking coal RC-LT share driven by capex commitment to coke ovens
+      (cannot easily switch fuel base) + import dependency (geopolitical
+      risk requires long-term sourcing security).
+    applies_to_industries: [steel]
+    applies_to_sub_segment: integrated_steel_mill_multi_plant
+    edit_risk: high
+
+  - id: buying_channel.steel.refractory_asl_panel_size
+    name: "Refractory ASL Panel Size (Typical)"
+    description: |
+      Number of qualified refractory vendors in ASL panel for an integrated
+      steel mill. Refractory is spec-sensitive but multi-source feasible.
+    metric_type: count_range
+    unit: "vendors"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [3, 6]
+      confidence: high
+      year: 2024
+    composite:
+      typical_value: 4
+      typical_range: [3, 6]
+    drivers_explained: |
+      Major refractory suppliers (RHI Magnesita, Vesuvius, Calderys, IFGL,
+      Imerys, Saint-Gobain) compete for Indian Steel business. ASL panel
+      of 4-5 enables competitive RFQ for major refractory tenders + risk
+      mitigation against single-source.
+    applies_to_industries: [steel]
+    edit_risk: medium
+
+# =============================================================================
+# Editable Configuration
+# All overrides HIGH-RISK (partner sign-off).
+# Per-override approval:
+#   - Value range / Primary source change: HIGH
+#   - Add/remove supporting source: MEDIUM
+#   - Edit drivers_explained text: LOW
+#   - Edit reason text: MEDIUM
+# =============================================================================

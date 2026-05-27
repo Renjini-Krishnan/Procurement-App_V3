@@ -1,0 +1,298 @@
+# =============================================================================
+# Steel Industry — Buying Channel Archetype Overrides
+# =============================================================================
+# Purpose: Steel-specific extensions to archetype keyword banks + channel
+# routing hints. Used by BC4 fallback path when Stage 9 marks an MG as
+# UNCLASSIFIED.
+#
+# Cascade: function-default archetype_keyword_banks +
+#          this file's append_keywords + channel_routing_hints
+# =============================================================================
+
+metadata:
+  id: steel-buying-channel-archetype-overrides
+  layer: industry
+  industry: steel
+  function: procurement
+  pillar: buying-channel
+  inherits_from: proc-app/kb/functions/procurement/buying-channel/analysis-config.yml#archetype_keyword_banks
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  review_cadence: annual
+  status: active
+
+# =============================================================================
+# APPEND KEYWORDS — Steel-specific terms added to function-default banks
+# =============================================================================
+# These keywords supplement the function-default keyword banks. They make the
+# BC4 fallback classification more accurate for Steel-sector MG descriptions.
+
+# Edit risk for all append_keywords blocks: MEDIUM (peer KB lead review)
+append_keywords:
+
+  BULK:
+    # Steel raw materials beyond cross-industry defaults
+    - COKING COAL
+    - COKE BREEZE
+    - NON COKING COAL
+    - IRON ORE LUMPS
+    - IRON ORE FINES
+    - PELLET FEED
+    - HEMATITE
+    - MAGNETITE
+    - SCRAP HEAVY MELT
+    - SCRAP SHREDDED
+    - SCRAP TURNINGS
+    - HBI BRIQUETTES
+    - SPONGE IRON
+    - SINTER FEED
+    - DOLOMITE LUMPS
+    - LIME LUMPS
+    - LIMESTONE LUMPS
+    - QUARTZITE
+    - FERRO MANGANESE
+    - SILICO MANGANESE
+    - FERRO CHROME
+    - FERRO SILICON
+    - FERRO MOLYBDENUM
+    - FERRO VANADIUM
+    - OXYGEN LIQUID
+    - NITROGEN LIQUID
+    - ARGON LIQUID
+
+  DIRECT:
+    # Steel process-input items with engineering specs
+    - REFRACTORY BRICK
+    - REFRACTORY CASTABLE
+    - REFRACTORY MORTAR
+    - REFRACTORY GUNNING
+    - REFRACTORY RAMMING MASS
+    - MAGNESIA CARBON BRICK
+    - ALUMINA CARBON BRICK
+    - DOLOMITE BRICK
+    - MULLITE BRICK
+    - HIGH ALUMINA BRICK
+    - INSULATING BRICK
+    - SLIDE GATE PLATE
+    - SUBMERGED ENTRY NOZZLE
+    - LADLE SHROUD
+    - TUNDISH NOZZLE
+    - TUNDISH BOARD
+    - MOULD FLUX POWDER
+    - CASTING POWDER
+    - LANCE PIPE
+    - LANCE TIP
+    - GRAPHITE ELECTRODE
+    - GRAPHITE NIPPLE
+    - WORK ROLL
+    - BACKUP ROLL
+    - INTERMEDIATE ROLL
+    - WORK ROLL CHOCK
+    - ROLL BEARING
+    - GUIDE ROLLER
+    - PINCH ROLL
+    - MILL ROLL
+
+  INDIRECT:
+    # Steel-specific MRO + plant consumables
+    - HYDRAULIC HOSE
+    - HYDRAULIC CYLINDER
+    - PNEUMATIC CYLINDER
+    - GEARBOX SPARE
+    - REDUCER SPARE
+    - INDUCTION MOTOR
+    - SLIP RING MOTOR
+    - DC MOTOR
+    - SQUIRREL CAGE MOTOR
+    - CRANE WHEEL
+    - CRANE ROPE
+    - CRANE HOOK
+    - CONVEYOR BELT
+    - CONVEYOR IDLER
+    - CONVEYOR ROLLER
+    - PULP SCREEN
+    - CYCLONE LINER
+    - CHUTE LINER
+    - WEAR PLATE
+    - ABRASION RESISTANT PLATE
+    - HEAT RESISTANT PLATE
+    - WIRE ROPE
+    - WIRE MESH
+    - SCREEN MESH
+    - LUBRICATION PUMP
+    - GREASE GUN
+    - INDUSTRIAL LUBE
+    - TURBINE OIL
+    - HYDRAULIC OIL ISO 68
+    - GEAR OIL
+
+  SERVICE:
+    # Steel-specific services
+    - SHUTDOWN MAINTENANCE
+    - PLANNED SHUTDOWN
+    - CRANE INSPECTION
+    - REFRACTORY RELINING
+    - ROLLING MILL OVERHAUL
+    - BLAST FURNACE RELINING
+    - COKE OVEN RELINING
+    - LADLE REPAIR
+    - SLAG HANDLING
+    - SCRAP HANDLING
+    - HOT METAL TRANSPORT
+    - INPLANT TRANSPORT
+    - PORT HANDLING
+    - RAIL RAKE HANDLING
+    - INPLANT CONTRACT LABOUR
+    - SECURITY CONTRACT STEEL PLANT
+
+  CAPEX:
+    # Steel-specific capex equipment
+    - BLAST FURNACE EQUIPMENT
+    - COKE OVEN EQUIPMENT
+    - SINTER PLANT EQUIPMENT
+    - STEEL MELT SHOP EQUIPMENT
+    - CONTINUOUS CASTING MACHINE
+    - HOT ROLLING MILL
+    - COLD ROLLING MILL
+    - GALVANIZING LINE
+    - COLOR COATING LINE
+    - PICKLING LINE
+    - REHEATING FURNACE
+    - WALKING BEAM FURNACE
+    - LADLE REFINING FURNACE
+    - VACUUM DEGASSING
+    - DRI PLANT EQUIPMENT
+    - PELLETIZING PLANT EQUIPMENT
+    - WASTE HEAT RECOVERY
+    - POWER PLANT TURBINE
+
+# =============================================================================
+# CHANNEL ROUTING HINTS — Steel-specific tie-breakers within recommendation rules
+# =============================================================================
+# When BC4's archetype-driven rules result in a borderline call, these hints
+# nudge the recommendation toward the Steel-typical pattern. Engine respects
+# the main rule order; these hints apply only at rule-result tie-points.
+
+channel_routing_hints:
+
+  - hint_id: steel.refractory_specialty_to_asl_with_dual_source_flag
+    applies_when: |
+      archetype = DIRECT
+      AND mg_desc matches /REFRACTOR.*SPECIALTY|MOULD.*POWDER|TUNDISH.*BOARD/
+      AND vendor_count <= 2
+    nudge: "Route to ASL + flag dual-source qualification action"
+    rationale: |
+      Specialty refractories often single-source in Indian Steel (RHI Magnesita
+      or Vesuvius dominates). Recommendation must surface vendor-development
+      action — dual-source qualification is feasible over 12-18 months.
+
+  - hint_id: steel.coking_coal_to_long_term_offtake
+    applies_when: |
+      archetype = BULK
+      AND mg_desc matches /COKING COAL|COKE BREEZE/
+      AND total_spend_inr_cr >= 50
+    nudge: "Route to RC-LT (long-term offtake / multi-year contract)"
+    rationale: |
+      Coking coal at integrated mills is THE strategic raw material. Long-term
+      offtake (3-5 year tenor) + index pricing (Argus/Platts) is best practice.
+
+  - hint_id: steel.industrial_gases_to_long_term_on_site_asu
+    applies_when: |
+      archetype = BULK
+      AND mg_desc matches /OXYGEN|NITROGEN|ARGON/
+      AND total_spend_inr_cr >= 20
+    nudge: "Route to RC-LT (long-term on-site ASU contract, typically 15+ years)"
+    rationale: |
+      Industrial gases (O2, N2, Ar) at integrated mills are sourced via on-site
+      Air Separation Unit contracts with Linde / Air Liquide / INOX. 15-20 year
+      tenors typical, capex-tied.
+
+  - hint_id: steel.mill_roll_to_asl_top_oem
+    applies_when: |
+      archetype = DIRECT
+      AND mg_desc matches /WORK ROLL|BACKUP ROLL|MILL ROLL/
+    nudge: "Route to ASL panel + flag top vendor for RC-LT (mill rolls)"
+    rationale: |
+      Mill rolls have a narrow OEM market (Kobe Steel, Sheffield Forgemasters,
+      Union Electric Akers, Saarstahl). ASL panel of 3-4 with strategic-vendor
+      RC-LT is the typical mature pattern.
+
+  - hint_id: steel.graphite_electrode_to_rc_lt
+    applies_when: |
+      archetype = DIRECT
+      AND mg_desc matches /GRAPHITE ELECTRODE/
+    nudge: "Route to RC-LT (commodity-linked pricing, multi-year)"
+    rationale: |
+      Graphite electrodes are a global commodity with concentrated supply (HEG,
+      Showa Denko, GrafTech, UCAR). EAF mills typically run multi-year RC-LT
+      with commodity-linked pricing.
+
+  - hint_id: steel.refractory_relining_to_ola_or_rfq
+    applies_when: |
+      archetype = SERVICE
+      AND mg_desc matches /REFRACTORY RELINING|RELINING/
+    nudge: "Route to OLA if recurring (planned shutdown cycle); else RFQ"
+    rationale: |
+      Refractory relining is a planned-shutdown service. Major mills with
+      regular shutdown cycles typically OLA the relining service vendor; mid-mills
+      tender per shutdown.
+
+# =============================================================================
+# SUB-SEGMENT NOTES — Steel sub-segments have different channel patterns
+# =============================================================================
+
+sub_segment_notes:
+
+  integrated_steel_mill_multi_plant:
+    contracted_pct_band: [40, 55]
+    catalogue_pct_band: [5, 12]
+    pac_pct_band: [10, 18]
+    notes: |
+      Mature contract programmes for BULK raw materials + most DIRECT engineered
+      items. Gap typically in INDIRECT MRO + recurring SERVICE. Catalogue
+      penetration low (engineered MRO + plant-relationship preference).
+
+  mini_mill_single_plant:
+    contracted_pct_band: [20, 35]
+    catalogue_pct_band: [2, 8]
+    pac_pct_band: [15, 25]
+    notes: |
+      Lower contract maturity than integrated mills. Spot buying dominates
+      for raw materials (smaller volumes don't command LTC terms). PAC % often
+      higher due to limited vendor base + technical OEM preferences.
+
+  specialty_or_electrical_steel:
+    contracted_pct_band: [35, 50]
+    catalogue_pct_band: [8, 15]
+    pac_pct_band: [12, 20]
+    notes: |
+      Specialty grades need precise ferro alloys + custom refractories. Contract
+      coverage strong on raw materials. Specialty INDIRECT (precision instruments,
+      lab chemicals) more amenable to catalogue than commodity mill MRO.
+
+  steel_multi_business_conglomerate:
+    contracted_pct_band: [40, 60]
+    catalogue_pct_band: [10, 20]
+    pac_pct_band: [8, 15]
+    notes: |
+      Conglomerate-level procurement often runs central catalogue + framework
+      agreements at group level. Steel BU may inherit higher catalogue
+      penetration via group programmes. PAC % lower due to group SRM capability.
+
+  foreign_owned_indian_operation:
+    contracted_pct_band: [50, 70]
+    catalogue_pct_band: [15, 25]
+    pac_pct_band: [5, 12]
+    notes: |
+      Parent-company procurement maturity transfers — global catalogue platforms,
+      global PAC review forums, global vendor development programmes. Highest
+      contract coverage + lowest PAC % among Steel sub-segments.
+
+# =============================================================================
+# Editable Configuration
+# All keyword bank additions: MEDIUM risk (peer KB lead review)
+# Channel routing hints: MEDIUM risk (changes routing behaviour for matching MGs)
+# Sub-segment notes: LOW risk (descriptive)
+# Adding new hint / removing existing: MEDIUM-HIGH risk
+# =============================================================================
