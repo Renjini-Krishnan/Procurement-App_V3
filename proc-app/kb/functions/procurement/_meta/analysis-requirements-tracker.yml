@@ -243,10 +243,10 @@ analyses:
       - "Function default fallback: opmodel.centralisation.savings_rate [2, 4]%"
 
     benchmarks_consumed:
-  - id: opmodel.centralisation.savings_rate
+      - id: opmodel.centralisation.savings_rate
         from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
         with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
-  - id: opmodel.centralisation.centre_led_savings_rate
+      - id: opmodel.centralisation.centre_led_savings_rate
         from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
         with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
 
@@ -426,11 +426,11 @@ analyses:
       - "Steel overlay current_cost_per_po + ssc_target_cost_per_po + productivity_gain_pct + pos_per_fte_annual"
 
     benchmarks_consumed:
-  - id: opmodel.shared_services.current_cost_per_po_inr
-  - id: opmodel.shared_services.ssc_target_cost_per_po_inr
-  - id: opmodel.shared_services.ssc_productivity_gain_pct
-  - id: opmodel.shared_services.ssc_pos_per_fte_annual
-  - id: opmodel.shared_services.plant_pos_per_fte_annual
+      - id: opmodel.shared_services.current_cost_per_po_inr
+      - id: opmodel.shared_services.ssc_target_cost_per_po_inr
+      - id: opmodel.shared_services.ssc_productivity_gain_pct
+      - id: opmodel.shared_services.ssc_pos_per_fte_annual
+      - id: opmodel.shared_services.plant_pos_per_fte_annual
 
     confidence_drivers:
       high: "Industry overlay benchmarks loaded + PO count complete + QRE-confirmed cost-per-PO"
@@ -501,7 +501,7 @@ analyses:
 
     benchmarks_consumed: []
 
-        confidence_drivers:
+    confidence_drivers:
       high: "All 4 QRE questions answered + aggregator scope clearly stated"
       medium: "Aggregator exists but partial info on scope/spend"
       low: "Client doesn't know tail % or aggregator scope precisely"
@@ -514,7 +514,7 @@ analyses:
     purpose: "Size the tail using two complementary methods: PO-based threshold (Method A) + category-based Q3 quadrant from SS1 (Method B)."
 
     data_required:
-          - file: PO
+      - file: PO
         fields:
           - po_id (key)
           - po_value (numeric)
@@ -537,7 +537,7 @@ analyses:
     benchmarks_consumed: []
 
     upstream_dependencies:
-  - id: opmodel.shared_services.ss1_volume_value_quadrant
+      - id: opmodel.shared_services.ss1_volume_value_quadrant
         usage: "Method B consumes Q3 (Tail) quadrant from SS1"
 
     confidence_drivers:
@@ -637,7 +637,7 @@ analyses:
       - "Function default fallback: opmodel.tail_spend.outsourcing_savings_rate [3, 8]%"
 
     benchmarks_consumed:
-  - id: opmodel.tail_spend.outsourcing_savings_rate
+      - id: opmodel.tail_spend.outsourcing_savings_rate
         from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
         with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
 
@@ -754,7 +754,7 @@ analyses:
     benchmarks_consumed: []
 
     upstream_dependencies:
-  - id: opmodel.shared_services.ss1_volume_value_quadrant
+      - id: opmodel.shared_services.ss1_volume_value_quadrant
         usage: "Lens A consumes Q4 (Strategic) quadrant from SS1"
 
     confidence_drivers:
@@ -781,7 +781,7 @@ analyses:
 
     qre_questions_used:
       - id: Q-OM-COE-EXC
-            question: "Are there any strategic categories your team feels should/should not be in a CoE for reasons not captured in your data?"
+        question: "Are there any strategic categories your team feels should/should not be in a CoE for reasons not captured in your data?"
         answer_type: free_text
         compulsory: false
 
@@ -846,7 +846,7 @@ analyses:
       - "Function default fallback: opmodel.coe.savings_rate [2, 5]%"
 
     benchmarks_consumed:
-  - id: opmodel.coe.savings_rate
+      - id: opmodel.coe.savings_rate
         from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
         with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
 
@@ -1103,7 +1103,7 @@ analyses:
         accept_formats:
           - "Format A: Org Structure (hierarchy view — PowerPoint/PDF/structured Excel with reports_to)"
           - "Format B: Employee Master (list view — Excel/CSV with one row per employee)"
-            fields_after_stage_6_validation:
+        fields_after_stage_6_validation:
           - employee_id (synthetic if not provided) [always available after Stage 6]
           - name [usually]
           - role_title / job_title (raw, generic — needs classification) [always]
@@ -1202,7 +1202,7 @@ analyses:
       - "Steel overlay spend/FTE band: org.fte_productivity.spend_per_fte_inr_cr [40, 80] Cr/FTE"
 
     benchmarks_consumed:
-  - id: org.fte_productivity.spend_per_fte_inr_cr
+      - id: org.fte_productivity.spend_per_fte_inr_cr
         from_file: proc-app/kb/functions/procurement/org-structure/benchmarks.yml
         with_industry_overlay: industries/<ind>/by-function/procurement/org-structure/benchmarks.yml
 
@@ -1270,8 +1270,8 @@ analyses:
     industry_overlay_required: []
 
     benchmarks_consumed:
-  - id: org.fte_productivity.pos_per_fte_category_mgr
-  - id: org.fte_productivity.pos_per_fte_transactional
+      - id: org.fte_productivity.pos_per_fte_category_mgr
+      - id: org.fte_productivity.pos_per_fte_transactional
         # SSC benchmarks consumed from Op Model — see cross-link below
 
     cross_theme_commentary:
@@ -1329,10 +1329,10 @@ analyses:
       - "Steel benchmarks.yml override — specialist + transactional shares"
 
     benchmarks_consumed:
-  - id: org.role_composition.category_mgr_share_pct
-  - id: org.role_composition.transactional_share_pct
-  - id: org.role_composition.specialist_share_pct
-  - id: org.role_composition.leadership_share_pct
+      - id: org.role_composition.category_mgr_share_pct
+      - id: org.role_composition.transactional_share_pct
+      - id: org.role_composition.specialist_share_pct
+      - id: org.role_composition.leadership_share_pct
 
     coverage: Build 1
 
@@ -1449,7 +1449,7 @@ analyses:
       - rule: procurement.entity_classification_via_stage6_mapping
         notes: "Same Stage 6 entity mapping as Op Model centralisation"
       - rule: procurement.po_value_currency_normalised
-          - rule: procurement.plant_code_mapped_to_canonical
+      - rule: procurement.plant_code_mapped_to_canonical
 
     category_classification_required: false
 
@@ -1505,9 +1505,9 @@ analyses:
       - "spend-fte-distribution-filters.yml — sub_segment_distribution_expectations (for descriptive context)"
 
     benchmarks_consumed:
-  - id: org.distribution.central_fte_share_pct
-  - id: org.distribution.central_spend_share_pct
-  - id: org.distribution.bw_imbalance_typical_threshold_pp
+      - id: org.distribution.central_fte_share_pct
+      - id: org.distribution.central_spend_share_pct
+      - id: org.distribution.bw_imbalance_typical_threshold_pp
 
     coverage: Build 1
 
@@ -1534,7 +1534,7 @@ analyses:
       - "Steel overlay benchmarks.yml: org.fte_productivity.spend_per_fte_inr_cr [40, 80]"
 
     benchmarks_consumed:
-  - id: org.fte_productivity.spend_per_fte_inr_cr
+      - id: org.fte_productivity.spend_per_fte_inr_cr
         consumed_from: shared_with_theme_2
 
     notes: |
@@ -1666,10 +1666,10 @@ analyses:
       - "hierarchy-span-filters.yml — common_patterns_observed"
 
     benchmarks_consumed:
-  - id: org.span.cpo_direct_reports
-  - id: org.span.senior_management
-  - id: org.span.mid_management
-  - id: org.span.first_line_lead
+      - id: org.span.cpo_direct_reports
+      - id: org.span.senior_management
+      - id: org.span.mid_management
+      - id: org.span.first_line_lead
 
     coverage: Build 1
 
@@ -1704,7 +1704,7 @@ analyses:
       - "hierarchy-span-filters.yml — sub_segment_hierarchy_depth_expectations"
 
     benchmarks_consumed:
-  - id: org.hierarchy.depth_levels
+      - id: org.hierarchy.depth_levels
 
     coverage: Build 1
 
