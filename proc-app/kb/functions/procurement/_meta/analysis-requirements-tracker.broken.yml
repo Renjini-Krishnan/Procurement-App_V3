@@ -1,0 +1,2126 @@
+# =============================================================================
+# Analysis Requirements Tracker
+# =============================================================================
+# Purpose: Aggregates the data, cleaning, QRE, and industry-overlay requirements
+#      across every analysis as we author them. Master input for downstream
+#      build artefacts (data templates, cleaning rules, QRE bank, industry
+#      overlay design).
+#
+# Logic Embodied: As each analysis is authored in any pillar's theme files, an
+#             entry is added here capturing what data + cleaning + QRE +
+#             overlay it needs. Aggregate views auto-derivable from entries
+#             feed downstream build artefacts.
+#
+# Inputs Used: Per-analysis design decisions captured during KB authoring.
+# Outputs Produced: Aggregated requirements consumed by:
+#               - data-templates/ (which fields required across all analyses)
+#               - data-cleaning/ (which cleaning rules are critical)
+#               - qre/qre-bank.yml (which questions to include)
+#               - industries/<ind>/.../ (where industry overlays need to provide specifics)
+# How Used by App: Not consumed at runtime; build-time artefact for KB authors
+#              and tech team.
+# Cross-References:
+#   - All <pillar>/<theme>.md files contribute entries
+#   - data-templates/catalog.yml synthesises from aggregate_data_requirements
+#   - qre/qre-bank.yml synthesises from aggregate_qre_questions
+# =============================================================================
+
+metadata:
+  id: analysis-requirements-tracker
+  layer: function
+  function: procurement
+  version: 1.0
+  last_updated: 2026-05-27
+  owner: kb-admin
+  status: active
+  authoring_pattern: "Append entries as new analyses are designed; refactor aggregate views periodically."
+
+# =============================================================================
+# PER-ANALYSIS ENTRIES
+# =============================================================================
+# Schema per entry:
+#   id                Unique analysis ID (e.g., opmodel.centralisation.c1_multi_plant_detection)
+#   pillar            Op Model / Org Structure / Buying Channel / etc.
+#   theme             Centralisation / Shared Services / CoE / etc.
+#   purpose           One-line statement of what this analysis answers
+#   data_required     Data files + fields required
+#   data_cleaning_dependencies   Cleaning rules this analysis depends on
+#   category_classification_required   Boolean — needs Stage 9 classification
+#   qre_questions_usedQRE question IDs consumed
+#   industry_overlay_required   Industry-specific data this analysis needs from overlay
+#   benchmarks_consumed   Benchmark IDs this analysis uses
+#   confidence_driversWhat makes the analysis high vs low confidence
+#   coverage          Build 1 / Build 2
+# =============================================================================
+
+analyses:
+
+      # ============================================================================
+      # OP MODEL — CENTRALISATION THEME
+      # ============================================================================
+
+  - id: opmodel.centralisation.c0_baseline
+    pillar: op-model
+    theme: centralisation
+    purpose: "Compute current spend_central_pct if PO data has classifying field; else use QRE estimate."
+
+    data_required:
+      - file: PO
+        fields:
+          - po_id (key)
+          - po_value (numeric, ≥0)
+          - One of: EKORG OR purchasing_org OR buyer_id OR cost_center  # any classifying field
+        criticality: nice_to_have   # analysis runs with QRE alternative
+
+    data_cleaning_dependencies:
+      - rule: procurement.entity_classification_via_stage6_mapping
+        notes: "Consultant maps EKORG / Buyer / CC values to central/plant/BU at Stage 6 User Validation."
+      - rule: data_quality_universal.normalise_numeric_format
+
+    category_classification_required: false   # baseline doesn't need category-level classification
+
+    qre_questions_used:
+      - id: Q-OM-01
+        question: "Approximately what % of your annual procurement spend is processed by a central procurement team?"
+        answer_type: range_band
+        options: ["<20%", "20-40%", "40-60%", "60-80%", ">80%"]
+        compulsory: false
+        notes: "Used to set baseline when PO data lacks classifying field. Compared against PO-computed if available."
+      - id: Q-OM-02
+        question: "Of your top-10 procurement categories by spend, approximately how many are managed centrally end-to-end?"
+        answer_type: count_band
+        options: ["0-2", "3-5", "6-8", "9-10"]
+        compulsory: false
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []   # baseline is engagement-specific, not benchmark-driven
+
+    confidence_drivers:
+      high: "PO classifying field present + Stage 6 mapping done + low deviation between PO and QRE"
+      medium: "Only one data source (PO OR QRE) available"
+      low: "PO classifying field absent AND/OR Stage 6 mapping incomplete"
+
+    fallback_logic: |
+      IF PO has classifying field AND Stage 6 mapped → use PO-computed primary
+      ELSE → use QRE only (mark as "client estimate")
+      IF both → quant primary, QRE secondary, flag deviation > 10pp
+
+    coverage: Build 1
+
+  - id: opmodel.centralisation.c1_multi_plant_detection
+    pillar: op-model
+    theme: centralisation
+    purpose: "Identify reclassified categories bought by ≥ 2 plants with material spend."
+
+    data_required:
+      - file: PO
+        fields:
+          - po_id
+          - po_value (numeric, ≥0)
+          - plant (categorical; canonical list per Stage 6 mapping)
+          - category (POST-STAGE-9 reclassified, NOT raw client label)
+        criticality: critical   # analysis cannot run without
+
+    data_cleaning_dependencies:
+      - rule: procurement.plant_code_mapped_to_canonical
+        notes: "Stage 6 User Validation maps client's plant codes to canonical plant list"
+      - rule: data_quality_universal.normalise_numeric_format
+      - rule: data_quality_universal.remove_fully_blank_rows
+
+    category_classification_required: true   # depends on Stage 9 output
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "material_threshold_inr_cr (industry-specific spend threshold)"
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Stage 9 classification ≥ 90% of spend AND plant codes fully mapped"
+      medium: "Stage 9 80-90% OR some plant codes ambiguous"
+      low: "Stage 9 < 80% OR significant plant code gaps"
+
+    coverage: Build 1
+
+  - id: opmodel.centralisation.c2_vendor_pattern_insight
+    pillar: op-model
+    theme: centralisation
+    purpose: "Describe current vendor concentration for multi-plant candidates (descriptive only — not decision-driving)."
+
+    data_required:
+      - file: PO
+        fields:
+          - vendor_id (key)
+          - vendor_name (text)
+          - category (post-Stage-9)
+          - plant
+          - po_value
+        criticality: critical for the insight; analysis can skip if missing
+
+    data_cleaning_dependencies:
+      - rule: procurement.vendor_dedup_semantic
+        notes: "Vendor name standardisation (e.g., 'ABC Industries' vs 'ABC INDUSTRIES PVT LTD') for accurate count"
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Vendor master fully deduped + Stage 9 classification ≥ 90%"
+      medium: "Vendor master partially deduped"
+      low: "Vendor master not deduped → unique_vendors count overstated"
+
+    coverage: Build 1
+
+  - id: opmodel.centralisation.c3_industry_knowledge_filter
+    pillar: op-model
+    theme: centralisation
+    purpose: "Tag multi-plant candidates as Centralise / Centre-Led / Industry-Local using industry overlay."
+
+    data_required:
+      - file: PO
+        fields:
+          - category (post-Stage-9; must match standard taxonomy in industry's categories-master.yml)
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+        notes: "Stage 9 reclassification must align to industry's categories-master.yml IDs"
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-EXC
+        question: "Are there any procurement categories your team feels MUST stay local for reasons not captured in your data?"
+        answer_type: free_text
+        compulsory: false
+        notes: "Safety-net for edge cases industry overlay missed."
+
+    industry_overlay_required:
+      - "centralisation-filters.yml — naturally_local list"
+      - "centralisation-filters.yml — naturally_central list"
+      - "centralisation-filters.yml — centre_led list"
+      - "centralisation-filters.yml — material_threshold_inr_cr"
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Industry overlay loaded + categories well-matched + Q-OM-EXC reviewed"
+      medium: "Some categories unlisted (default to Suggest Centralise)"
+      low: "Industry overlay missing → analysis falls back to function default (no industry filter)"
+
+    coverage: Build 1
+
+  - id: opmodel.centralisation.c4_savings_quantification
+    pillar: op-model
+    theme: centralisation
+    purpose: "Compute ₹ Cr savings range for Suggest Centralise + Suggest Centre-Led candidates."
+
+    data_required:
+      - file: PO
+        fields:
+          - po_value (numeric)
+          - category (post-Stage-9)
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.po_value_currency_normalised
+        notes: "All PO values normalised to a single currency (typically INR) for consistent computation"
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "Steel overlay savings rate: opmodel.centralisation.savings_rate [4, 7]%"
+      - "Cement overlay savings rate: opmodel.centralisation.savings_rate [3, 5]%"
+      - "Function default fallback: opmodel.centralisation.savings_rate [2, 4]%"
+
+    benchmarks_consumed:
+  - id: opmodel.centralisation.savings_rate
+        from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
+        with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
+  - id: opmodel.centralisation.centre_led_savings_rate
+        from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
+        with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
+
+    confidence_drivers:
+      high: "Industry overlay rate available + Stage 9 classification ≥ 90%"
+      medium: "Function default rate applied (no industry overlay)"
+      low: "Stage 9 < 80% + no industry overlay"
+
+    coverage: Build 1
+
+      # ============================================================================
+      # OP MODEL — SHARED SERVICES THEME
+      # ============================================================================
+
+  - id: opmodel.shared_services.ss0_current_coverage
+    pillar: op-model
+    theme: shared-services
+    purpose: "Capture current SSC scope (qualitative baseline)."
+
+    data_required: []  # QRE-only
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OM-SS-01
+        question: "Does your organisation have a procurement Shared Service Centre (SSC)?"
+        answer_type: enum
+        options: [Yes, No, Partial]
+        compulsory: true
+      - id: Q-OM-SS-02
+        question: "What categories does your SSC handle today?"
+        answer_type: free_text_plus_checklist
+        compulsory: conditional  # if Q-OM-SS-01 ≠ No
+      - id: Q-OM-SS-03
+        question: "How many FTEs are in your procurement SSC?"
+        answer_type: count_band
+        options: ["0", "1-5", "6-15", "16-30", "30+"]
+        compulsory: conditional
+      - id: Q-OM-SS-04
+        question: "Typical processing cost per PO in your SSC (if known)?"
+        answer_type: range_band_inr
+        options: ["<₹1,000", "₹1,000-2,000", "₹2,000-3,500", "₹3,500-5,000", ">₹5,000", "Don't know"]
+        compulsory: false
+      - id: Q-OM-SS-05
+        question: "Beyond category-level scope, are there specific procurement ACTIVITIES (e.g., PO creation, GRN follow-up, invoice verification, vendor onboarding, payment follow-up, contract administration) that your team feels SHOULD move to an SSC — or specifically should NOT?"
+        answer_type: free_text
+        compulsory: false
+        notes: "Activity-level qualitative input only; feeds narrative recommendation. No quantified analysis — activity audit is intentionally out of scope for Op Model pillar."
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "All 5 QRE questions answered"
+      medium: "SSC exists but partial info"
+      low: "Client doesn't know SSC scope precisely"
+
+    coverage: Build 1
+
+  - id: opmodel.shared_services.ss1_volume_value_quadrant
+    pillar: op-model
+    theme: shared-services
+    purpose: "Classify reclassified categories into 4 quadrants (Strategic/Hybrid/Transactional/Tail) based on PO count and avg PO value."
+
+    data_required:
+      - file: PO
+        fields:
+          - po_id (key)
+          - po_value (numeric)
+          - category (post-Stage-9)
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: data_quality_universal.normalise_numeric_format
+      - rule: procurement.po_value_currency_normalised
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Stage 9 ≥ 90% classification + PO data complete"
+      medium: "Stage 9 80-90% + some classification gaps"
+      low: "Stage 9 < 80% — quadrant assignments may be skewed"
+
+    coverage: Build 1
+
+    notes: |
+      SS1 quadrant output ALSO feeds:
+      - CoE theme (Q4 strategic categories)
+      - Tail Spend theme (Q3 tail categories)
+      It's the shared analysis underpinning multiple Op Model themes.
+
+  - id: opmodel.shared_services.ss2_industry_filter
+    pillar: op-model
+    theme: shared-services
+    purpose: "Tag Q1 transactional candidates as SSC-Suitable / SSC-Unsuitable / Centre-Handled using industry overlay."
+
+    data_required:
+      - file: PO
+        fields: [category (post-Stage-9)]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-SS-EXC
+        question: "Are there any transactional categories your team feels MUST stay with plant buyers (not SSC) for reasons not in your data?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required:
+      - "shared-services-filters.yml — ssc_suitable list"
+      - "shared-services-filters.yml — ssc_unsuitable list"
+      - "shared-services-filters.yml — centre_handled list"
+      - "shared-services-filters.yml — ssc_minimum_po_count + ssc_minimum_annual_spend_inr_cr thresholds"
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+  - id: opmodel.shared_services.ss3_coverage_gap
+    pillar: op-model
+    theme: shared-services
+    purpose: "Compute the gap between data-suggested SSC scope and current SSC scope."
+
+    data_required:
+      - file: PO
+        fields: [category, po_value, po_id]
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-SS-02  # used for current SSC scope
+        consumed_from: opmodel.shared_services.ss0_current_coverage
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+  - id: opmodel.shared_services.ss4_fte_productivity
+    pillar: op-model
+    theme: shared-services
+    purpose: "Quantify cost-per-PO savings and FTE redeployment from expanding SSC scope."
+
+    data_required:
+      - file: PO
+        fields: [po_id, po_value, category]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.po_value_currency_normalised
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-SS-04
+        consumed_from: opmodel.shared_services.ss0_current_coverage
+        usage: "If client provided actual current cost-per-PO, prefer over function default"
+
+    industry_overlay_required:
+      - "Steel overlay current_cost_per_po + ssc_target_cost_per_po + productivity_gain_pct + pos_per_fte_annual"
+
+    benchmarks_consumed:
+  - id: opmodel.shared_services.current_cost_per_po_inr
+  - id: opmodel.shared_services.ssc_target_cost_per_po_inr
+  - id: opmodel.shared_services.ssc_productivity_gain_pct
+  - id: opmodel.shared_services.ssc_pos_per_fte_annual
+  - id: opmodel.shared_services.plant_pos_per_fte_annual
+
+    confidence_drivers:
+      high: "Industry overlay benchmarks loaded + PO count complete + QRE-confirmed cost-per-PO"
+      medium: "Function defaults applied (no industry overlay) OR QRE missing"
+      low: "Significant PO data gaps"
+
+    coverage: Build 1
+
+  - id: opmodel.shared_services.ss5_reconciliation
+    pillar: op-model
+    theme: shared-services
+    purpose: "Cross-check data-driven SSC recommendation with QRE responses; surface alignment or deviation."
+
+    data_required: []  # synthesises from SS1-SS4 + QRE
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OM-SS-01
+        consumed_from: opmodel.shared_services.ss0_current_coverage
+      - id: Q-OM-SS-02
+        consumed_from: opmodel.shared_services.ss0_current_coverage
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+      # ============================================================================
+      # OP MODEL — TAIL SPEND THEME
+      # ============================================================================
+
+  - id: opmodel.tail_spend.ts0_current_tail_management
+    pillar: op-model
+    theme: tail-spend
+    purpose: "Capture current aggregator usage and tail-handling approach (qualitative baseline)."
+
+    data_required: []  # QRE-only
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OM-TS-01
+        question: "Does your organisation use any managed-procurement aggregator today (Moglix / Bizongo / Industrybuying / Power2SME / OfBusiness / other)?"
+        answer_type: enum
+        options: [Yes, No, Partial]
+        compulsory: true
+      - id: Q-OM-TS-02
+        question: "If yes, which aggregator(s)? Which categories? Approximate annual spend through them?"
+        answer_type: free_text_plus_checklist
+        compulsory: conditional  # if Q-OM-TS-01 ≠ No
+      - id: Q-OM-TS-03
+        question: "Approximately what % of your indirect spend would you classify as 'tail' — low value, low frequency, scattered vendor base?"
+        answer_type: range_band
+        options: ["<5%", "5-10%", "10-20%", "20%+", "Don't know"]
+        compulsory: false
+      - id: Q-OM-TS-04
+        question: "Are there reasons aggregator use is restricted (procurement policy, supplier diversity goals, IT integration limits, contractual constraints)?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+        confidence_drivers:
+      high: "All 4 QRE questions answered + aggregator scope clearly stated"
+      medium: "Aggregator exists but partial info on scope/spend"
+      low: "Client doesn't know tail % or aggregator scope precisely"
+
+    coverage: Build 1
+
+  - id: opmodel.tail_spend.ts1_quantification
+    pillar: op-model
+    theme: tail-spend
+    purpose: "Size the tail using two complementary methods: PO-based threshold (Method A) + category-based Q3 quadrant from SS1 (Method B)."
+
+    data_required:
+          - file: PO
+        fields:
+          - po_id (key)
+          - po_value (numeric)
+          - category (post-Stage-9)
+          - vendor_id
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: data_quality_universal.normalise_numeric_format
+      - rule: procurement.po_value_currency_normalised
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "tail_po_threshold_inr_lakh (industry-specific tail PO size cutoff)"
+
+    benchmarks_consumed: []
+
+    upstream_dependencies:
+  - id: opmodel.shared_services.ss1_volume_value_quadrant
+        usage: "Method B consumes Q3 (Tail) quadrant from SS1"
+
+    confidence_drivers:
+      high: "Stage 9 ≥ 90% + PO data complete + SS1 quadrant computed"
+      medium: "Stage 9 80-90% + Method A available but Method B partial"
+      low: "Stage 9 < 80% — tail boundaries unreliable"
+
+    coverage: Build 1
+
+  - id: opmodel.tail_spend.ts2_vendor_footprint
+    pillar: op-model
+    theme: tail-spend
+    purpose: "Describe vendor pareto in the tail (insight, not decision-driving)."
+
+    data_required:
+      - file: PO
+        fields: [po_id, po_value, vendor_id, vendor_name]
+        criticality: critical for the insight; analysis can skip if missing
+
+    data_cleaning_dependencies:
+      - rule: procurement.vendor_dedup_semantic
+        notes: "Vendor master deduplication critical to accurate vendor counts"
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Vendor master fully deduped"
+      medium: "Vendor master partially deduped"
+      low: "Vendor master not deduped — counts overstated"
+
+    coverage: Build 1
+
+  - id: opmodel.tail_spend.ts3_industry_filter
+    pillar: op-model
+    theme: tail-spend
+    purpose: "Tag Q3 tail categories as Aggregator-Suitable / Consolidate-Internally / Not-Addressable using industry overlay."
+
+    data_required:
+      - file: PO
+        fields: [category (post-Stage-9), po_value]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-TS-EXC
+        question: "Are there any tail categories your team feels CANNOT be outsourced to an aggregator for reasons not captured in your data?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required:
+      - "tail-spend-filters.yml — aggregator_suitable list"
+      - "tail-spend-filters.yml — consolidate_internally list"
+      - "tail-spend-filters.yml — not_addressable list"
+      - "tail-spend-filters.yml — tail_po_threshold_inr_lakh + min_aggregator_addressable_spend_inr_cr"
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Industry overlay loaded + categories well-matched + Q-OM-TS-EXC reviewed"
+      medium: "Some categories unlisted (default to Consolidate-Internally)"
+      low: "Industry overlay missing → analysis falls back to function default (no industry filter)"
+
+    coverage: Build 1
+
+  - id: opmodel.tail_spend.ts4_outsourcing_savings
+    pillar: op-model
+    theme: tail-spend
+    purpose: "Compute ₹ Cr/year outsourcing savings for Aggregator-Suitable tail spend (net of any existing aggregator scope)."
+
+    data_required:
+      - file: PO
+        fields: [po_value, category (post-Stage-9)]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.po_value_currency_normalised
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-TS-02
+        consumed_from: opmodel.tail_spend.ts0_current_tail_management
+        usage: "Existing aggregator scope deducted from addressable tail before applying savings rate"
+
+    industry_overlay_required:
+      - "Steel overlay outsourcing_savings_rate: opmodel.tail_spend.outsourcing_savings_rate [4, 7]%"
+      - "Function default fallback: opmodel.tail_spend.outsourcing_savings_rate [3, 8]%"
+
+    benchmarks_consumed:
+  - id: opmodel.tail_spend.outsourcing_savings_rate
+        from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
+        with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
+
+    confidence_drivers:
+      high: "Industry overlay rate available + Stage 9 classification ≥ 90% + QRE-confirmed existing aggregator scope"
+      medium: "Function default rate applied (no industry overlay) OR QRE missing"
+      low: "Stage 9 < 80% — addressable spend unreliable"
+
+    coverage: Build 1
+
+  - id: opmodel.tail_spend.ts5_reconciliation
+    pillar: op-model
+    theme: tail-spend
+    purpose: "Cross-check data-driven tail outsourcing recommendation with QRE responses; surface alignment or deviation."
+
+    data_required: []  # synthesises from TS1-TS4 + QRE
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OM-TS-01
+        consumed_from: opmodel.tail_spend.ts0_current_tail_management
+      - id: Q-OM-TS-02
+        consumed_from: opmodel.tail_spend.ts0_current_tail_management
+      - id: Q-OM-TS-03
+        consumed_from: opmodel.tail_spend.ts0_current_tail_management
+      - id: Q-OM-TS-04
+        consumed_from: opmodel.tail_spend.ts0_current_tail_management
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+      # ============================================================================
+      # OP MODEL — CoE THEME
+      # ============================================================================
+
+  - id: opmodel.coe.ce0_current_state
+    pillar: op-model
+    theme: coe
+    purpose: "Capture current CoE / strategic-category-management scope (qualitative baseline)."
+
+    data_required: []  # QRE-only
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OM-COE-01
+        question: "Does your organisation have a formal procurement Centre of Excellence (CoE) — a dedicated team owning strategy for top categories?"
+        answer_type: enum
+        options: [Yes, No, Informal-Only]
+        compulsory: true
+      - id: Q-OM-COE-02
+        question: "If yes, which categories does the CoE cover? How many?"
+        answer_type: free_text_plus_checklist
+        compulsory: conditional  # if Q-OM-COE-01 ≠ No
+      - id: Q-OM-COE-03
+        question: "How many FTEs sit in the CoE (or perform CoE-equivalent work informally)?"
+        answer_type: count_band
+        options: ["0", "1-3", "4-8", "9-15", "16+"]
+        compulsory: conditional
+      - id: Q-OM-COE-04
+        question: "How is the CoE positioned in the org — reporting line, BU-aligned vs corporate, decision authority?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "All 4 QRE questions answered"
+      medium: "CoE exists but partial info on scope/FTE"
+      low: "Client doesn't know CoE scope precisely"
+
+    coverage: Build 1
+
+  - id: opmodel.coe.ce1_strategic_identification
+    pillar: op-model
+    theme: coe
+    purpose: "Identify strategic categories using three lenses: SS1 Q4 quadrant + industry strategic-by-nature overlay + vendor concentration."
+
+    data_required:
+      - file: PO
+        fields:
+          - po_id (key)
+          - po_value (numeric)
+          - category (post-Stage-9)
+          - vendor_id
+          - vendor_name
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: data_quality_universal.normalise_numeric_format
+      - rule: procurement.po_value_currency_normalised
+      - rule: procurement.category_aligned_to_industry_taxonomy
+      - rule: procurement.vendor_dedup_semantic
+        notes: "Vendor master dedup critical for accurate top-3 vendor concentration"
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "coe-filters.yml — strategic_by_nature list (CE1 Lens B)"
+      - "coe-filters.yml — high_vendor_concentration_threshold_pct"
+
+    benchmarks_consumed: []
+
+    upstream_dependencies:
+  - id: opmodel.shared_services.ss1_volume_value_quadrant
+        usage: "Lens A consumes Q4 (Strategic) quadrant from SS1"
+
+    confidence_drivers:
+      high: "Stage 9 ≥ 90% + SS1 quadrant computed + vendor master deduped + industry overlay loaded"
+      medium: "Stage 9 80-90% OR vendor master partial dedup"
+      low: "Stage 9 < 80% OR significant vendor data gaps"
+
+    coverage: Build 1
+
+  - id: opmodel.coe.ce2_industry_filter
+    pillar: op-model
+    theme: coe
+    purpose: "Tag strategic candidates as CoE-Suitable / Already-Strategic-No-CoE-Need / Plant-Owned using industry overlay."
+
+    data_required:
+      - file: PO
+        fields: [category (post-Stage-9), po_value]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.category_aligned_to_industry_taxonomy
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-COE-EXC
+            question: "Are there any strategic categories your team feels should/should not be in a CoE for reasons not captured in your data?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required:
+      - "coe-filters.yml — coe_suitable list"
+      - "coe-filters.yml — already_strategic_no_coe_need list"
+      - "coe-filters.yml — plant_owned list"
+      - "coe-filters.yml — min_coe_addressable_spend_inr_cr threshold"
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Industry overlay loaded + categories well-matched + Q-OM-COE-EXC reviewed"
+      medium: "Some categories unlisted (default to CoE-Suitable)"
+      low: "Industry overlay missing → analysis falls back to function default (no industry filter)"
+
+    coverage: Build 1
+
+  - id: opmodel.coe.ce3_coverage_gap
+    pillar: op-model
+    theme: coe
+    purpose: "Compute the gap between data-suggested CoE-Suitable scope and current CoE scope (from CE0)."
+
+    data_required:
+      - file: PO
+        fields: [category (post-Stage-9), po_value]
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: true
+
+    qre_questions_used:
+      - id: Q-OM-COE-02
+        consumed_from: opmodel.coe.ce0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+  - id: opmodel.coe.ce4_value_quantification
+    pillar: op-model
+    theme: coe
+    purpose: "Compute ₹ Cr/year CoE value-add for coverage gap spend; flag overlap with centralisation savings."
+
+    data_required:
+      - file: PO
+        fields: [po_value, category (post-Stage-9)]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.po_value_currency_normalised
+
+    category_classification_required: true
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "Steel overlay coe_savings_rate: opmodel.coe.savings_rate [3, 6]%"
+      - "Function default fallback: opmodel.coe.savings_rate [2, 5]%"
+
+    benchmarks_consumed:
+  - id: opmodel.coe.savings_rate
+        from_file: proc-app/kb/functions/procurement/op-model/benchmarks.yml
+        with_industry_overlay: industries/<ind>/by-function/procurement/op-model/benchmarks.yml
+
+    cross_theme_overlap_check:
+      with_theme: centralisation
+      logic: |
+        For each CoE Coverage Gap category, check if it's also in centralisation
+        savings gap (from c4_savings_quantification). If yes, flag for consultant
+        review — CoE incremental value is on strategic depth, not volume aggregation
+        (which centralisation already captures).
+
+    confidence_drivers:
+      high: "Industry overlay rate available + Stage 9 classification ≥ 90% + overlap with centralisation reviewed"
+      medium: "Function default rate applied (no industry overlay)"
+      low: "Stage 9 < 80% — addressable spend unreliable"
+
+    coverage: Build 1
+
+  - id: opmodel.coe.ce5_reconciliation
+    pillar: op-model
+    theme: coe
+    purpose: "Cross-check data-driven CoE recommendation with QRE responses; surface alignment or deviation."
+
+    data_required: []  # synthesises from CE1-CE4 + QRE
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OM-COE-01
+        consumed_from: opmodel.coe.ce0_current_state
+      - id: Q-OM-COE-02
+        consumed_from: opmodel.coe.ce0_current_state
+      - id: Q-OM-COE-04
+        consumed_from: opmodel.coe.ce0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+      # ============================================================================
+      # ORG STRUCTURE — ORGANISATION POSTURE & REPORTING THEME (Theme 1)
+      # ============================================================================
+      # Theme 1 is STRUCTURAL only — no ₹ savings produced.
+      # All components are QRE-driven + industry-overlay-driven; no PO data needed.
+      # ============================================================================
+
+  - id: orgstructure.organisation_posture.op0_current_state
+    pillar: org-structure
+    theme: organisation-posture
+    purpose: "Capture business + procurement posture, CPO reporting line, mandate, structural tenure (qualitative baseline)."
+
+    data_required: []  # QRE-only
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-OP-01
+        question: "How is your overall business organised?"
+        answer_type: enum
+        options: [Centralised, Federated, Decentralised, Hybrid]
+        compulsory: true
+      - id: Q-OS-OP-02
+        question: "How is your procurement organisation structured?"
+        answer_type: enum
+        options: [Centralised, Federated, Decentralised, Hybrid]
+        compulsory: true
+      - id: Q-OS-OP-03
+        question: "Whom does the CPO (or head of procurement) report to?"
+        answer_type: enum
+        options: [CEO, CFO, COO, BU_Head, Plant_Head, MD_Direct, Other]
+        compulsory: true
+      - id: Q-OS-OP-04
+        question: "How long has the procurement function been in its current structure?"
+        answer_type: enum
+        options: ["<2 years", "2-5 years", "5-10 years", ">10 years", "Don't know"]
+        compulsory: false
+      - id: Q-OS-OP-05
+        question: "What's the stated mandate of procurement?"
+        answer_type: multi_select
+        options: [Cost_reduction, Strategic_value, Compliance, Supply_continuity, Sustainability, Innovation, Mixed]
+        compulsory: true
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "All 5 QRE questions answered"
+      medium: "3-4 QRE answered OR mandate ambiguous"
+      low: "<3 QRE answered"
+
+    coverage: Build 1
+
+  - id: orgstructure.organisation_posture.op1_alignment
+    pillar: org-structure
+    theme: organisation-posture
+    purpose: "Determine whether procurement posture matches business posture; produce structural verdict."
+
+    data_required: []  # consumes OP0 outputs
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-OP-01
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+      - id: Q-OS-OP-02
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Both posture QRE responses answered"
+      medium: "One posture answer ambiguous"
+      low: "Posture QREs missing"
+
+    coverage: Build 1
+
+    notes: |
+      Uses posture_alignment_matrix from organisation-posture.md _editable_config.
+      Default matrix produces Aligned / Mis-aligned / Aligned-with-Tension verdicts.
+
+  - id: orgstructure.organisation_posture.op2_reporting_line_diagnostic
+    pillar: org-structure
+    theme: organisation-posture
+    purpose: "Characterise what CPO reporting line enables / constrains relative to stated mandate. QUALITATIVE ONLY — no ₹ savings / working-capital quantification."
+
+    data_required: []
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-OP-03
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+      - id: Q-OS-OP-05
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    explicit_boundary: |
+      Theme 1 produces NO ₹ savings, working-capital impact, or quantified
+      financial outcomes from reporting-line change. Reporting line affects
+      authority, mandate breadth, stakeholder relationships — NOT direct
+      ₹ outcomes. Quantified savings sit with Op Model pillar.
+
+    confidence_drivers:
+      high: "Reporting line + mandate clearly stated"
+      medium: "Mandate multi-valued without clear primary"
+      low: "Reporting line ambiguous OR mandate not stated"
+
+    coverage: Build 1
+
+  - id: orgstructure.organisation_posture.op3_industry_typical_patterns
+    pillar: org-structure
+    theme: organisation-posture
+    purpose: "Surface where client sits relative to industry-peer typical patterns. DESCRIPTIVE, not prescriptive."
+
+    data_required: []
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-OP-01
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+      - id: Q-OS-OP-02
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+      - id: Q-OS-OP-03
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+      - id: Q-CL-XX
+        question: "Industry sub-segment (for Steel: integrated mill / mini-mill / specialty / conglomerate / foreign-owned)"
+        consumed_from: client_segment_context
+        compulsory: true_for_op3
+
+    industry_overlay_required:
+      - "organisation-posture-filters.yml — sub_segments definitions"
+      - "organisation-posture-filters.yml — reporting_line_distribution"
+      - "organisation-posture-filters.yml — posture_distribution"
+      - "organisation-posture-filters.yml — common_combinations_observed"
+      - "organisation-posture-filters.yml — sub_segment_qualitative_notes"
+
+    benchmarks_consumed: []
+
+    explicit_boundary: |
+      Output is DESCRIPTIVE — "where you sit among peers." NOT prescriptive
+      — does not say "you should change to X." Consultant + client decide
+      whether to act on distributional insight.
+
+    confidence_drivers:
+      high: "Industry overlay loaded + sub-segment identified + all relevant distributions available"
+      medium: "Sub-segment ambiguous OR distribution data partial"
+      low: "Industry overlay missing OR sub-segment unknown"
+
+    coverage: Build 1
+
+  - id: orgstructure.organisation_posture.op4_reconciliation
+    pillar: org-structure
+    theme: organisation-posture
+    purpose: "Cross-check OP0-OP3 for internal consistency; flag tensions between stated mandate and structural reality."
+
+    data_required: []  # synthesises from OP0-OP3 + QRE
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-OP-04
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+      - id: Q-OS-OP-05
+        consumed_from: orgstructure.organisation_posture.op0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+      # ============================================================================
+      # ORG STRUCTURE — FTE SIZING & ROLE COMPOSITION THEME (Theme 2)
+      # ============================================================================
+      # FTE delta only — NO ₹ cost-out savings produced at this theme.
+      # Operational redesign ₹ sits with Op Model SSC theme (cross-link in narrative).
+      # ============================================================================
+
+  - id: orgstructure.fte_sizing.ft0_current_state
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    purpose: "Capture FTE counts by role / level / entity from Org Structure (hierarchy) OR Employee Master (list) + QRE. Run intelligent role classification pipeline."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip ALL of Theme 2 if both:
+      - QRE Q-OS-FT-01 (total FTE) unanswered
+      - No Org Structure / Employee Master uploaded
+      Otherwise FT0 runs with whatever data is available.
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master
+        accept_formats:
+          - "Format A: Org Structure (hierarchy view — PowerPoint/PDF/structured Excel with reports_to)"
+          - "Format B: Employee Master (list view — Excel/CSV with one row per employee)"
+            fields_after_stage_6_validation:
+          - employee_id (synthetic if not provided) [always available after Stage 6]
+          - name [usually]
+          - role_title / job_title (raw, generic — needs classification) [always]
+          - classified_role_type (derived: Cat Mgr / Transactional / Specialist / Leadership) [derived]
+          - classified_specialist_subtype (Analytics / SRM / FBP / etc.) [derived if applicable]
+          - classified_confidence (high / medium / low) [derived]
+          - level / band / grade [usually]
+          - reports_to [sometimes — often missing in Format A]
+          - entity (central / plant_X / BU_X) [usually]
+          - function [usually]
+          - focus_area / category_owned [rarely]
+          - active_flag [usually defaults]
+        criticality: critical_for_FT2_FT3_FT4
+        notes: |
+          Generic client titles like "Manager - Procurement" require intelligent
+          mapping. NO assumption that clients pre-classify roles as Cat Mgr /
+          Transactional / Specialist. Role classification is a 3-step pipeline
+          (rule-based + level-entity tie-breaker + AI prompt) followed by Stage 6
+          consultant validation. See fte-sizing-role-composition.md Section 2.5.
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_role_title_canonicalised
+        notes: |
+          Stage 6 runs the 3-step intelligent classification pipeline + consultant
+          validation. Output: each FTE tagged with classified_role_type + confidence.
+      - rule: procurement.entity_classification_via_stage6_mapping
+        notes: "Same Stage 6 entity mapping as Op Model centralisation"
+      - rule: data_quality_universal.remove_fully_blank_rows
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-FT-01
+        question: "Approximately how many FTEs are in the procurement function?"
+        answer_type: count_band
+        options: ["<20", "20-50", "50-100", "100-200", "200+", "Don't know"]
+        compulsory: true
+      - id: Q-OS-FT-02
+        question: "Approximate split — Category Manager / Transactional / Specialist / Leadership?"
+        answer_type: percentage_breakdown
+        compulsory: false
+      - id: Q-OS-FT-03
+        question: "Which specialist roles are present in your procurement function?"
+        answer_type: multi_select
+        options: [Analytics, Contract_Mgmt, SRM, FBP, Risk, Sustainability_ESG, Digital, Commodity_Analyst, Logistics_Specialist, Other]
+        compulsory: false
+      - id: Q-OS-FT-04
+        question: "Where are your FTEs located (Central / Plant / BU)?"
+        answer_type: free_text_with_counts
+        compulsory: false
+      - id: Q-OS-FT-05
+        question: "How do you describe your team sizing today?"
+        answer_type: enum_with_rationale
+        options: [Adequate, Stretched, Over-staffed, Mixed]
+        compulsory: false
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Org Structure excel complete + Stage 6 role-title mapping done + all QRE answered"
+      medium: "Some role-title ambiguity OR QRE partial"
+      low: "Org excel partial OR role titles inconsistent"
+
+    coverage: Build 1
+
+  - id: orgstructure.fte_sizing.ft1_spend_per_fte
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    purpose: "Compute spend/FTE; compare to industry benchmark; produce sizing verdict + FTE delta range (NOT ₹)."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip FT1 only if BOTH total FTE count missing (Q-OS-FT-01 unanswered AND
+      no Org excel) AND total spend missing (PO data unavailable).
+      FT1 does NOT depend on role classification — uses headcount + total spend only.
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master_OR_QRE_Q-OS-FT-01
+        fields: [total_active_procurement_FTE_count]
+        criticality: critical
+      - file: PO
+        fields: [po_value]
+        criticality: critical
+
+    data_cleaning_dependencies:
+      - rule: procurement.po_value_currency_normalised
+      - rule: data_quality_universal.normalise_numeric_format
+
+    category_classification_required: false   # uses total spend, not category-level
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "Steel overlay spend/FTE band: org.fte_productivity.spend_per_fte_inr_cr [40, 80] Cr/FTE"
+
+    benchmarks_consumed:
+  - id: org.fte_productivity.spend_per_fte_inr_cr
+        from_file: proc-app/kb/functions/procurement/org-structure/benchmarks.yml
+        with_industry_overlay: industries/<ind>/by-function/procurement/org-structure/benchmarks.yml
+
+    explicit_boundary: |
+      Output is FTE delta in # FTEs only. NO ₹ cost-out savings produced.
+      Translating FTE delta to ₹ touches HR / transition territory and is
+      intentionally out of scope.
+
+    confidence_drivers:
+      high: "Org excel + PO data complete + industry overlay loaded"
+      medium: "One data source partial"
+      low: "Either FTE or spend data significantly gappy"
+
+    coverage: Build 1
+
+  - id: orgstructure.fte_sizing.ft2_pos_per_fte
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    purpose: |
+      Two-view component:
+      - FT2-overall: Total POs / Total FTE — reliable, always reported
+      - FT2-by-role: Per-role POs/FTE — runs only if role classification ≥ 80%
+        High confidence AND buyer_id/cost_centre on POs joinable to Org excel
+      Cross-links to Op Model SSC theme in commentary only — no quantified linkage.
+
+    feasibility: mixed
+    feasibility_breakdown:
+      ft2_overall: reliable
+      ft2_by_role: semi-reliable
+    skip_if_data_missing: |
+      FT2-overall: Skip only if total POs OR total FTE unavailable.
+      FT2-by-role: Skip if EITHER role classification < 80% High confidence
+        OR PO-to-FTE join not feasible (buyer_id generic / missing on >50% POs
+        AND cost_centre not mappable to entity+role).
+      In typical Indian Steel engagements, FT2-by-role is OFTEN skipped because
+      SAP buyer_id is generic (e.g., "PR_DEPT") rather than individual.
+
+    data_required:
+      - file: PO
+        fields: [po_id]
+        criticality: critical_for_overall
+      - file: Org_Structure_OR_Employee_Master_OR_QRE_Q-OS-FT-01
+        fields: [total_active_procurement_FTE_count]
+        criticality: critical_for_overall
+      - file: PO  # for by-role view only
+        fields: [buyer_id, cost_centre]
+        criticality: critical_for_by_role_view_only
+        notes: "Often generic/missing in Indian Steel SAP — by-role view skipped if so"
+      - file: Org_Structure_OR_Employee_Master  # for by-role view only
+        fields: [employee_id, role_title, classified_role_type, classified_confidence]
+        criticality: critical_for_by_role_view_only
+        notes: "Requires ≥80% High classification confidence"
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_role_title_canonicalised
+        applies_to: ft2_by_role
+      - rule: procurement.po_buyer_or_cost_centre_to_org_join_done
+        applies_to: ft2_by_role
+        notes: "Each PO joinable to an Org FTE via buyer_id OR cost_centre for by-role attribution"
+
+    category_classification_required: true   # for role-type-level PO attribution clarity
+
+    qre_questions_used: []
+
+    industry_overlay_required: []
+
+    benchmarks_consumed:
+  - id: org.fte_productivity.pos_per_fte_category_mgr
+  - id: org.fte_productivity.pos_per_fte_transactional
+        # SSC benchmarks consumed from Op Model — see cross-link below
+
+    cross_theme_commentary:
+      with_theme: op-model.shared-services
+      logic: |
+        If transactional POs/FTE is materially below benchmark, narrative
+        includes commentary noting Op Model SSC theme analyses operational
+        redesign. NO quantified linkage. NO ₹ savings derived in this theme.
+
+    explicit_boundary: |
+      Cross-link to Op Model SSC theme is COMMENTARY ONLY. No quantified
+      linkage. No ₹ savings or productivity uplift computed here.
+
+    confidence_drivers:
+      high: "PO-to-FTE join clean + role titles canonicalised + Stage 9 ≥ 90%"
+      medium: "Some PO-FTE attribution ambiguous"
+      low: "Buyer_id / cost_centre missing on many POs OR role titles unclear"
+
+    coverage: Build 1
+
+  - id: orgstructure.fte_sizing.ft3_role_composition_mix
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    purpose: "Compute role composition mix vs benchmark. Cascade: data-derived (if classification ≥70% Medium+ confidence) → QRE Q-OS-FT-02 (if answered) → skip if neither."
+
+    feasibility: semi-reliable
+    skip_if_data_missing: |
+      Skip if BOTH:
+      - Role classification < 70% Medium+ confidence (data path fails)
+      - Q-OS-FT-02 (client estimate of composition split) unanswered (QRE path fails)
+      Otherwise run with whichever source is available. If both: surface deviation
+      as a finding (Data vs Perception mismatch).
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master  # primary path
+        fields: [employee_id, role_title, classified_role_type, classified_confidence, active_flag]
+        criticality: critical_for_data_path
+      - file: QRE_Q-OS-FT-02  # fallback path
+        fields: [client_provided_role_split_percentage]
+        criticality: critical_for_qre_path
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_role_title_canonicalised
+        applies_to: data_path
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-FT-02
+        consumed_from: orgstructure.fte_sizing.ft0_current_state
+        usage: "If Q-OS-FT-02 answered and conflicts with Org excel classification, surface discrepancy"
+
+    industry_overlay_required:
+      - "fte-sizing-role-composition-filters.yml — sub_segment_role_mix_expectations"
+      - "Steel benchmarks.yml override — specialist + transactional shares"
+
+    benchmarks_consumed:
+  - id: org.role_composition.category_mgr_share_pct
+  - id: org.role_composition.transactional_share_pct
+  - id: org.role_composition.specialist_share_pct
+  - id: org.role_composition.leadership_share_pct
+
+    coverage: Build 1
+
+  - id: orgstructure.fte_sizing.ft4_specialist_roles_audit
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    purpose: "Audit presence/absence of specialist roles (function-default + industry-specific); flag missing roles with criticality."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip only if BOTH:
+      - Q-OS-FT-03 (multi-select on specialist roles present) unanswered
+      - No Org excel role-title data available
+      Dual-source resilience makes this usually feasible.
+
+    data_required:
+      - file: QRE_Q-OS-FT-03  # primary path — most reliable
+        fields: [specialist_roles_present_multi_select]
+        criticality: critical_for_qre_path
+      - file: Org_Structure_OR_Employee_Master  # cross-check / secondary path
+        fields: [role_title, active_flag]
+        criticality: critical_for_data_path
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_role_title_canonicalised
+        applies_to: data_path
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-FT-03
+        consumed_from: orgstructure.fte_sizing.ft0_current_state
+        usage: "QRE supplements Org excel detection of specialist roles"
+      - id: Q-OS-FT-EXC
+        question: "Are there specialist roles your team has but in non-standard titles, or that you're considering adding?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required:
+      - "fte-sizing-role-composition-filters.yml — steel_specific_specialist_roles list"
+      - "fte-sizing-role-composition-filters.yml — criticality_overrides"
+
+    benchmarks_consumed: []   # specialist presence is categorical, not benchmarked numerically
+
+    notes: |
+      Function default specialist roles: Analytics, Contract Mgmt, SRM, FBP,
+      Risk, Sustainability/ESG, Digital.
+      Steel overlay adds: Commodity Analyst, Logistics Specialist, Refractories/
+      Mill Rolls Specialist, Captive Asset Liaison, Decarbonisation Sourcing
+      Specialist (emerging).
+      Sustainability/ESG confirmed as audited role per user direction 2026-05-27.
+
+        coverage: Build 1
+
+  - id: orgstructure.fte_sizing.ft5_reconciliation
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    purpose: "Cross-check FT1-FT4 outputs against QRE perception; surface alignment or mismatch."
+
+    data_required: []  # synthesises from FT1-FT4 + QRE
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-FT-05
+        consumed_from: orgstructure.fte_sizing.ft0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+      # ============================================================================
+      # ORG STRUCTURE — SPEND-FTE DISTRIBUTION THEME (Theme 3)
+      # ============================================================================
+      # FTE-level analysis only — NO ₹ cost-out savings.
+      # Recommendations DIRECTIONAL ONLY — no specific "move N FTE from X to Y."
+      # Central-vs-Plant attribution OPPORTUNISTIC — skipped if Stage 6 mapping fails.
+      # ============================================================================
+
+  - id: orgstructure.distribution.ds0_current_state
+    pillar: org-structure
+    theme: spend-fte-distribution
+    purpose: "Capture FTE per entity (Central / Plant X / BU X) + Spend per entity (plant-level reliable; Central-vs-Plant opportunistic)."
+
+    feasibility: mixed
+    feasibility_breakdown:
+      fte_per_entity: reliable
+      spend_per_plant: reliable
+      spend_central_vs_plant: opportunistic   # depends on Stage 6 mapping
+    skip_if_data_missing: |
+      Skip ALL of Theme 3 if BOTH:
+      - Org Structure / Employee Master lacks entity/location column
+      - PO data lacks plant column
+      Otherwise DS0 runs with available data; Central-vs-Plant view runs only
+      if Stage 6 mapping is feasible.
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master
+        fields: [employee_id, entity_or_location, function, active_flag]
+        criticality: critical
+      - file: PO
+        fields: [po_value, plant]
+        criticality: critical
+      - file: PO  # for Central-vs-Plant attribution only
+        fields: [buyer_id, cost_centre]
+        criticality: optional_for_central_vs_plant_view
+        notes: "Often unavailable in Indian Steel SAP — see attribution_feasibility_observation in Steel filter"
+
+    data_cleaning_dependencies:
+      - rule: procurement.entity_classification_via_stage6_mapping
+        notes: "Same Stage 6 entity mapping as Op Model centralisation"
+      - rule: procurement.po_value_currency_normalised
+          - rule: procurement.plant_code_mapped_to_canonical
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-DS-01
+        question: "What's the approximate FTE split across Central / Plants / BUs?"
+        answer_type: free_text_or_counts
+        compulsory: false
+      - id: Q-OS-DS-02
+        question: "What's the approximate spend split — Central vs Plant procurement?"
+        answer_type: percentage_estimate
+        compulsory: false
+      - id: Q-OS-DS-03
+        question: "How does your team perceive the FTE distribution — appropriate, top-heavy, plant-heavy, or imbalanced toward specific entities?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required:
+      - "spend-fte-distribution-filters.yml — sub_segment_distribution_expectations"
+      - "spend-fte-distribution-filters.yml — attribution_feasibility_observation"
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Org excel entity column complete + PO plant column complete + Stage 6 entity mapping done + Central-vs-Plant attribution feasible"
+      medium: "Plant-level data clean but Central-vs-Plant attribution not feasible"
+      low: "Either FTE-per-entity or Spend-per-plant data significantly gappy"
+
+    coverage: Build 1
+
+  - id: orgstructure.distribution.ds1_bw_mapping
+    pillar: org-structure
+    theme: spend-fte-distribution
+    purpose: "Compute % Spend × % FTE per entity B/W mapping matrix; surface imbalances. Central-vs-Plant view included if Stage 6 attribution feasible."
+
+    feasibility: reliable_at_plant_level
+    skip_if_data_missing: |
+      Skip if DS0 didn't produce entity-level FTE + spend data.
+      Central-vs-Plant view within DS1 skipped if Stage 6 attribution failed
+      (plant-level B/W mapping still produced).
+
+    data_required:
+      - upstream: orgstructure.distribution.ds0_current_state
+        criticality: critical
+
+    data_cleaning_dependencies: []   # all done in DS0
+
+    category_classification_required: false
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "spend-fte-distribution-filters.yml — sub_segment_distribution_expectations (for descriptive context)"
+
+    benchmarks_consumed:
+  - id: org.distribution.central_fte_share_pct
+  - id: org.distribution.central_spend_share_pct
+  - id: org.distribution.bw_imbalance_typical_threshold_pp
+
+    coverage: Build 1
+
+  - id: orgstructure.distribution.ds2_per_entity_productivity
+    pillar: org-structure
+    theme: spend-fte-distribution
+    purpose: "Compute spend/FTE per entity; identify over/under-productive entities (relative to multi-entity average + Steel benchmark band)."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip if DS0 didn't produce entity-level FTE + spend data.
+
+    data_required:
+      - upstream: orgstructure.distribution.ds0_current_state
+        criticality: critical
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used: []
+
+    industry_overlay_required:
+      - "Steel overlay benchmarks.yml: org.fte_productivity.spend_per_fte_inr_cr [40, 80]"
+
+    benchmarks_consumed:
+  - id: org.fte_productivity.spend_per_fte_inr_cr
+        consumed_from: shared_with_theme_2
+
+    notes: |
+      DS2 reuses spend/FTE benchmark from Theme 2 (FT1) — applied at entity
+      level rather than aggregate level. Same Steel band ₹40-80 Cr/FTE.
+
+    coverage: Build 1
+
+  - id: orgstructure.distribution.ds3_reconciliation
+    pillar: org-structure
+    theme: spend-fte-distribution
+    purpose: "Cross-check DS1-DS2 outputs against QRE perception (Q-OS-DS-03); surface alignment or mismatch."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip if no upstream components ran.
+
+    data_required: []   # synthesises from DS1-DS2 + QRE
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-DS-03
+        consumed_from: orgstructure.distribution.ds0_current_state
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+      # ============================================================================
+      # ORG STRUCTURE — HIERARCHY & SPAN THEME (Theme 4)
+      # ============================================================================
+      # FTE-level only — NO ₹ cost-out. Directional recommendations only.
+      # Span + Hierarchy gated on `reports_to` data availability (typical ~60% in
+      # raw client data; after Stage 6 validation often 70-80%).
+      # R&R/JD captured qualitatively in HS0 only (NOT a standalone component).
+      # ============================================================================
+
+  - id: orgstructure.hierarchy_span.hs0_current_state
+    pillar: org-structure
+    theme: hierarchy-span
+    purpose: "Capture reporting structure + JD/R&R qualitative signals from QRE."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip ALL of Theme 4 if BOTH:
+      - All QRE Q-OS-HS-01-04 unanswered
+      - No Org excel uploaded
+      Otherwise HS0 runs.
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master
+        fields: [employee_id, reports_to, level, role_title, function, active_flag]
+        criticality: critical_for_hs1_hs2
+        notes: "reports_to ~60% populated in typical client raw data; Stage 6 inference lifts to 70-80%"
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_role_title_canonicalised
+      - rule: procurement.org_reports_to_validated_at_stage_6
+        notes: "Stage 6 consultant validation closes gaps in reports_to via partial inference + QRE confirmation"
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-HS-01
+        question: "How many reporting levels are there from CPO to the most junior procurement role?"
+        answer_type: count_band
+        options: ["3", "4", "5", "6+", "Don't know"]
+        compulsory: false
+      - id: Q-OS-HS-02
+        question: "What's the typical span of control at different levels (CPO / Sr Mgmt / Mid Mgmt / First-line)?"
+        answer_type: free_text_or_structured_estimate
+        compulsory: false
+      - id: Q-OS-HS-03
+        question: "Do you have current JDs for all procurement roles? Are there known overlaps or gaps in R&R?"
+        answer_type: free_text
+        compulsory: false
+        notes: "Captures qualitative JD/R&R input — feeds HS0 narrative + HS3 reconciliation. No standalone JD audit component."
+      - id: Q-OS-HS-04
+        question: "How does your team perceive the hierarchy + span — appropriate, top-heavy, layered, or stretched?"
+        answer_type: free_text
+        compulsory: false
+
+    industry_overlay_required: []
+
+    benchmarks_consumed: []
+
+    confidence_drivers:
+      high: "Org excel reports_to ≥ 80% (post-Stage-6) + all 4 QRE answered"
+      medium: "reports_to 70-80% OR some QRE gaps"
+      low: "reports_to < 70% AND Q-OS-HS-01/02 unanswered"
+
+    coverage: Build 1
+
+  - id: orgstructure.hierarchy_span.hs1_span_of_control
+    pillar: org-structure
+    theme: hierarchy-span
+    purpose: "Compute per-manager direct reports count; compare to healthy span band by level/role; flag stretched / under-leveraged."
+
+    feasibility: semi-reliable
+    skip_if_data_missing: |
+      Skip data-derived HS1 if reports_to < 70% populated (post-Stage-6).
+      If Q-OS-HS-02 answered, surface QRE estimate as narrative-only directional view.
+      If both unavailable, skip HS1 entirely.
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master
+        fields: [employee_id, reports_to, level, role_title, classified_role_type]
+        criticality: critical_for_data_path
+      - file: QRE_Q-OS-HS-02  # fallback
+        criticality: critical_for_qre_fallback
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_role_title_canonicalised
+      - rule: procurement.org_reports_to_validated_at_stage_6
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-HS-02
+        consumed_from: orgstructure.hierarchy_span.hs0_current_state
+
+    industry_overlay_required:
+      - "hierarchy-span-filters.yml — sub_segment_span_adjustments"
+      - "hierarchy-span-filters.yml — common_patterns_observed"
+
+    benchmarks_consumed:
+  - id: org.span.cpo_direct_reports
+  - id: org.span.senior_management
+  - id: org.span.mid_management
+  - id: org.span.first_line_lead
+
+    coverage: Build 1
+
+  - id: orgstructure.hierarchy_span.hs2_hierarchy_depth
+    pillar: org-structure
+    theme: hierarchy-span
+    purpose: "Compute hierarchy depth (CPO → most junior levels); compare to industry sub-segment band; verdict on flat/tall/appropriate."
+
+    feasibility: semi-reliable
+    skip_if_data_missing: |
+      Skip data-derived HS2 if reports_to < 70% populated.
+      If Q-OS-HS-01 answered, surface QRE depth as narrative.
+      If both unavailable, skip HS2 entirely.
+
+    data_required:
+      - file: Org_Structure_OR_Employee_Master
+        fields: [employee_id, reports_to, level]
+        criticality: critical_for_data_path
+      - file: QRE_Q-OS-HS-01
+        criticality: critical_for_qre_fallback
+
+    data_cleaning_dependencies:
+      - rule: procurement.org_reports_to_validated_at_stage_6
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-HS-01
+        consumed_from: orgstructure.hierarchy_span.hs0_current_state
+
+    industry_overlay_required:
+      - "hierarchy-span-filters.yml — sub_segment_hierarchy_depth_expectations"
+
+    benchmarks_consumed:
+  - id: org.hierarchy.depth_levels
+
+    coverage: Build 1
+
+  - id: orgstructure.hierarchy_span.hs3_reconciliation
+    pillar: org-structure
+    theme: hierarchy-span
+    purpose: "Cross-check HS1 + HS2 findings against QRE perception (Q-OS-HS-04) + JD/R&R signals (Q-OS-HS-03)."
+
+    feasibility: reliable
+    skip_if_data_missing: |
+      Skip if no upstream HS1/HS2 ran.
+
+    data_required: []   # synthesises
+
+    data_cleaning_dependencies: []
+
+    category_classification_required: false
+
+    qre_questions_used:
+      - id: Q-OS-HS-03
+        consumed_from: orgstructure.hierarchy_span.hs0_current_state
+      - id: Q-OS-HS-04
+        consumed_from: orgstructure.hierarchy_span.hs0_current_state
+
+    industry_overlay_required:
+      - "hierarchy-span-filters.yml — jd_rr_observations_steel (for narrative context)"
+
+    benchmarks_consumed: []
+
+    coverage: Build 1
+
+    # =============================================================================
+    # AGGREGATE VIEWS — auto-derivable from per-analysis entries
+    # =============================================================================
+    # These are summary views that downstream build artefacts consume.
+    # Updated whenever per-analysis entries change.
+    # =============================================================================
+
+aggregate_data_requirements:
+  PO:
+    critical_fields:
+      - po_id
+      - po_value
+      - po_date
+      - plant
+      - vendor_id
+      - vendor_name
+      - category (post-Stage-9)
+    nice_to_have_fields:
+      - EKORG / purchasing_org / buyer_id / cost_center  # for C0 baseline only
+      - contract_ref
+      - RC_ref
+    notes: "These are required for centralisation analyses (C1-C4) + optional baseline (C0). More fields added as other Op Model themes are authored."
+
+  Vendor_Master:
+    critical_fields:
+      - vendor_id
+      - vendor_name
+      - active_flag
+    nice_to_have_fields:
+      - vendor_type (captive / open / approved)
+      - category_served
+      - geography
+    notes: "Centralisation analysis uses vendor_id + name for C2 vendor pattern insight. Vendor_type useful for distinguishing captive in C3 industry filter."
+
+  Org_Structure:
+    critical_fields: []  # not directly used by centralisation analysis
+    nice_to_have_fields:
+      - employee_id
+      - reports_to
+      - role
+    notes: "Used indirectly for C0 baseline (if buyer_id approach is taken). Heavily used by Org Structure pillar."
+
+aggregate_qre_questions:
+  - id: Q-OM-01
+    pillar: op-model
+    theme: centralisation
+    used_by: [opmodel.centralisation.c0_baseline]
+    compulsory: false
+  - id: Q-OM-02
+    pillar: op-model
+    theme: centralisation
+    used_by: [opmodel.centralisation.c0_baseline]
+    compulsory: false
+  - id: Q-OM-EXC
+    pillar: op-model
+    theme: centralisation
+    used_by: [opmodel.centralisation.c3_industry_knowledge_filter]
+    compulsory: false
+  - id: Q-OM-SS-01
+    pillar: op-model
+    theme: shared-services
+    used_by: [opmodel.shared_services.ss0_current_coverage, opmodel.shared_services.ss5_reconciliation]
+    compulsory: true
+  - id: Q-OM-SS-02
+    pillar: op-model
+    theme: shared-services
+    used_by: [opmodel.shared_services.ss0_current_coverage, opmodel.shared_services.ss3_coverage_gap, opmodel.shared_services.ss5_reconciliation]
+    compulsory: conditional
+  - id: Q-OM-SS-03
+    pillar: op-model
+    theme: shared-services
+    used_by: [opmodel.shared_services.ss0_current_coverage]
+    compulsory: conditional
+  - id: Q-OM-SS-04
+    pillar: op-model
+    theme: shared-services
+    used_by: [opmodel.shared_services.ss0_current_coverage, opmodel.shared_services.ss4_fte_productivity]
+    compulsory: false
+  - id: Q-OM-SS-05
+    pillar: op-model
+    theme: shared-services
+    used_by: [opmodel.shared_services.ss0_current_coverage]
+    compulsory: false
+    notes: "Activity-level qualitative input; feeds narrative only (no quantified analysis)."
+  - id: Q-OM-SS-EXC
+    pillar: op-model
+    theme: shared-services
+    used_by: [opmodel.shared_services.ss2_industry_filter]
+    compulsory: false
+  - id: Q-OM-TS-01
+    pillar: op-model
+    theme: tail-spend
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts5_reconciliation]
+    compulsory: true
+  - id: Q-OM-TS-02
+    pillar: op-model
+    theme: tail-spend
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts4_outsourcing_savings, opmodel.tail_spend.ts5_reconciliation]
+    compulsory: conditional
+  - id: Q-OM-TS-03
+    pillar: op-model
+    theme: tail-spend
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts5_reconciliation]
+    compulsory: false
+  - id: Q-OM-TS-04
+    pillar: op-model
+    theme: tail-spend
+    used_by: [opmodel.tail_spend.ts0_current_tail_management, opmodel.tail_spend.ts5_reconciliation]
+    compulsory: false
+  - id: Q-OM-TS-EXC
+    pillar: op-model
+    theme: tail-spend
+    used_by: [opmodel.tail_spend.ts3_industry_filter]
+    compulsory: false
+  - id: Q-OM-COE-01
+    pillar: op-model
+    theme: coe
+    used_by: [opmodel.coe.ce0_current_state, opmodel.coe.ce5_reconciliation]
+    compulsory: true
+  - id: Q-OM-COE-02
+    pillar: op-model
+    theme: coe
+    used_by: [opmodel.coe.ce0_current_state, opmodel.coe.ce3_coverage_gap, opmodel.coe.ce5_reconciliation]
+    compulsory: conditional
+  - id: Q-OM-COE-03
+    pillar: op-model
+    theme: coe
+    used_by: [opmodel.coe.ce0_current_state]
+    compulsory: conditional
+  - id: Q-OM-COE-04
+    pillar: op-model
+    theme: coe
+    used_by: [opmodel.coe.ce0_current_state, opmodel.coe.ce5_reconciliation]
+    compulsory: false
+  - id: Q-OM-COE-EXC
+    pillar: op-model
+    theme: coe
+    used_by: [opmodel.coe.ce2_industry_filter]
+    compulsory: false
+  - id: Q-OS-OP-01
+    pillar: org-structure
+    theme: organisation-posture
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op1_alignment, orgstructure.organisation_posture.op3_industry_typical_patterns]
+    compulsory: true
+  - id: Q-OS-OP-02
+    pillar: org-structure
+    theme: organisation-posture
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op1_alignment, orgstructure.organisation_posture.op3_industry_typical_patterns]
+    compulsory: true
+  - id: Q-OS-OP-03
+    pillar: org-structure
+    theme: organisation-posture
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op2_reporting_line_diagnostic, orgstructure.organisation_posture.op3_industry_typical_patterns]
+    compulsory: true
+  - id: Q-OS-OP-04
+    pillar: org-structure
+    theme: organisation-posture
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op4_reconciliation]
+    compulsory: false
+  - id: Q-OS-OP-05
+    pillar: org-structure
+    theme: organisation-posture
+    used_by: [orgstructure.organisation_posture.op0_current_state, orgstructure.organisation_posture.op2_reporting_line_diagnostic, orgstructure.organisation_posture.op4_reconciliation]
+    compulsory: true
+  - id: Q-OS-FT-01
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    used_by: [orgstructure.fte_sizing.ft0_current_state]
+    compulsory: true
+  - id: Q-OS-FT-02
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    used_by: [orgstructure.fte_sizing.ft0_current_state, orgstructure.fte_sizing.ft3_role_composition_mix]
+    compulsory: false
+  - id: Q-OS-FT-03
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    used_by: [orgstructure.fte_sizing.ft0_current_state, orgstructure.fte_sizing.ft4_specialist_roles_audit]
+    compulsory: false
+  - id: Q-OS-FT-04
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    used_by: [orgstructure.fte_sizing.ft0_current_state]
+    compulsory: false
+  - id: Q-OS-FT-05
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    used_by: [orgstructure.fte_sizing.ft0_current_state, orgstructure.fte_sizing.ft5_reconciliation]
+    compulsory: false
+  - id: Q-OS-FT-EXC
+    pillar: org-structure
+    theme: fte-sizing-role-composition
+    used_by: [orgstructure.fte_sizing.ft4_specialist_roles_audit]
+    compulsory: false
+  - id: Q-OS-DS-01
+    pillar: org-structure
+    theme: spend-fte-distribution
+    used_by: [orgstructure.distribution.ds0_current_state]
+    compulsory: false
+  - id: Q-OS-DS-02
+    pillar: org-structure
+    theme: spend-fte-distribution
+    used_by: [orgstructure.distribution.ds0_current_state]
+    compulsory: false
+    notes: "Used as fallback if Central-vs-Plant attribution from data not feasible"
+  - id: Q-OS-DS-03
+    pillar: org-structure
+    theme: spend-fte-distribution
+    used_by: [orgstructure.distribution.ds0_current_state, orgstructure.distribution.ds3_reconciliation]
+    compulsory: false
+  - id: Q-OS-HS-01
+    pillar: org-structure
+    theme: hierarchy-span
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs2_hierarchy_depth]
+    compulsory: false
+    notes: "Fallback for HS2 if reports_to data insufficient"
+  - id: Q-OS-HS-02
+    pillar: org-structure
+    theme: hierarchy-span
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs1_span_of_control]
+    compulsory: false
+    notes: "Fallback for HS1 if reports_to data insufficient"
+  - id: Q-OS-HS-03
+    pillar: org-structure
+    theme: hierarchy-span
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs3_reconciliation]
+    compulsory: false
+    notes: "JD/R&R qualitative signal; feeds narrative only (no standalone JD audit)"
+  - id: Q-OS-HS-04
+    pillar: org-structure
+    theme: hierarchy-span
+    used_by: [orgstructure.hierarchy_span.hs0_current_state, orgstructure.hierarchy_span.hs3_reconciliation]
+    compulsory: false
+
+aggregate_industry_overlay_needs:
+  - need: "Naturally-local categories per industry"
+    used_by: [opmodel.centralisation.c3_industry_knowledge_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/centralisation-filters.yml"
+
+  - need: "Naturally-central categories per industry"
+    used_by: [opmodel.centralisation.c3_industry_knowledge_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/centralisation-filters.yml"
+
+  - need: "Centre-Led categories per industry"
+    used_by: [opmodel.centralisation.c3_industry_knowledge_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/centralisation-filters.yml"
+
+  - need: "Material threshold (₹ Cr) per industry"
+    used_by: [opmodel.centralisation.c1_multi_plant_detection]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/centralisation-filters.yml"
+
+  - need: "Centralisation savings rate per industry"
+    used_by: [opmodel.centralisation.c4_savings_quantification]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+
+  - need: "Centre-Led savings rate per industry"
+    used_by: [opmodel.centralisation.c4_savings_quantification]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+
+  - need: "SSC-suitable / unsuitable / centre-handled category lists per industry"
+    used_by: [opmodel.shared_services.ss2_industry_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/shared-services-filters.yml"
+
+  - need: "SSC minimum PO count + minimum spend thresholds per industry"
+    used_by: [opmodel.shared_services.ss2_industry_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/shared-services-filters.yml"
+
+  - need: "Current cost-per-PO + SSC target cost-per-PO + productivity gain rate per industry"
+    used_by: [opmodel.shared_services.ss4_fte_productivity]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+
+  - need: "Aggregator-suitable / consolidate-internally / not-addressable tail category lists per industry"
+    used_by: [opmodel.tail_spend.ts3_industry_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/tail-spend-filters.yml"
+
+  - need: "Tail PO threshold (₹ lakh) + min aggregator-addressable spend (₹ Cr) per industry"
+    used_by: [opmodel.tail_spend.ts1_quantification, opmodel.tail_spend.ts3_industry_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/tail-spend-filters.yml"
+
+  - need: "Tail outsourcing savings rate per industry"
+    used_by: [opmodel.tail_spend.ts4_outsourcing_savings]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+
+  - need: "Strategic-by-nature category list per industry (CE1 Lens B)"
+    used_by: [opmodel.coe.ce1_strategic_identification]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/coe-filters.yml"
+
+  - need: "CoE-Suitable / Already-Strategic-No-CoE-Need / Plant-Owned category lists per industry"
+    used_by: [opmodel.coe.ce2_industry_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/coe-filters.yml"
+
+  - need: "CoE addressable spend minimum + vendor concentration threshold per industry"
+    used_by: [opmodel.coe.ce1_strategic_identification, opmodel.coe.ce2_industry_filter]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/coe-filters.yml"
+
+  - need: "CoE value-add savings rate per industry"
+    used_by: [opmodel.coe.ce4_value_quantification]
+    file_pattern: "industries/<ind>/by-function/procurement/op-model/benchmarks.yml"
+
+  - need: "Industry sub-segment definitions (for Org Structure Theme 1 OP3)"
+    used_by: [orgstructure.organisation_posture.op3_industry_typical_patterns]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/organisation-posture-filters.yml"
+
+  - need: "Industry reporting-line distribution by sub-segment (descriptive — for OP3)"
+    used_by: [orgstructure.organisation_posture.op3_industry_typical_patterns]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/organisation-posture-filters.yml"
+
+  - need: "Industry posture distribution by sub-segment (descriptive — for OP3)"
+    used_by: [orgstructure.organisation_posture.op3_industry_typical_patterns]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/organisation-posture-filters.yml"
+
+  - need: "Common posture+reporting combinations observed in industry"
+    used_by: [orgstructure.organisation_posture.op3_industry_typical_patterns]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/organisation-posture-filters.yml"
+
+  - need: "Sub-segment Central:Plant FTE share + Spend share expectations"
+    used_by: [orgstructure.distribution.ds0_current_state, orgstructure.distribution.ds1_bw_mapping]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/spend-fte-distribution-filters.yml"
+
+  - need: "Central-vs-Plant attribution feasibility observations (per industry)"
+    used_by: [orgstructure.distribution.ds0_current_state]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/spend-fte-distribution-filters.yml"
+
+  - need: "Sub-segment hierarchy depth expectations"
+    used_by: [orgstructure.hierarchy_span.hs2_hierarchy_depth]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/hierarchy-span-filters.yml"
+
+  - need: "Sub-segment span adjustments + common structural patterns observed"
+    used_by: [orgstructure.hierarchy_span.hs1_span_of_control]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/hierarchy-span-filters.yml"
+
+  - need: "JD/R&R observations for industry context"
+    used_by: [orgstructure.hierarchy_span.hs3_reconciliation]
+    file_pattern: "industries/<ind>/by-function/procurement/org-structure/hierarchy-span-filters.yml"
+
+aggregate_data_cleaning_rules:
+  critical_for_op_model_centralisation:
+    - rule_id: procurement.plant_code_mapped_to_canonical
+      consumed_by: [opmodel.centralisation.c1_multi_plant_detection]
+      stage: Stage 6 User Validation
+    - rule_id: procurement.entity_classification_via_stage6_mapping
+      consumed_by: [opmodel.centralisation.c0_baseline]
+      stage: Stage 6 User Validation
+    - rule_id: procurement.vendor_dedup_semantic
+      consumed_by:
+        - opmodel.centralisation.c2_vendor_pattern_insight
+        - opmodel.tail_spend.ts2_vendor_footprint
+        - opmodel.coe.ce1_strategic_identification
+      stage: Stage 8 Gold Data
+    - rule_id: procurement.category_aligned_to_industry_taxonomy
+      consumed_by:
+        - opmodel.centralisation.c3_industry_knowledge_filter
+        - opmodel.centralisation.c4_savings_quantification
+        - opmodel.shared_services.ss2_industry_filter
+        - opmodel.tail_spend.ts1_quantification
+        - opmodel.tail_spend.ts3_industry_filter
+        - opmodel.coe.ce1_strategic_identification
+        - opmodel.coe.ce2_industry_filter
+      stage: Stage 9 Category Classification
+    - rule_id: procurement.po_value_currency_normalised
+      consumed_by:
+        - opmodel.centralisation.c4_savings_quantification
+        - opmodel.shared_services.ss1_volume_value_quadrant
+        - opmodel.shared_services.ss4_fte_productivity
+        - opmodel.tail_spend.ts1_quantification
+        - opmodel.tail_spend.ts4_outsourcing_savings
+        - opmodel.coe.ce1_strategic_identification
+        - opmodel.coe.ce4_value_quantification
+      stage: Stage 8 Gold Data
+    - rule_id: data_quality_universal.normalise_numeric_format
+      consumed_by: ALL
+      stage: Stage 7 Bronze Data
+    - rule_id: data_quality_universal.remove_fully_blank_rows
+      consumed_by: ALL
+      stage: Stage 7 Bronze Data
+
+    # =============================================================================
+    # Editable Configuration
+    # =============================================================================
+    # This file is APPENDED to as we author new analyses. Direct edits are governed by:
+    #   - Adding a new analysis entry: MEDIUM (peer review)
+    #   - Modifying an existing entry's requirements: MEDIUM (peer review)
+    #   - Removing an entry: HIGH (partner) — affects downstream build artefacts
+    #
+    # Aggregate views (aggregate_data_requirements, aggregate_qre_questions,
+    # aggregate_industry_overlay_needs, aggregate_data_cleaning_rules) should be
+    # kept in sync with per-analysis entries. Quarterly review recommended.
+    # =============================================================================
