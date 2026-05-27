@@ -39,387 +39,387 @@ rules:
   # ==========================================================================
 
   - id: rca.centralisation.r01_low_central_many_candidates
-theme: centralisation
-trigger: |
-  spend_central_pct < 30%
-  AND c1_candidate_categories_count >= 5
-  AND c2_vendor_overlap_avg > 50%
-root_causes:
-  - "Historical M&A roll-up without procurement integration — each acquired plant retains its buying autonomy"
-  - "No central category management mandate or capability"
-  - "Plant P&L ownership without procurement performance KPI"
-confidence: high
-references:
-  pattern: rca-pat-cent-01
-  recommendation: rec-cent-greenfield-centralisation
-diagnostic_actions:
-  - "Verify M&A history via QRE Q-CL-01 / Q-CL-02"
-  - "Check Org Structure for central procurement headcount"
+    theme: centralisation
+    trigger: |
+      spend_central_pct < 30%
+      AND c1_candidate_categories_count >= 5
+      AND c2_vendor_overlap_avg > 50%
+    root_causes:
+      - "Historical M&A roll-up without procurement integration — each acquired plant retains its buying autonomy"
+      - "No central category management mandate or capability"
+      - "Plant P&L ownership without procurement performance KPI"
+    confidence: high
+    references:
+      pattern: rca-pat-cent-01
+      recommendation: rec-cent-greenfield-centralisation
+    diagnostic_actions:
+      - "Verify M&A history via QRE Q-CL-01 / Q-CL-02"
+      - "Check Org Structure for central procurement headcount"
 
   - id: rca.centralisation.r02_centre_led_only
-theme: centralisation
-trigger: |
-  c3_centre_led_categories_count > 0
-  AND c3_centralise_categories_count == 0
-  AND spend_central_pct < 50%
-root_causes:
-  - "Central buying restricted to contracting only — execution remains with plants by policy"
-  - "Plant pushback on full centralisation absorbed into Centre-Led compromise"
-  - "Central category management capacity insufficient for full centralisation"
-confidence: medium
-references:
-  pattern: rca-pat-cent-02
-  recommendation: rec-cent-expand-from-centre-led
+    theme: centralisation
+    trigger: |
+      c3_centre_led_categories_count > 0
+      AND c3_centralise_categories_count == 0
+      AND spend_central_pct < 50%
+    root_causes:
+      - "Central buying restricted to contracting only — execution remains with plants by policy"
+      - "Plant pushback on full centralisation absorbed into Centre-Led compromise"
+      - "Central category management capacity insufficient for full centralisation"
+    confidence: medium
+    references:
+      pattern: rca-pat-cent-02
+      recommendation: rec-cent-expand-from-centre-led
 
   - id: rca.centralisation.r03_low_central_high_overlap
-theme: centralisation
-trigger: |
-  spend_central_pct < 50%
-  AND c2_vendor_overlap_avg > 70%
-root_causes:
-  - "Plant autonomy culture / political resistance — plants use same vendors but won't accept central contracting"
-  - "Past failed centralisation attempt has hardened plant positions"
-  - "Vendor relationships at plant-MD level used to justify local buying"
-confidence: high
-references:
-  pattern: rca-pat-cent-03
-  recommendation: rec-cent-change-mgmt-led-centralisation
+    theme: centralisation
+    trigger: |
+      spend_central_pct < 50%
+      AND c2_vendor_overlap_avg > 70%
+    root_causes:
+      - "Plant autonomy culture / political resistance — plants use same vendors but won't accept central contracting"
+      - "Past failed centralisation attempt has hardened plant positions"
+      - "Vendor relationships at plant-MD level used to justify local buying"
+    confidence: high
+    references:
+      pattern: rca-pat-cent-03
+      recommendation: rec-cent-change-mgmt-led-centralisation
 
   - id: rca.centralisation.r04_low_central_low_overlap
-theme: centralisation
-trigger: |
-  spend_central_pct < 50%
-  AND c2_vendor_overlap_avg < 30%
-root_causes:
-  - "True local supplier dependency — plants in different geographies serving different markets"
-  - "Specification variance across plants is real (not artificial)"
-  - "Centralisation requires vendor consolidation work BEFORE central contracting"
-confidence: medium
-references:
-  pattern: rca-pat-cent-04
-  recommendation: rec-cent-vendor-consolidation-precursor
+    theme: centralisation
+    trigger: |
+      spend_central_pct < 50%
+      AND c2_vendor_overlap_avg < 30%
+    root_causes:
+      - "True local supplier dependency — plants in different geographies serving different markets"
+      - "Specification variance across plants is real (not artificial)"
+      - "Centralisation requires vendor consolidation work BEFORE central contracting"
+    confidence: medium
+    references:
+      pattern: rca-pat-cent-04
+      recommendation: rec-cent-vendor-consolidation-precursor
 
   - id: rca.centralisation.r05_mid_tier_blind_spot
-theme: centralisation
-trigger: |
-  high_value_central_pct >= 80%
-  AND mid_value_central_pct < 50%
-root_causes:
-  - "Central team focused on top commodities; mid-tier categories not on radar"
-  - "Capacity constraint — central team can only handle top-N categories"
-  - "No systematic process for category-mgmt scope expansion"
-confidence: medium
-references:
-  pattern: rca-pat-cent-05
-  recommendation: rec-cent-mid-tier-scope-expansion
+    theme: centralisation
+    trigger: |
+      high_value_central_pct >= 80%
+      AND mid_value_central_pct < 50%
+    root_causes:
+      - "Central team focused on top commodities; mid-tier categories not on radar"
+      - "Capacity constraint — central team can only handle top-N categories"
+      - "No systematic process for category-mgmt scope expansion"
+    confidence: medium
+    references:
+      pattern: rca-pat-cent-05
+      recommendation: rec-cent-mid-tier-scope-expansion
 
   - id: rca.centralisation.r06_qre_vs_data_gap
-theme: centralisation
-trigger: |
-  qre_Q-OM-01_response == ">60%"
-  AND spend_central_pct < 50%
-root_causes:
-  - "Client perception of centralisation exceeds operational reality"
-  - "Formal policy exists but plants bypass routinely"
-  - "QRE response based on contracts, not actual spend execution"
-confidence: high
-references:
-  pattern: rca-pat-cent-06
-  recommendation: rec-cent-policy-enforcement-uplift
+    theme: centralisation
+    trigger: |
+      qre_Q-OM-01_response == ">60%"
+      AND spend_central_pct < 50%
+    root_causes:
+      - "Client perception of centralisation exceeds operational reality"
+      - "Formal policy exists but plants bypass routinely"
+      - "QRE response based on contracts, not actual spend execution"
+    confidence: high
+    references:
+      pattern: rca-pat-cent-06
+      recommendation: rec-cent-policy-enforcement-uplift
 
   # ==========================================================================
   # SHARED SERVICES THEME RULES
   # ==========================================================================
 
   - id: rca.shared_services.r01_no_ssc_many_q1
-theme: shared-services
-trigger: |
-  ssc_current_pct == 0
-  AND ss1_q1_category_count >= 3
-  AND ss3_addressable_po_count >= 5000
-root_causes:
-  - "Greenfield opportunity — no historical SSC investment case made"
-  - "Process standardisation work absent — pre-requisite for SSC not in place"
-  - "Plant buyer roles bundled with non-buying activities, masking transactional cost"
-confidence: high
-references:
-  pattern: rca-pat-ss-01
-  recommendation: rec-ss-greenfield-ssc
+    theme: shared-services
+    trigger: |
+      ssc_current_pct == 0
+      AND ss1_q1_category_count >= 3
+      AND ss3_addressable_po_count >= 5000
+    root_causes:
+      - "Greenfield opportunity — no historical SSC investment case made"
+      - "Process standardisation work absent — pre-requisite for SSC not in place"
+      - "Plant buyer roles bundled with non-buying activities, masking transactional cost"
+    confidence: high
+    references:
+      pattern: rca-pat-ss-01
+      recommendation: rec-ss-greenfield-ssc
 
   - id: rca.shared_services.r02_partial_ssc_single_plant
-theme: shared-services
-trigger: |
-  ssc_current_pct > 0
-  AND ssc_current_pct < 25%
-  AND qre_Q-OM-SS-02_indicates_single_plant
-root_causes:
-  - "Pilot SSC succeeded at one plant but scaling stalled — political or operational"
-  - "Other plants concerned about losing buyer control"
-  - "Integration challenges in connecting multiple plants to single SSC location"
-confidence: high
-references:
-  pattern: rca-pat-ss-02
-  recommendation: rec-ss-scale-pilot-across-plants
+    theme: shared-services
+    trigger: |
+      ssc_current_pct > 0
+      AND ssc_current_pct < 25%
+      AND qre_Q-OM-SS-02_indicates_single_plant
+    root_causes:
+      - "Pilot SSC succeeded at one plant but scaling stalled — political or operational"
+      - "Other plants concerned about losing buyer control"
+      - "Integration challenges in connecting multiple plants to single SSC location"
+    confidence: high
+    references:
+      pattern: rca-pat-ss-02
+      recommendation: rec-ss-scale-pilot-across-plants
 
   - id: rca.shared_services.r03_high_cost_per_po_in_ssc
-theme: shared-services
-trigger: |
-  ssc_current_pct > 0
-  AND qre_Q-OM-SS-04_cost_per_po > 2500
-root_causes:
-  - "SSC processes not yet standardised — variation absorbs efficiency gains"
-  - "SSC tooling lagging (no e-catalog, manual three-way match)"
-  - "SSC scope mixed — strategic + transactional combined, dragging cost-per-PO up"
-confidence: medium
-references:
-  pattern: rca-pat-ss-03
-  recommendation: rec-ss-process-tool-maturity
+    theme: shared-services
+    trigger: |
+      ssc_current_pct > 0
+      AND qre_Q-OM-SS-04_cost_per_po > 2500
+    root_causes:
+      - "SSC processes not yet standardised — variation absorbs efficiency gains"
+      - "SSC tooling lagging (no e-catalog, manual three-way match)"
+      - "SSC scope mixed — strategic + transactional combined, dragging cost-per-PO up"
+    confidence: medium
+    references:
+      pattern: rca-pat-ss-03
+      recommendation: rec-ss-process-tool-maturity
 
   - id: rca.shared_services.r04_plant_pos_per_fte_low
-theme: shared-services
-trigger: |
-  computed_plant_pos_per_fte < 3000
-root_causes:
-  - "Plant buyer role bloat — significant non-buying activity absorbed (vendor mgmt, expediting, payment follow-up)"
-  - "ERP / tooling limitations slow plant transactions"
-  - "Significant rework / exception rate due to upstream data quality"
-confidence: medium
-references:
-  pattern: rca-pat-ss-04
-  recommendation: rec-ss-plant-role-redesign
+    theme: shared-services
+    trigger: |
+      computed_plant_pos_per_fte < 3000
+    root_causes:
+      - "Plant buyer role bloat — significant non-buying activity absorbed (vendor mgmt, expediting, payment follow-up)"
+      - "ERP / tooling limitations slow plant transactions"
+      - "Significant rework / exception rate due to upstream data quality"
+    confidence: medium
+    references:
+      pattern: rca-pat-ss-04
+      recommendation: rec-ss-plant-role-redesign
 
   - id: rca.shared_services.r05_activity_scope_ambiguity
-theme: shared-services
-trigger: |
+    theme: shared-services
+    trigger: |
       qre_Q-OM-SS-05_response_indicates_uncertainty_or_conflict
-root_causes:
-  - "Activity-level scope not yet defined in SSC charter"
-  - "Plant buyers + SSC overlap on specific activities causing duplication"
-  - "Lack of clarity on hand-off points (e.g., who creates PO vs who validates invoice)"
-confidence: medium
-references:
-  pattern: rca-pat-ss-05
-  recommendation: rec-ss-activity-scope-clarification
+    root_causes:
+      - "Activity-level scope not yet defined in SSC charter"
+      - "Plant buyers + SSC overlap on specific activities causing duplication"
+      - "Lack of clarity on hand-off points (e.g., who creates PO vs who validates invoice)"
+    confidence: medium
+    references:
+      pattern: rca-pat-ss-05
+      recommendation: rec-ss-activity-scope-clarification
 
   # ==========================================================================
   # CoE THEME RULES
   # ==========================================================================
 
   - id: rca.coe.r01_informal_only_many_strategic
-theme: coe
-trigger: |
-  qre_Q-OM-COE-01_response == "Informal-Only"
-  AND ce3_coverage_gap_categories_count >= 3
-root_causes:
-  - "Historical resistance to formal CoE structure — preference for general category mgmt roles"
-  - "CPO bandwidth absorbed by transactional / firefighting work; no executive sponsorship for CoE formalisation"
-  - "Internal narrative 'we already centralise' confuses centralisation with CoE"
-confidence: high
-references:
-  pattern: rca-pat-coe-01
-  recommendation: rec-coe-formalise-existing-informal
+    theme: coe
+    trigger: |
+      qre_Q-OM-COE-01_response == "Informal-Only"
+      AND ce3_coverage_gap_categories_count >= 3
+    root_causes:
+      - "Historical resistance to formal CoE structure — preference for general category mgmt roles"
+      - "CPO bandwidth absorbed by transactional / firefighting work; no executive sponsorship for CoE formalisation"
+      - "Internal narrative 'we already centralise' confuses centralisation with CoE"
+    confidence: high
+    references:
+      pattern: rca-pat-coe-01
+      recommendation: rec-coe-formalise-existing-informal
 
   - id: rca.coe.r02_no_coe_high_concentration
-theme: coe
-trigger: |
-  qre_Q-OM-COE-01_response == "No"
-  AND ce1_high_vendor_concentration_categories_count >= 3
-root_causes:
-  - "Strategic supplier relationship risk un-curated — single points of failure"
-  - "No designated owner for strategic categories; tactical buying for strategic spend"
-  - "Market intelligence absent — pricing decisions reactive, not proactive"
-confidence: high
-references:
-  pattern: rca-pat-coe-02
-  recommendation: rec-coe-greenfield-establishment
+    theme: coe
+    trigger: |
+      qre_Q-OM-COE-01_response == "No"
+      AND ce1_high_vendor_concentration_categories_count >= 3
+    root_causes:
+      - "Strategic supplier relationship risk un-curated — single points of failure"
+      - "No designated owner for strategic categories; tactical buying for strategic spend"
+      - "Market intelligence absent — pricing decisions reactive, not proactive"
+    confidence: high
+    references:
+      pattern: rca-pat-coe-02
+      recommendation: rec-coe-greenfield-establishment
 
   - id: rca.coe.r03_coe_narrow_scope
-theme: coe
-trigger: |
-  qre_Q-OM-COE-01_response == "Yes"
-  AND ce3_coverage_gap_spend_inr_cr >= 500
-root_causes:
+    theme: coe
+    trigger: |
+      qre_Q-OM-COE-01_response == "Yes"
+      AND ce3_coverage_gap_spend_inr_cr >= 500
+    root_causes:
       - "CoE scope frozen at original design; expansion not systematically considered"
-  - "FTE constraint — CoE Lead doesn't have headcount to take on more categories"
-  - "Some strategic categories sit with BU procurement rather than central CoE"
-confidence: medium
-references:
-  pattern: rca-pat-coe-03
-  recommendation: rec-coe-scope-expansion
+      - "FTE constraint — CoE Lead doesn't have headcount to take on more categories"
+      - "Some strategic categories sit with BU procurement rather than central CoE"
+    confidence: medium
+    references:
+      pattern: rca-pat-coe-03
+      recommendation: rec-coe-scope-expansion
 
   - id: rca.coe.r04_coe_no_market_intel
-theme: coe
-trigger: |
+    theme: coe
+    trigger: |
       qre_Q-OM-COE-04_response_indicates_no_market_intel
-root_causes:
-  - "Capability investment under-funded — no Platts/CRU/Argus subscription"
-  - "Reporting line issue — CoE reports below where decision authority sits"
-  - "Tools / analytics under-built"
-confidence: medium
-references:
-  pattern: rca-pat-coe-04
-  recommendation: rec-coe-capability-uplift
+    root_causes:
+      - "Capability investment under-funded — no Platts/CRU/Argus subscription"
+      - "Reporting line issue — CoE reports below where decision authority sits"
+      - "Tools / analytics under-built"
+    confidence: medium
+    references:
+      pattern: rca-pat-coe-04
+      recommendation: rec-coe-capability-uplift
 
   - id: rca.coe.r05_coe_structural_issue
-theme: coe
-trigger: |
+    theme: coe
+    trigger: |
       qre_Q-OM-COE-04_response_indicates_structural_concern
-root_causes:
-  - "CoE reporting line creates conflict — e.g., reports to plant head instead of CPO"
-  - "Decision authority insufficient — CoE recommends but plants decide"
-  - "BU-aligned vs corporate confusion"
-confidence: high
-references:
-  pattern: rca-pat-coe-05
-  recommendation: rec-coe-governance-redesign
+    root_causes:
+      - "CoE reporting line creates conflict — e.g., reports to plant head instead of CPO"
+      - "Decision authority insufficient — CoE recommends but plants decide"
+      - "BU-aligned vs corporate confusion"
+    confidence: high
+    references:
+      pattern: rca-pat-coe-05
+      recommendation: rec-coe-governance-redesign
 
   # ==========================================================================
   # TAIL SPEND THEME RULES
   # ==========================================================================
 
   - id: rca.tail_spend.r01_no_aggregator_large_addressable
-theme: tail-spend
-trigger: |
-  qre_Q-OM-TS-01_response == "No"
-  AND ts4_aggregator_addressable_spend_inr_cr >= 10
-root_causes:
-  - "Awareness / adoption gap — team unaware of Indian aggregator catalogue depth"
-  - "'We manage it ourselves' mindset — historical aversion to outsourcing"
-  - "No cost-to-serve transparency — plant buyers don't see their own per-PO cost"
-confidence: high
-references:
-  pattern: rca-pat-ts-01
-  recommendation: rec-ts-aggregator-onboarding
+    theme: tail-spend
+    trigger: |
+      qre_Q-OM-TS-01_response == "No"
+      AND ts4_aggregator_addressable_spend_inr_cr >= 10
+    root_causes:
+      - "Awareness / adoption gap — team unaware of Indian aggregator catalogue depth"
+      - "'We manage it ourselves' mindset — historical aversion to outsourcing"
+      - "No cost-to-serve transparency — plant buyers don't see their own per-PO cost"
+    confidence: high
+    references:
+      pattern: rca-pat-ts-01
+      recommendation: rec-ts-aggregator-onboarding
 
   - id: rca.tail_spend.r02_pilot_not_scaled
-theme: tail-spend
-trigger: |
-  qre_Q-OM-TS-01_response == "Partial"
-  AND ts4_aggregator_addressable_spend_inr_cr / qre_Q-OM-TS-02_existing_aggregator_spend >= 5
-root_causes:
-  - "Initial aggregator pilot succeeded but scaling stalled — operational or commercial"
-  - "Integration friction (PunchOut to ERP not implemented)"
-  - "Vendor relationship inertia — incumbent suppliers resist replacement"
-  - "Procurement KPI doesn't measure tail efficiency separately"
-confidence: high
-references:
-  pattern: rca-pat-ts-02
-  recommendation: rec-ts-scale-existing-aggregator
+    theme: tail-spend
+    trigger: |
+      qre_Q-OM-TS-01_response == "Partial"
+      AND ts4_aggregator_addressable_spend_inr_cr / qre_Q-OM-TS-02_existing_aggregator_spend >= 5
+    root_causes:
+      - "Initial aggregator pilot succeeded but scaling stalled — operational or commercial"
+      - "Integration friction (PunchOut to ERP not implemented)"
+      - "Vendor relationship inertia — incumbent suppliers resist replacement"
+      - "Procurement KPI doesn't measure tail efficiency separately"
+    confidence: high
+    references:
+      pattern: rca-pat-ts-02
+      recommendation: rec-ts-scale-existing-aggregator
 
   - id: rca.tail_spend.r03_long_tail_fragmentation
-theme: tail-spend
-trigger: |
-  ts2_long_tail_vendor_share_pct >= 30
-root_causes:
-  - "Plant-level buying autonomy without vendor master discipline"
-  - "No central vendor onboarding gate — anyone can register a vendor"
-  - "Spot-buying default behaviour — no requirement to check existing vendor base first"
-confidence: high
-references:
-  pattern: rca-pat-ts-03
-  recommendation: rec-ts-vendor-consolidation
+    theme: tail-spend
+    trigger: |
+      ts2_long_tail_vendor_share_pct >= 30
+    root_causes:
+      - "Plant-level buying autonomy without vendor master discipline"
+      - "No central vendor onboarding gate — anyone can register a vendor"
+      - "Spot-buying default behaviour — no requirement to check existing vendor base first"
+    confidence: high
+    references:
+      pattern: rca-pat-ts-03
+      recommendation: rec-ts-vendor-consolidation
 
   - id: rca.tail_spend.r04_high_tail_share
-theme: tail-spend
-trigger: |
-  ts1_combined_tail_share_pct >= 15
-root_causes:
-  - "Weak rate contract coverage — many one-off POs that should be on RC"
-  - "Catalog buying absent — direct PO is default for everything"
-  - "PR-to-PO process issues (cross-pillar with PR-to-PO findings)"
-confidence: medium
-references:
-  pattern: rca-pat-ts-04
-  recommendation: rec-ts-tail-discipline-uplift
+    theme: tail-spend
+    trigger: |
+      ts1_combined_tail_share_pct >= 15
+    root_causes:
+      - "Weak rate contract coverage — many one-off POs that should be on RC"
+      - "Catalog buying absent — direct PO is default for everything"
+      - "PR-to-PO process issues (cross-pillar with PR-to-PO findings)"
+    confidence: medium
+    references:
+      pattern: rca-pat-ts-04
+      recommendation: rec-ts-tail-discipline-uplift
 
   - id: rca.tail_spend.r05_policy_restriction
-theme: tail-spend
-trigger: |
+    theme: tail-spend
+    trigger: |
       qre_Q-OM-TS-04_response_indicates_restriction
-root_causes:
-  - "Procurement policy restricts aggregator usage (often dated policy)"
-  - "Supplier diversity goals dictate direct relationships with specific vendors"
-  - "IT integration limits constrain aggregator catalogue access"
-confidence: high
-references:
-  pattern: rca-pat-ts-05
-  recommendation: rec-ts-policy-review-required
+    root_causes:
+      - "Procurement policy restricts aggregator usage (often dated policy)"
+      - "Supplier diversity goals dictate direct relationships with specific vendors"
+      - "IT integration limits constrain aggregator catalogue access"
+    confidence: high
+    references:
+      pattern: rca-pat-ts-05
+      recommendation: rec-ts-policy-review-required
 
   # ==========================================================================
   # CROSS-THEME (STRATEGIC IMPERATIVE) RULES — fired by synthesis component X4
   # ==========================================================================
 
   - id: rca.synthesis.si01_under_investment_central_capability
-theme: synthesis
-trigger: |
-  centralisation_score <= 2
-  AND shared_services_score <= 2
-  AND coe_score <= 2
-root_causes:
-  - "Central procurement capability is materially under-built — multiple structural maturity steps missing"
-  - "Plant-distributed model historical default; never re-examined"
-  - "No transformation event (M&A integration, IPO, new CEO) has triggered Op Model redesign"
-confidence: high
-references:
-  pattern: rca-pat-si-01
-  recommendation: rec-si-phased-central-capability-build
+    theme: synthesis
+    trigger: |
+      centralisation_score <= 2
+      AND shared_services_score <= 2
+      AND coe_score <= 2
+    root_causes:
+      - "Central procurement capability is materially under-built — multiple structural maturity steps missing"
+      - "Plant-distributed model historical default; never re-examined"
+      - "No transformation event (M&A integration, IPO, new CEO) has triggered Op Model redesign"
+    confidence: high
+    references:
+      pattern: rca-pat-si-01
+      recommendation: rec-si-phased-central-capability-build
 
   - id: rca.synthesis.si02_volume_focused_value_blind
-theme: synthesis
-trigger: |
-  centralisation_score >= 3
-  AND coe_score <= 2
-root_causes:
-  - "Centralisation matured first; CoE was deprioritised — typical maturity stage"
-  - "Strategic categories assumed managed because spend flows centrally"
-  - "Distinction between centralisation (volume) and CoE (value) not internalised"
-confidence: high
-references:
-  pattern: rca-pat-si-02
-  recommendation: rec-si-formalise-coe
+    theme: synthesis
+    trigger: |
+      centralisation_score >= 3
+      AND coe_score <= 2
+    root_causes:
+      - "Centralisation matured first; CoE was deprioritised — typical maturity stage"
+      - "Strategic categories assumed managed because spend flows centrally"
+      - "Distinction between centralisation (volume) and CoE (value) not internalised"
+    confidence: high
+    references:
+      pattern: rca-pat-si-02
+      recommendation: rec-si-formalise-coe
 
   - id: rca.synthesis.si03_strategic_well_managed_transactional_ignored
-theme: synthesis
-trigger: |
-  coe_score >= 3
-  AND shared_services_score <= 2
-  AND tail_spend_score <= 2
-root_causes:
-  - "Strategic procurement leadership prioritised top-line categories; ignored transactional efficiency"
-  - "Transactional work seen as 'low-prestige'; no leadership investment"
-  - "SSC + aggregator partnership require different management style than strategic category mgmt"
-confidence: high
-references:
-  pattern: rca-pat-si-03
-  recommendation: rec-si-transactional-efficiency-build
+    theme: synthesis
+    trigger: |
+      coe_score >= 3
+      AND shared_services_score <= 2
+      AND tail_spend_score <= 2
+    root_causes:
+      - "Strategic procurement leadership prioritised top-line categories; ignored transactional efficiency"
+      - "Transactional work seen as 'low-prestige'; no leadership investment"
+      - "SSC + aggregator partnership require different management style than strategic category mgmt"
+    confidence: high
+    references:
+      pattern: rca-pat-si-03
+      recommendation: rec-si-transactional-efficiency-build
 
   - id: rca.synthesis.si04_sourcing_discipline_gap
-theme: synthesis
-trigger: |
-  centralisation_score <= 2
-  AND tail_spend_score <= 2
-  AND ts2_long_tail_vendor_share_pct >= 25
-root_causes:
-  - "Multiple symptoms of weak sourcing discipline — low central control, high tail, fragmented vendors"
-  - "Procurement perceived as transactional service, not strategic function"
-  - "No CPO-led transformation; ground-up plant practices dominate"
-confidence: high
-references:
-  pattern: rca-pat-si-04
-  recommendation: rec-si-combined-sourcing-discipline-uplift
+    theme: synthesis
+    trigger: |
+      centralisation_score <= 2
+      AND tail_spend_score <= 2
+      AND ts2_long_tail_vendor_share_pct >= 25
+    root_causes:
+      - "Multiple symptoms of weak sourcing discipline — low central control, high tail, fragmented vendors"
+      - "Procurement perceived as transactional service, not strategic function"
+      - "No CPO-led transformation; ground-up plant practices dominate"
+    confidence: high
+    references:
+      pattern: rca-pat-si-04
+      recommendation: rec-si-combined-sourcing-discipline-uplift
 
   - id: rca.synthesis.si05_already_optimal
-theme: synthesis
-trigger: |
-  centralisation_score >= 4
-  AND shared_services_score >= 4
-  AND coe_score >= 4
-  AND tail_spend_score >= 4
-root_causes: []   # no RCA — this is the "no major gap" outcome
-confidence: high
-references:
+    theme: synthesis
+    trigger: |
+      centralisation_score >= 4
+      AND shared_services_score >= 4
+      AND coe_score >= 4
+      AND tail_spend_score >= 4
+    root_causes: []   # no RCA — this is the "no major gap" outcome
+    confidence: high
+    references:
       pattern: rca-pat-si-05
-  recommendation: rec-si-continuous-improvement-only
+      recommendation: rec-si-continuous-improvement-only
 
 # =============================================================================
 # Editable Configuration
