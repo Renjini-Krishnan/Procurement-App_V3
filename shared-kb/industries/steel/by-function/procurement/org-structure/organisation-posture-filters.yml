@@ -20,9 +20,9 @@ metadata:
   status: active
   authored_by_procurement_persona: true
   notes: |
-Reflects observed patterns across Indian Steel industry as of 2024-2025.
-Sources: public CPO appointments, annual reports, industry survey data,
-Accenture engagement experience. Distributional estimates approximate (±5 pp).
+    Reflects observed patterns across Indian Steel industry as of 2024-2025.
+    Sources: public CPO appointments, annual reports, industry survey data,
+    Accenture engagement experience. Distributional estimates approximate (±5 pp).
 
 # =============================================================================
 # SUB-SEGMENT DEFINITIONS
@@ -31,40 +31,40 @@ Accenture engagement experience. Distributional estimates approximate (±5 pp).
 sub_segments:
 
   - id: integrated_steel_mill_multi_plant
-label: "Indian Integrated Steel Mill (Multi-Plant)"
-examples: [Tata Steel, JSW Steel, SAIL, RINL, AM/NS India]
-description: |
-  Large integrated steel producers with 2+ plants; full value chain
-  (mining or long-term offtake → coke → iron → steel → finished products).
-  High raw material intensity; cost-leverage opportunity from centralisation.
+    label: "Indian Integrated Steel Mill (Multi-Plant)"
+    examples: [Tata Steel, JSW Steel, SAIL, RINL, AM/NS India]
+    description: |
+      Large integrated steel producers with 2+ plants; full value chain
+      (mining or long-term offtake → coke → iron → steel → finished products).
+      High raw material intensity; cost-leverage opportunity from centralisation.
 
   - id: mini_mill_single_plant
-label: "Mini-Mill (Single or 2-Plant)"
-examples: ["Smaller secondary producers", "single-plant EAF/IF operations"]
-description: |
-  Smaller (typically 1-2 plant), often EAF/IF-based; scrap-fed; lower raw
-  material complexity; smaller procurement organisation.
+    label: "Mini-Mill (Single or 2-Plant)"
+    examples: ["Smaller secondary producers", "single-plant EAF/IF operations"]
+    description: |
+      Smaller (typically 1-2 plant), often EAF/IF-based; scrap-fed; lower raw
+      material complexity; smaller procurement organisation.
 
   - id: specialty_or_electrical_steel
-label: "Specialty / Electrical Steel"
-examples: [Mukand, Jai Balaji (specialty), Sunflag, "specialty SBQ + electrical producers"]
-description: |
-  Specialty grades; technical complexity drives procurement depth on
-  ferro alloys + technical consumables; smaller volumes than integrated mills.
+    label: "Specialty / Electrical Steel"
+    examples: [Mukand, Jai Balaji (specialty), Sunflag, "specialty SBQ + electrical producers"]
+    description: |
+      Specialty grades; technical complexity drives procurement depth on
+      ferro alloys + technical consumables; smaller volumes than integrated mills.
 
   - id: steel_multi_business_conglomerate
-label: "Steel Multi-Business Conglomerate"
-examples: ["JSPL (steel + power + cement)", "Tata Steel (within broader Tata group)"]
-description: |
-  Steel is one of multiple major business lines; corporate structure
-  typically Hybrid or Federated; procurement governance often Hybrid.
+    label: "Steel Multi-Business Conglomerate"
+    examples: ["JSPL (steel + power + cement)", "Tata Steel (within broader Tata group)"]
+    description: |
+      Steel is one of multiple major business lines; corporate structure
+      typically Hybrid or Federated; procurement governance often Hybrid.
 
   - id: foreign_owned_indian_operation
-label: "Foreign-Owned Indian Operation"
-examples: ["AM/NS India (ArcelorMittal+Nippon Steel JV)", "POSCO India"]
-description: |
-  Indian operations of global steel groups; procurement governance
-  typically reflects parent-company global procurement structure.
+    label: "Foreign-Owned Indian Operation"
+    examples: ["AM/NS India (ArcelorMittal+Nippon Steel JV)", "POSCO India"]
+    description: |
+      Indian operations of global steel groups; procurement governance
+      typically reflects parent-company global procurement structure.
 
 # =============================================================================
 # REPORTING LINE DISTRIBUTION — descriptive, by sub-segment
@@ -73,55 +73,55 @@ description: |
 reporting_line_distribution:
 
   integrated_steel_mill_multi_plant:
-ceo: 40
-coo: 25
-cfo: 25
-other: 10
-notes: |
-  Strategic-mandate mills (Tata, JSW) tend to report CPO to CEO or COO.
-  Cost-focused mills (mid-size integrated, some PSU mills) report CFO.
-  "Other" captures MD-direct and BU-Head reporting (rarer in this segment).
+    ceo: 40
+    coo: 25
+    cfo: 25
+    other: 10
+    notes: |
+      Strategic-mandate mills (Tata, JSW) tend to report CPO to CEO or COO.
+      Cost-focused mills (mid-size integrated, some PSU mills) report CFO.
+      "Other" captures MD-direct and BU-Head reporting (rarer in this segment).
 
   mini_mill_single_plant:
-md_direct: 50
-cfo: 30
-coo: 15
-other: 5
-notes: |
-  MD-direct reporting is common — smaller organisation, flatter hierarchy.
-  CFO common where procurement is seen as cost function.
-  CEO-direct rare because CEO/MD role often combined in this segment.
+    md_direct: 50
+    cfo: 30
+    coo: 15
+    other: 5
+    notes: |
+      MD-direct reporting is common — smaller organisation, flatter hierarchy.
+      CFO common where procurement is seen as cost function.
+      CEO-direct rare because CEO/MD role often combined in this segment.
 
   specialty_or_electrical_steel:
-ceo: 35
-coo: 35
-cfo: 20
-other: 10
-notes: |
-  Technical depth on direct materials favours COO reporting; strategic
-  positioning favours CEO. CFO less common because cost discipline alone
-  isn't the dominant mandate.
+    ceo: 35
+    coo: 35
+    cfo: 20
+    other: 10
+    notes: |
+      Technical depth on direct materials favours COO reporting; strategic
+      positioning favours CEO. CFO less common because cost discipline alone
+      isn't the dominant mandate.
 
   steel_multi_business_conglomerate:
-cfo: 40
-bu_head: 25
-coo: 20
-ceo: 10
-other: 5
-notes: |
-  Conglomerate corporate procurement often reports CFO (group cost mandate).
-  BU-aligned procurement reports to BU Heads where Federated.
-  CEO-direct rare — typically only at conglomerate parent for very large group.
+    cfo: 40
+    bu_head: 25
+    coo: 20
+    ceo: 10
+    other: 5
+    notes: |
+      Conglomerate corporate procurement often reports CFO (group cost mandate).
+      BU-aligned procurement reports to BU Heads where Federated.
+      CEO-direct rare — typically only at conglomerate parent for very large group.
 
   foreign_owned_indian_operation:
-parent_cpo_global: 50
-local_cfo: 30
-local_coo: 15
-other: 5
-notes: |
-  Global procurement function dominates; local CPO/Head-of-Procurement
-  reports either to global CPO (matrix) or local CFO with dotted line to
-  global function.
+    parent_cpo_global: 50
+    local_cfo: 30
+    local_coo: 15
+    other: 5
+    notes: |
+      Global procurement function dominates; local CPO/Head-of-Procurement
+      reports either to global CPO (matrix) or local CFO with dotted line to
+      global function.
 
 # =============================================================================
 # POSTURE DISTRIBUTION — descriptive, by sub-segment
@@ -130,46 +130,46 @@ notes: |
 posture_distribution:
 
   integrated_steel_mill_multi_plant:
-centralised: 75
-hybrid: 15
-federated: 8
-decentralised: 2
-notes: |
-  Centralised dominates — high raw material intensity (iron ore, coal,
-  ferro alloys, refractories) rewards central leverage. Hybrid emerges
-  where one plant has captive mining vs others sourcing from market.
+    centralised: 75
+    hybrid: 15
+    federated: 8
+    decentralised: 2
+    notes: |
+      Centralised dominates — high raw material intensity (iron ore, coal,
+      ferro alloys, refractories) rewards central leverage. Hybrid emerges
+      where one plant has captive mining vs others sourcing from market.
 
   mini_mill_single_plant:
-centralised: 90
-hybrid: 8
-federated: 2
-decentralised: 0
-notes: |
-  Single-plant naturally Centralised; "Centralised" here means single
-  procurement team for the plant. No federation possible.
+    centralised: 90
+    hybrid: 8
+    federated: 2
+    decentralised: 0
+    notes: |
+      Single-plant naturally Centralised; "Centralised" here means single
+      procurement team for the plant. No federation possible.
 
   specialty_or_electrical_steel:
-centralised: 80
-hybrid: 15
-federated: 5
-notes: |
-  Centralised dominates; technical complexity favours unified category mgmt.
+    centralised: 80
+    hybrid: 15
+    federated: 5
+    notes: |
+      Centralised dominates; technical complexity favours unified category mgmt.
 
   steel_multi_business_conglomerate:
-hybrid: 50
-federated: 30
-centralised: 20
-notes: |
-  Conglomerate diversity favours Hybrid or Federated. Some categories
-  (group-wide indirect, financial services procurement) central; steel-
-  specific direct materials BU-managed.
+    hybrid: 50
+    federated: 30
+    centralised: 20
+    notes: |
+      Conglomerate diversity favours Hybrid or Federated. Some categories
+      (group-wide indirect, financial services procurement) central; steel-
+      specific direct materials BU-managed.
 
   foreign_owned_indian_operation:
-centralised: 70
-hybrid: 25
-federated: 5
-notes: |
-  Parent-company patterns dominate. Most global Steel groups operate Centralised procurement.
+    centralised: 70
+    hybrid: 25
+    federated: 5
+    notes: |
+      Parent-company patterns dominate. Most global Steel groups operate Centralised procurement.
 
 # =============================================================================
 # COMMON COMBINATIONS OBSERVED — descriptive, with frequency estimates
@@ -178,36 +178,36 @@ notes: |
 common_combinations_observed:
 
   - sub_segment: integrated_steel_mill_multi_plant
-combination: "Centralised procurement + CEO reporting + Strategic-value mandate"
-frequency_pct_approx: 25
-example: "Tata Steel main entity; JSW Steel corporate"
-description: |
-  The "best-practice strategic" pattern for integrated steel — combines
-  cost leverage of centralisation with strategic mandate enabled by CEO-level voice.
+    combination: "Centralised procurement + CEO reporting + Strategic-value mandate"
+    frequency_pct_approx: 25
+    example: "Tata Steel main entity; JSW Steel corporate"
+    description: |
+      The "best-practice strategic" pattern for integrated steel — combines
+      cost leverage of centralisation with strategic mandate enabled by CEO-level voice.
 
   - sub_segment: integrated_steel_mill_multi_plant
-combination: "Centralised procurement + CFO reporting + Cost-mandate"
-frequency_pct_approx: 20
-example: "Mid-cap integrated mills; some PSU operations"
-description: |
-  The "cost-discipline" pattern — centralisation for leverage, CFO for
-  discipline. Common where procurement is seen as cost lever first.
+    combination: "Centralised procurement + CFO reporting + Cost-mandate"
+    frequency_pct_approx: 20
+    example: "Mid-cap integrated mills; some PSU operations"
+    description: |
+      The "cost-discipline" pattern — centralisation for leverage, CFO for
+      discipline. Common where procurement is seen as cost lever first.
 
   - sub_segment: integrated_steel_mill_multi_plant
-combination: "Centralised procurement + COO reporting + Operations-mandate"
-frequency_pct_approx: 15
-example: "Operations-led integrated mills; some single-product-focused mills"
-description: |
-  Operations-aligned pattern — strong direct material focus, supply
-  continuity prioritised over breadth.
+    combination: "Centralised procurement + COO reporting + Operations-mandate"
+    frequency_pct_approx: 15
+    example: "Operations-led integrated mills; some single-product-focused mills"
+    description: |
+      Operations-aligned pattern — strong direct material focus, supply
+      continuity prioritised over breadth.
 
   - sub_segment: steel_multi_business_conglomerate
-combination: "Hybrid procurement + CFO reporting + Group-cost-mandate"
-frequency_pct_approx: 30
-example: "JSPL group procurement"
-description: |
-  Typical conglomerate pattern — group-level CFO reporting with Hybrid
-  execution model balancing group leverage with BU autonomy.
+    combination: "Hybrid procurement + CFO reporting + Group-cost-mandate"
+    frequency_pct_approx: 30
+    example: "JSPL group procurement"
+    description: |
+      Typical conglomerate pattern — group-level CFO reporting with Hybrid
+      execution model balancing group leverage with BU autonomy.
 
 # =============================================================================
 # SUB-SEGMENT-SPECIFIC QUALITATIVE NOTES — for OP3 narrative
@@ -216,29 +216,29 @@ description: |
 sub_segment_qualitative_notes:
 
   integrated_steel_mill_multi_plant: |
-Two dominant CPO-reporting bands: CEO/COO ("strategic + operational depth")
-and CFO ("cost-discipline"). Each band reflects mandate emphasis. Posture
-almost always Centralised. Hybrid emerges around captive vs market raw
-materials. Years-in-current-structure tends to be long (10+ years).
+    Two dominant CPO-reporting bands: CEO/COO ("strategic + operational depth")
+    and CFO ("cost-discipline"). Each band reflects mandate emphasis. Posture
+    almost always Centralised. Hybrid emerges around captive vs market raw
+    materials. Years-in-current-structure tends to be long (10+ years).
 
   mini_mill_single_plant: |
-MD-direct reporting is common — small org, flat hierarchy. Centralised
-is the default. Mandate typically dual cost + supply continuity. Specialist
-roles often absent at this scale.
+    MD-direct reporting is common — small org, flat hierarchy. Centralised
+    is the default. Mandate typically dual cost + supply continuity. Specialist
+    roles often absent at this scale.
 
   specialty_or_electrical_steel: |
-Technical mandate emphasis drives COO/CEO reporting. CFO reporting less
-common because cost alone isn't the dominant lever — material specs + supplier relationships matter more.
+    Technical mandate emphasis drives COO/CEO reporting. CFO reporting less
+    common because cost alone isn't the dominant lever — material specs + supplier relationships matter more.
 
   steel_multi_business_conglomerate: |
-Hybrid + Federated patterns dominate. Group corporate procurement often
-handles indirect categories + cross-BU leverage; BU-level procurement
-handles direct materials. CFO reporting common at group level.
+    Hybrid + Federated patterns dominate. Group corporate procurement often
+    handles indirect categories + cross-BU leverage; BU-level procurement
+    handles direct materials. CFO reporting common at group level.
 
   foreign_owned_indian_operation: |
-Global parent's procurement model dominates. Local procurement function
-usually serves dual reporting (global CPO functional, local CFO/COO operational).
-Independent posture decisions limited.
+    Global parent's procurement model dominates. Local procurement function
+    usually serves dual reporting (global CPO functional, local CFO/COO operational).
+    Independent posture decisions limited.
 
 # =============================================================================
 # Editable Configuration

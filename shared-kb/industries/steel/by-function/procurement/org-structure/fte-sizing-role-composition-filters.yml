@@ -23,45 +23,45 @@ metadata:
 steel_specific_specialist_roles:
 
   - id: commodity_analyst
-label: "Commodity Analyst (Iron Ore + Coking Coal + Ferro Alloys)"
-criticality: high
-rationale: |
-  Steel commodity exposure on iron ore, coking coal, and ferro alloys is
-  significant. A dedicated commodity analyst (Platts/CRU intel, hedging
-  analysis, market timing) is a critical capability for integrated mills.
+    label: "Commodity Analyst (Iron Ore + Coking Coal + Ferro Alloys)"
+    criticality: high
+    rationale: |
+      Steel commodity exposure on iron ore, coking coal, and ferro alloys is
+      significant. A dedicated commodity analyst (Platts/CRU intel, hedging
+      analysis, market timing) is a critical capability for integrated mills.
 
   - id: logistics_specialist_finished_steel
-label: "Logistics Specialist (Rail/Sea Freight for Finished Steel)"
-criticality: high
-rationale: |
-  Outbound logistics is a top-5 spend category for Indian integrated steel
-  mills. Rail rake planning, port logistics, sea freight (for exports)
-  all require dedicated expertise. Often a Cat Mgr equivalent role but
-  worth surfacing as a specialist requirement.
+    label: "Logistics Specialist (Rail/Sea Freight for Finished Steel)"
+    criticality: high
+    rationale: |
+      Outbound logistics is a top-5 spend category for Indian integrated steel
+      mills. Rail rake planning, port logistics, sea freight (for exports)
+      all require dedicated expertise. Often a Cat Mgr equivalent role but
+      worth surfacing as a specialist requirement.
 
   - id: refractories_mill_rolls_technical_specialist
-label: "Refractories + Mill Rolls Technical Specialist"
-criticality: medium
-rationale: |
-  Technical category requiring deep metallurgical / engineering depth.
-  Often embedded within Cat Mgr team for top integrated mills.
+    label: "Refractories + Mill Rolls Technical Specialist"
+    criticality: medium
+    rationale: |
+      Technical category requiring deep metallurgical / engineering depth.
+      Often embedded within Cat Mgr team for top integrated mills.
 
   - id: captive_asset_liaison
-label: "Captive Asset Liaison (Iron Ore / Power)"
-criticality: medium
-rationale: |
-  For integrated mills with captive iron ore or captive power plants,
-  a liaison role bridges procurement and captive operations. Often a
-  part-time role or sits in Operations rather than Procurement.
+    label: "Captive Asset Liaison (Iron Ore / Power)"
+    criticality: medium
+    rationale: |
+      For integrated mills with captive iron ore or captive power plants,
+      a liaison role bridges procurement and captive operations. Often a
+      part-time role or sits in Operations rather than Procurement.
 
   - id: decarbonisation_sourcing_specialist
-label: "Decarbonisation / Green Steel Sourcing Specialist"
-criticality: emerging
-rationale: |
-  Emerging role specific to Steel decarbonisation pressure (green H2 inputs,
-  low-emission iron substitutes, scrap-heavy EAF approaches). Most Steel
-  mills don't have this role yet but it's becoming critical for 2027-2030
-  strategic horizon.
+    label: "Decarbonisation / Green Steel Sourcing Specialist"
+    criticality: emerging
+    rationale: |
+      Emerging role specific to Steel decarbonisation pressure (green H2 inputs,
+      low-emission iron substitutes, scrap-heavy EAF approaches). Most Steel
+      mills don't have this role yet but it's becoming critical for 2027-2030
+      strategic horizon.
 
 # =============================================================================
 # CRITICALITY OVERRIDES — Steel-specific adjustments to function-default roles
@@ -70,28 +70,28 @@ rationale: |
 criticality_overrides:
 
   - role_id: sustainability_esg
-function_default_criticality: high
-steel_criticality: high  # confirmed-critical for Steel given decarbonisation
-rationale: |
-  Sustainability/ESG is critical for Steel given EU CBAM, India BRSR
-  mandates, decarbonisation roadmaps. NOT optional for large Steel
-  operations targeting exports or large customers.
+    function_default_criticality: high
+    steel_criticality: high  # confirmed-critical for Steel given decarbonisation
+    rationale: |
+      Sustainability/ESG is critical for Steel given EU CBAM, India BRSR
+      mandates, decarbonisation roadmaps. NOT optional for large Steel
+      operations targeting exports or large customers.
 
   - role_id: srm
-function_default_criticality: high
-steel_criticality: high  # confirmed-critical for Steel
-rationale: |
-  Steel has high vendor concentration on top strategic categories
-  (coking coal, iron ore, ferro alloys, mill rolls). SRM is critical
-  capability — single-source risk + strategic relationship management.
+    function_default_criticality: high
+    steel_criticality: high  # confirmed-critical for Steel
+    rationale: |
+      Steel has high vendor concentration on top strategic categories
+      (coking coal, iron ore, ferro alloys, mill rolls). SRM is critical
+      capability — single-source risk + strategic relationship management.
 
   - role_id: fbp
-function_default_criticality: high
-steel_criticality: high
-rationale: |
-  FBP critical for Steel given commodity price exposure + capex linkage.
-  Finance partnership essential for hedging, working capital, vendor
-  financial-health monitoring.
+    function_default_criticality: high
+    steel_criticality: high
+    rationale: |
+      FBP critical for Steel given commodity price exposure + capex linkage.
+      Finance partnership essential for hedging, working capital, vendor
+      financial-health monitoring.
 
 # =============================================================================
 # SUB-SEGMENT ROLE MIX EXPECTATIONS
@@ -100,43 +100,43 @@ rationale: |
 sub_segment_role_mix_expectations:
 
   integrated_steel_mill_multi_plant:
-category_mgr_share_pct_band: [25, 35]
-transactional_share_pct_band: [35, 50]
+    category_mgr_share_pct_band: [25, 35]
+    transactional_share_pct_band: [35, 50]
     specialist_share_pct_band: [10, 15]
-leadership_share_pct_band: [5, 10]
-notes: |
-  Integrated mills typical mix. Higher transactional share than world-class
-  benchmark because plant-distributed buying inflates the count.
-  Specialist share appears lower than world-class because many integrated
-  mills haven't yet invested in dedicated analytics/SRM/FBP roles.
+    leadership_share_pct_band: [5, 10]
+    notes: |
+      Integrated mills typical mix. Higher transactional share than world-class
+      benchmark because plant-distributed buying inflates the count.
+      Specialist share appears lower than world-class because many integrated
+      mills haven't yet invested in dedicated analytics/SRM/FBP roles.
 
   mini_mill_single_plant:
-category_mgr_share_pct_band: [20, 30]
-transactional_share_pct_band: [50, 65]
-specialist_share_pct_band: [5, 10]
-leadership_share_pct_band: [5, 10]
-notes: |
-  Mini-mills smaller teams; role specialisation lower. Specialist gaps
-  sometimes acceptable given scale (analytics outsourced; FBP shared
-  with broader finance team).
+    category_mgr_share_pct_band: [20, 30]
+    transactional_share_pct_band: [50, 65]
+    specialist_share_pct_band: [5, 10]
+    leadership_share_pct_band: [5, 10]
+    notes: |
+      Mini-mills smaller teams; role specialisation lower. Specialist gaps
+      sometimes acceptable given scale (analytics outsourced; FBP shared
+      with broader finance team).
 
   specialty_or_electrical_steel:
-category_mgr_share_pct_band: [30, 40]
-transactional_share_pct_band: [30, 45]
-specialist_share_pct_band: [15, 25]
-leadership_share_pct_band: [5, 10]
-notes: |
-  Specialty steel typically more technical; Cat Mgr ratio higher; specialist
-  depth higher (analytics, technical specialists, FBP).
+    category_mgr_share_pct_band: [30, 40]
+    transactional_share_pct_band: [30, 45]
+    specialist_share_pct_band: [15, 25]
+    leadership_share_pct_band: [5, 10]
+    notes: |
+      Specialty steel typically more technical; Cat Mgr ratio higher; specialist
+      depth higher (analytics, technical specialists, FBP).
 
   steel_multi_business_conglomerate:
-category_mgr_share_pct_band: [25, 35]
-transactional_share_pct_band: [35, 50]
-specialist_share_pct_band: [15, 20]
-leadership_share_pct_band: [5, 10]
-notes: |
-  Conglomerate steel BUs benefit from group-level specialist sharing
-  (analytics, FBP). Specialist count appears higher because shared resources.
+    category_mgr_share_pct_band: [25, 35]
+    transactional_share_pct_band: [35, 50]
+    specialist_share_pct_band: [15, 20]
+    leadership_share_pct_band: [5, 10]
+    notes: |
+      Conglomerate steel BUs benefit from group-level specialist sharing
+      (analytics, FBP). Specialist count appears higher because shared resources.
 
 # =============================================================================
 # CRITICALITY THRESHOLDS — Steel-specific
@@ -144,8 +144,8 @@ notes: |
 
 criticality_threshold_overrides:
   emerging:
-label: "Consider (Steel emerging)"
-rationale: "Decarbonisation specialist falls here for 2025-2027 horizon"
+    label: "Consider (Steel emerging)"
+    rationale: "Decarbonisation specialist falls here for 2025-2027 horizon"
 
 # =============================================================================
 # Editable Configuration

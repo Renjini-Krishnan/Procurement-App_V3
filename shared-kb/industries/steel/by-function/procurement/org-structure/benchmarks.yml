@@ -28,158 +28,158 @@ overrides:
   # ==========================================================================
 
   - benchmark_id: org.fte_productivity.spend_per_fte_inr_cr
-reason: |
-  Steel's high raw material intensity and large per-PO ticket sizes mean
-  spend/FTE band tightens vs the cross-industry function default.
-  Integrated mills cluster around ₹40-80 Cr/FTE; mini-mills lower.
-primary:
-  source_id: WSA-2024
-  source_reference: "World Steel Association — Steel Procurement Productivity Survey 2024, §5"
-  value_range: [40, 80]
-  confidence: high
-  year: 2024
-  sample_size: "120+ global steel mills + 45 Indian mills"
-supporting:
-  - { source_id: ACN-Proc-Benchmark-DB, value_range: [40, 80], year: 2024, note: "Accenture Steel engagement portfolio aligns with WSA", confidence: high }
-  - { source_id: Hackett-2024, value_range: [45, 90], year: 2024, note: "Hackett Steel sub-cohort; slightly higher", confidence: medium }
-composite: { value_range: [40, 80] }
-drivers_explained: |
-  Steel-specific drivers:
-  - Raw material spend (iron ore, coking coal, ferro alloys) dominates; large per-PO values inflate spend/FTE
-  - Plant-distributed buying drives down per-FTE intensity at plant level; central can be very high
-  - Integrated mills vs mini-mills differ — integrated higher (more spend, not proportionally more FTE)
-applies_to_industries: [steel]
+    reason: |
+      Steel's high raw material intensity and large per-PO ticket sizes mean
+      spend/FTE band tightens vs the cross-industry function default.
+      Integrated mills cluster around ₹40-80 Cr/FTE; mini-mills lower.
+    primary:
+      source_id: WSA-2024
+      source_reference: "World Steel Association — Steel Procurement Productivity Survey 2024, §5"
+      value_range: [40, 80]
+      confidence: high
+      year: 2024
+      sample_size: "120+ global steel mills + 45 Indian mills"
+    supporting:
+      - { source_id: ACN-Proc-Benchmark-DB, value_range: [40, 80], year: 2024, note: "Accenture Steel engagement portfolio aligns with WSA", confidence: high }
+      - { source_id: Hackett-2024, value_range: [45, 90], year: 2024, note: "Hackett Steel sub-cohort; slightly higher", confidence: medium }
+    composite: { value_range: [40, 80] }
+    drivers_explained: |
+      Steel-specific drivers:
+      - Raw material spend (iron ore, coking coal, ferro alloys) dominates; large per-PO values inflate spend/FTE
+      - Plant-distributed buying drives down per-FTE intensity at plant level; central can be very high
+      - Integrated mills vs mini-mills differ — integrated higher (more spend, not proportionally more FTE)
+    applies_to_industries: [steel]
 
   - benchmark_id: org.role_composition.specialist_share_pct
-reason: |
-  Steel specialist share runs slightly LOWER than cross-industry world-class
-  because Indian Steel procurement organisations have historically
-  under-invested in dedicated specialist tracks (analytics, SRM, FBP).
-  Indicates capability gap rather than benchmark adjustment.
-primary:
-  source_id: ACN-Proc-Benchmark-DB
-  source_reference: "Indian Steel procurement organisation studies 2019-2024"
-  value_range: [10, 15]
-  confidence: high
-  year: 2024
-  sample_size: "~25 Indian Steel engagement learnings"
-supporting:
-  - { source_id: WSA-2024, value_range: [10, 18], year: 2024, note: "Global Steel; Indian Steel sits at lower end", confidence: medium }
-drivers_explained: |
-  Steel-specific specialist mix:
-  - Analytics: usually absent; deferred to Finance / shared services
-  - Contract Mgmt: present at integrated mills (1-2 FTE), absent at mini-mills
-  - SRM: typically informal; rarely a named role despite high vendor concentration
-  - FBP: usually shared with broader Finance team; not dedicated
-  - Sustainability/ESG: emerging — rarely present yet
-  - Commodity Analyst: rare despite Steel commodity exposure
-  The "lower than world-class" Steel observation is a finding, not a target —
-  recommendation typically increases specialist share toward 15-20%.
-applies_to_industries: [steel]
+    reason: |
+      Steel specialist share runs slightly LOWER than cross-industry world-class
+      because Indian Steel procurement organisations have historically
+      under-invested in dedicated specialist tracks (analytics, SRM, FBP).
+      Indicates capability gap rather than benchmark adjustment.
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      source_reference: "Indian Steel procurement organisation studies 2019-2024"
+      value_range: [10, 15]
+      confidence: high
+      year: 2024
+      sample_size: "~25 Indian Steel engagement learnings"
+    supporting:
+      - { source_id: WSA-2024, value_range: [10, 18], year: 2024, note: "Global Steel; Indian Steel sits at lower end", confidence: medium }
+    drivers_explained: |
+      Steel-specific specialist mix:
+      - Analytics: usually absent; deferred to Finance / shared services
+      - Contract Mgmt: present at integrated mills (1-2 FTE), absent at mini-mills
+      - SRM: typically informal; rarely a named role despite high vendor concentration
+      - FBP: usually shared with broader Finance team; not dedicated
+      - Sustainability/ESG: emerging — rarely present yet
+      - Commodity Analyst: rare despite Steel commodity exposure
+      The "lower than world-class" Steel observation is a finding, not a target —
+      recommendation typically increases specialist share toward 15-20%.
+    applies_to_industries: [steel]
 
   - benchmark_id: org.role_composition.transactional_share_pct
-reason: |
-  Steel transactional share runs slightly HIGHER than cross-industry due to
-  plant-distributed buying model + spec-laden POs requiring buyer time
-  even on consumables.
-primary:
-  source_id: ACN-Proc-Benchmark-DB
-  source_reference: "Indian Steel procurement role composition 2019-2024"
-  value_range: [35, 50]
-  confidence: high
-  year: 2024
-supporting:
-  - { source_id: WSA-2024, value_range: [35, 55], year: 2024, confidence: medium }
-composite: { value_range: [35, 50] }
-drivers_explained: |
-  Steel transactional inflation drivers:
-  - Plant-distributed model creates duplicate buyer roles per plant
-  - Spec-laden POs (refractory, ferro alloy spot, MRO common) absorb buyer time
-  - SSC not yet implemented at most Indian Steel mills
-applies_to_industries: [steel]
+    reason: |
+      Steel transactional share runs slightly HIGHER than cross-industry due to
+      plant-distributed buying model + spec-laden POs requiring buyer time
+      even on consumables.
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      source_reference: "Indian Steel procurement role composition 2019-2024"
+      value_range: [35, 50]
+      confidence: high
+      year: 2024
+    supporting:
+      - { source_id: WSA-2024, value_range: [35, 55], year: 2024, confidence: medium }
+    composite: { value_range: [35, 50] }
+    drivers_explained: |
+      Steel transactional inflation drivers:
+      - Plant-distributed model creates duplicate buyer roles per plant
+      - Spec-laden POs (refractory, ferro alloy spot, MRO common) absorb buyer time
+      - SSC not yet implemented at most Indian Steel mills
+    applies_to_industries: [steel]
 
   # ==========================================================================
   # THEME 3 — SPEND-FTE DISTRIBUTION — Steel overlays
   # ==========================================================================
 
   - benchmark_id: org.distribution.central_fte_share_pct
-reason: |
-  Steel sub-segments have distinct Central FTE share patterns. Integrated
-  mills (multi-plant) typically run 30-50% Central FTE; mini-mills near
-  0-30%; specialty 40-60%.
-primary:
-  source_id: WSA-2024
-  source_reference: "World Steel Association Procurement Organisation Survey 2024, §6"
-  value_range: [30, 50]
-  confidence: high
-  year: 2024
-  sample_size: "120+ global mills + 45 Indian mills"
-  sub_segment_notes: |
-    This 30-50% band applies to integrated_steel_mill_multi_plant sub-segment.
-    Other sub-segments — see spend-fte-distribution-filters.yml.
-supporting:
-  - { source_id: ACN-Proc-Benchmark-DB, value_range: [30, 50], year: 2024, confidence: high }
-composite: { value_range: [30, 50] }
-drivers_explained: |
-  Integrated steel mill Central FTE share drivers:
-  - Multi-plant operations require coordination at Central
-  - Strategic mandate (commodity sourcing) concentrates Cat Mgrs at Central
-  - Plant operations need transactional / day-to-day FTE for execution
-applies_to_industries: [steel]
-applies_to_sub_segment: integrated_steel_mill_multi_plant
+    reason: |
+      Steel sub-segments have distinct Central FTE share patterns. Integrated
+      mills (multi-plant) typically run 30-50% Central FTE; mini-mills near
+      0-30%; specialty 40-60%.
+    primary:
+      source_id: WSA-2024
+      source_reference: "World Steel Association Procurement Organisation Survey 2024, §6"
+      value_range: [30, 50]
+      confidence: high
+      year: 2024
+      sample_size: "120+ global mills + 45 Indian mills"
+      sub_segment_notes: |
+        This 30-50% band applies to integrated_steel_mill_multi_plant sub-segment.
+        Other sub-segments — see spend-fte-distribution-filters.yml.
+    supporting:
+      - { source_id: ACN-Proc-Benchmark-DB, value_range: [30, 50], year: 2024, confidence: high }
+    composite: { value_range: [30, 50] }
+    drivers_explained: |
+      Integrated steel mill Central FTE share drivers:
+      - Multi-plant operations require coordination at Central
+      - Strategic mandate (commodity sourcing) concentrates Cat Mgrs at Central
+      - Plant operations need transactional / day-to-day FTE for execution
+    applies_to_industries: [steel]
+    applies_to_sub_segment: integrated_steel_mill_multi_plant
 
   - benchmark_id: org.distribution.central_spend_share_pct
-reason: |
-  Steel integrated mills concentrate strategic spend (raw materials,
-  ferro alloys, refractories, mill rolls, logistics) at Central. Typical
-  Central spend share 55-75% — higher than Central FTE share.
-primary:
-  source_id: WSA-2024
-  source_reference: "World Steel Association Procurement Organisation Survey 2024, §6"
-  value_range: [55, 75]
-  confidence: high
-  year: 2024
-supporting:
-  - { source_id: ACN-Proc-Benchmark-DB, value_range: [55, 75], year: 2024, confidence: high }
-composite: { value_range: [55, 75] }
-drivers_explained: |
-  Integrated steel mill Central spend share drivers:
-  - Strategic commodity raw materials Central-managed
-  - High-value engineered goods (mill rolls, electrodes) Central
-  - Long-term contracts (PPA, ASU) Central
-  - Plant-local handles smaller-ticket plant-specific items
-  - Typical imbalance (spend share > FTE share by 15-25 pp) is HEALTHY — reflects strategic mandate
-applies_to_industries: [steel]
-applies_to_sub_segment: integrated_steel_mill_multi_plant
+    reason: |
+      Steel integrated mills concentrate strategic spend (raw materials,
+      ferro alloys, refractories, mill rolls, logistics) at Central. Typical
+      Central spend share 55-75% — higher than Central FTE share.
+    primary:
+      source_id: WSA-2024
+      source_reference: "World Steel Association Procurement Organisation Survey 2024, §6"
+      value_range: [55, 75]
+      confidence: high
+      year: 2024
+    supporting:
+      - { source_id: ACN-Proc-Benchmark-DB, value_range: [55, 75], year: 2024, confidence: high }
+    composite: { value_range: [55, 75] }
+    drivers_explained: |
+      Integrated steel mill Central spend share drivers:
+      - Strategic commodity raw materials Central-managed
+      - High-value engineered goods (mill rolls, electrodes) Central
+      - Long-term contracts (PPA, ASU) Central
+      - Plant-local handles smaller-ticket plant-specific items
+      - Typical imbalance (spend share > FTE share by 15-25 pp) is HEALTHY — reflects strategic mandate
+    applies_to_industries: [steel]
+    applies_to_sub_segment: integrated_steel_mill_multi_plant
 
   # ==========================================================================
   # THEME 4 — HIERARCHY & SPAN — Steel overlays
   # ==========================================================================
 
   - benchmark_id: org.hierarchy.depth_levels
-reason: |
-  Steel integrated mill typical hierarchy depth aligns with function
-  default upper edge (4-5 levels) rather than the wider band [3-5].
-  Mini-mills run flatter (3-4); conglomerates deeper (5-6).
-primary:
-  source_id: WSA-2024
-  source_reference: "World Steel Association Procurement Organisation Survey 2024, §6.2"
-  value_range: [4, 5]
-  confidence: high
-  year: 2024
-  sub_segment_notes: |
-    This 4-5 band applies to integrated_steel_mill_multi_plant.
-    Other sub-segments — see hierarchy-span-filters.yml.
-supporting:
-  - { source_id: ACN-Proc-Benchmark-DB, value_range: [4, 5], year: 2024, confidence: high }
-composite: { value_range: [4, 5] }
-drivers_explained: |
-  Integrated Steel hierarchy drivers:
-  - Multi-plant operations naturally favour 4-5 levels (CPO → DGM/AGM → Sr Mgr → Mgr → Officer)
-  - 6 levels usually signals added intermediate layer — worth questioning
-  - 3 levels too flat for integrated mill — span stretch likely
-applies_to_industries: [steel]
-applies_to_sub_segment: integrated_steel_mill_multi_plant
+    reason: |
+      Steel integrated mill typical hierarchy depth aligns with function
+      default upper edge (4-5 levels) rather than the wider band [3-5].
+      Mini-mills run flatter (3-4); conglomerates deeper (5-6).
+    primary:
+      source_id: WSA-2024
+      source_reference: "World Steel Association Procurement Organisation Survey 2024, §6.2"
+      value_range: [4, 5]
+      confidence: high
+      year: 2024
+      sub_segment_notes: |
+        This 4-5 band applies to integrated_steel_mill_multi_plant.
+        Other sub-segments — see hierarchy-span-filters.yml.
+    supporting:
+      - { source_id: ACN-Proc-Benchmark-DB, value_range: [4, 5], year: 2024, confidence: high }
+    composite: { value_range: [4, 5] }
+    drivers_explained: |
+      Integrated Steel hierarchy drivers:
+      - Multi-plant operations naturally favour 4-5 levels (CPO → DGM/AGM → Sr Mgr → Mgr → Officer)
+      - 6 levels usually signals added intermediate layer — worth questioning
+      - 3 levels too flat for integrated mill — span stretch likely
+    applies_to_industries: [steel]
+    applies_to_sub_segment: integrated_steel_mill_multi_plant
 
 # =============================================================================
 # ADDITIONS — Steel-specific benchmarks with no function-default equivalent
