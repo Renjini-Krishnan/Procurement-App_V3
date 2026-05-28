@@ -70,6 +70,11 @@ const Landing = () => {
             </span>
             <Button variant="outline" size="sm"
                     style={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }}
+                    onClick={() => navigate("/kb")}>
+              KB editor
+            </Button>
+            <Button variant="outline" size="sm"
+                    style={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }}
                     disabled={engagements.length === 0} onClick={resume}>
               Resume engagement
             </Button>

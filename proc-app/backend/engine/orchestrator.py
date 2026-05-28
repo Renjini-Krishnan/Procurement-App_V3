@@ -94,6 +94,7 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
 
     # Persist findings
     _persist_findings(engagement_id, result)
+    _record_run(engagement_id, "op-model", result)
     db.set_stage_status(engagement_id, 8, "done", {"row_count": gold_summary.get("row_count")})
     db.set_stage_status(engagement_id, 9, "done", {"unclassified_pct": classify_summary.get("unclassified_pct")})
     db.set_stage_status(engagement_id, 10, "done", {"mg_count": len(df_mg)})
@@ -231,6 +232,7 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     db.set_stage_status(engagement_id, 14, "done", {"pillar_score": result["pillar_score"]})
     db.update_engagement_stage(engagement_id, 15)
     _persist_findings_doa(engagement_id, result)
+    _record_run(engagement_id, "doa", result)
 
     return result
 
@@ -280,6 +282,7 @@ def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str 
     db.set_stage_status(engagement_id, 16, "done", {"pillar_score": result["pillar_score"]})
     db.update_engagement_stage(engagement_id, 17)
     _persist_findings_generic(engagement_id, result, "buying-channel")
+    _record_run(engagement_id, "buying-channel", result)
     return result
 
 
@@ -316,6 +319,7 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     db.set_stage_status(engagement_id, 13, "done", {"pillar_score": result["pillar_score"]})
     db.update_engagement_stage(engagement_id, 14)
     _persist_findings_generic(engagement_id, result, "org-structure")
+    _record_run(engagement_id, "org-structure", result)
     return result
 
 
@@ -416,6 +420,19 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     }
 
 
+def _record_run(engagement_id: str, pillar: str, result: dict) -> None:
+    themes = result.get("themes") or {}
+    first_theme = next(iter(themes.values()), {}) if themes else {}
+    headline = first_theme.get("headline", "") if isinstance(first_theme, dict) else ""
+    db.record_pillar_run(
+        engagement_id=engagement_id,
+        pillar=pillar,
+        pillar_score=result.get("pillar_score"),
+        theme_scores=result.get("theme_scores", {}),
+        headline=headline,
+    )
+
+
 def _persist_findings_generic(engagement_id: str, result: dict, pillar: str) -> None:
     with db.db_connection() as conn:
         conn.execute("DELETE FROM findings WHERE engagement_id = ? AND pillar = ?", (engagement_id, pillar))
@@ -432,6 +449,10 @@ def _persist_findings_generic(engagement_id: str, result: dict, pillar: str) -> 
                  theme_data.get("headline", ""), json.dumps(theme_data.get("metrics", {})),
                  json.dumps(theme_data.get("metrics", {})), None, None, json.dumps([]), ts),
             )
+
+
+def get_pillar_runs(engagement_id: str, pillar: Optional[str] = None) -> list[dict]:
+    return db.list_pillar_runs(engagement_id, pillar=pillar)
 
 
 def get_findings(engagement_id: str, pillar: Optional[str] = None) -> list[dict]:

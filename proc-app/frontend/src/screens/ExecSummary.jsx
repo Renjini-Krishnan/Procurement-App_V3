@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Badge, Callout } from "../design/components.jsx";
+import { Card, Badge, Button, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { MaturityGauge } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
@@ -128,8 +128,30 @@ const ExecSummary = () => {
       <Callout tone="info" title="Next steps" icon={<I.Arrow size={16} />}>
         Open the Findings Deck (Stage 28) for the full evidence pack, or the KPI Dashboard (Stage 30) for interactive drill-downs.
       </Callout>
+
+      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+        <Button variant="outline" onClick={() => window.print()}>Print / Save as PDF</Button>
+        <Button variant="outline" onClick={() => exportExec(data, engagement)}>Export JSON</Button>
+      </div>
     </div>
   );
+};
+
+const exportExec = (data, engagement) => {
+  const payload = {
+    engagement: { id: engagement.id, client_name: engagement.client_name, industry: engagement.industry, sub_segment: engagement.sub_segment },
+    pillar_summary: data.pillar_summary,
+    portfolio: data.portfolio,
+    kpis: data.kpis,
+    exported_at: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `procvault-exec-summary-${engagement.client_name.replace(/\s+/g, "-").toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 const avgScore = (pillars) => {

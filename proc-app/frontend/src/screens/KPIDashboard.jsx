@@ -136,6 +136,7 @@ const KPIDashboard = () => {
             view={view} setView={setView}
             count={filtered.length}
             total={data.kpis.length}
+            kpis={filtered}
           />
 
           {view === "grid" ? (
@@ -291,7 +292,7 @@ const SidebarRow = ({ active, onClick, label, right, sub, accent }) => (
 
 /* =========================================================== */
 
-const TopBar = ({ search, setSearch, sortBy, setSortBy, view, setView, count, total }) => (
+const TopBar = ({ search, setSearch, sortBy, setSortBy, view, setView, count, total, kpis }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
     <div style={{ flex: 1 }}>
       <Input
@@ -311,11 +312,34 @@ const TopBar = ({ search, setSearch, sortBy, setSortBy, view, setView, count, to
       <ToggleBtn active={view === "grid"} onClick={() => setView("grid")}>Grid</ToggleBtn>
       <ToggleBtn active={view === "list"} onClick={() => setView("list")}>List</ToggleBtn>
     </div>
+    <Button variant="outline" onClick={() => exportKpisCsv(kpis)}>Export CSV</Button>
     <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", whiteSpace: "nowrap" }}>
       {count} / {total}
     </div>
   </div>
 );
+
+const exportKpisCsv = (kpis) => {
+  const cols = ["id", "label", "pillar", "theme", "value", "unit", "band_low", "band_high", "band_meaning", "status", "delta", "benchmark_source", "benchmark_year", "benchmark_confidence", "finding"];
+  const rows = kpis.map((k) => [
+    k.id, k.label, k.pillar, k.theme, k.value, k.unit, k.band.low, k.band.high, k.band_meaning,
+    k.status, k.delta, k.benchmark.source, k.benchmark.year, k.benchmark.confidence, k.finding || "",
+  ]);
+  const csv = [cols.join(","), ...rows.map((r) => r.map(csvCell).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `procvault-kpis-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+const csvCell = (v) => {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  if (s.includes(",") || s.includes("\"") || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+};
 
 const ToggleBtn = ({ active, onClick, children }) => (
   <button

@@ -73,6 +73,18 @@ CREATE TABLE IF NOT EXISTS findings (
     FOREIGN KEY (engagement_id) REFERENCES engagements(id)
 );
 
+CREATE TABLE IF NOT EXISTS pillar_runs (
+    id TEXT PRIMARY KEY,
+    engagement_id TEXT NOT NULL,
+    pillar TEXT NOT NULL,
+    pillar_score REAL,
+    pillar_label TEXT,
+    theme_scores TEXT,                  -- JSON: {theme_id: score}
+    headline TEXT,
+    ran_at TEXT NOT NULL,
+    FOREIGN KEY (engagement_id) REFERENCES engagements(id)
+);
+
 CREATE TABLE IF NOT EXISTS qre_responses (
     engagement_id TEXT NOT NULL,
     qre_id TEXT NOT NULL,                   -- e.g., 'D2.1'
@@ -225,6 +237,58 @@ def get_stage_progress(engagement_id: str) -> dict[int, dict]:
             except Exception:
                 pass
         out[d["stage_id"]] = d
+    return out
+
+
+def record_pillar_run(engagement_id: str, pillar: str, pillar_score: dict,
+                       theme_scores: dict, headline: str = "") -> str:
+    rid = new_id()
+    ts = now_iso()
+    score_val = None
+    label = None
+    if isinstance(pillar_score, dict):
+        score_val = pillar_score.get("score")
+        label = pillar_score.get("label")
+    elif pillar_score is not None:
+        score_val = float(pillar_score)
+    theme_simple = {}
+    for k, v in (theme_scores or {}).items():
+        if isinstance(v, dict):
+            theme_simple[k] = v.get("score")
+        else:
+            theme_simple[k] = v
+    with db_connection() as conn:
+        conn.execute(
+            """INSERT INTO pillar_runs
+            (id, engagement_id, pillar, pillar_score, pillar_label, theme_scores, headline, ran_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (rid, engagement_id, pillar, score_val, label,
+             json.dumps(theme_simple), headline, ts),
+        )
+    return rid
+
+
+def list_pillar_runs(engagement_id: str, pillar: Optional[str] = None, limit: int = 50) -> list[dict]:
+    with db_connection() as conn:
+        if pillar:
+            rows = conn.execute(
+                "SELECT * FROM pillar_runs WHERE engagement_id = ? AND pillar = ? ORDER BY ran_at DESC LIMIT ?",
+                (engagement_id, pillar, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM pillar_runs WHERE engagement_id = ? ORDER BY ran_at DESC LIMIT ?",
+                (engagement_id, limit),
+            ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        if d.get("theme_scores"):
+            try:
+                d["theme_scores"] = json.loads(d["theme_scores"])
+            except Exception:
+                d["theme_scores"] = {}
+        out.append(d)
     return out
 
 

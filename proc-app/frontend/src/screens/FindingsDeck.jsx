@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Badge, Callout, Tabs } from "../design/components.jsx";
+import { Card, Badge, Button, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
@@ -18,6 +18,7 @@ const PILLAR_LABELS = {
 const FindingsDeck = () => {
   const { engagement, loading: engLoading } = useEngagement();
   const [findings, setFindings] = useState([]);
+  const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pillarTab, setPillarTab] = useState("all");
@@ -28,8 +29,14 @@ const FindingsDeck = () => {
     (async () => {
       try {
         setLoading(true); setError(null);
-        const r = await api.listFindings(engagement.id);
-        if (!cancelled) setFindings(r.findings || []);
+        const [fr, rr] = await Promise.all([
+          api.listFindings(engagement.id),
+          api.listPillarRuns(engagement.id),
+        ]);
+        if (!cancelled) {
+          setFindings(fr.findings || []);
+          setRuns(rr.runs || []);
+        }
       } catch (e) {
         if (!cancelled) setError(e.message || String(e));
       } finally {
@@ -67,14 +74,81 @@ const FindingsDeck = () => {
   return (
     <div>
       <Header />
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <Tabs items={tabItems} value={pillarTab} onChange={setPillarTab} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button variant="outline" onClick={() => exportJson(visible, `findings-${pillarTab}`)}>Export JSON</Button>
+          <Button variant="outline" onClick={() => window.print()}>Print</Button>
+        </div>
       </div>
       <div style={{ display: "grid", gap: 12 }}>
         {visible.map((f) => <FindingCard key={f.id} f={f} />)}
       </div>
+
+      {runs.length > 0 && <RunHistoryPanel runs={runs} pillarTab={pillarTab} />}
     </div>
   );
+};
+
+const RunHistoryPanel = ({ runs, pillarTab }) => {
+  const filtered = pillarTab === "all" ? runs : runs.filter((r) => r.pillar === pillarTab);
+  if (filtered.length === 0) return null;
+  // Compute deltas vs prior run per pillar
+  const byPillar = {};
+  filtered.forEach((r) => { (byPillar[r.pillar] = byPillar[r.pillar] || []).push(r); });
+  return (
+    <div style={{ marginTop: 32 }}>
+      <div style={{ fontSize: "var(--fs-14)", fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--ink-600)", marginBottom: 12 }}>
+        Run history · {filtered.length} runs
+      </div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {filtered.slice(0, 25).map((r, i) => {
+          const sameP = byPillar[r.pillar];
+          const idx = sameP.findIndex((x) => x.id === r.id);
+          const prev = sameP[idx + 1];
+          const delta = prev?.pillar_score != null && r.pillar_score != null
+            ? (r.pillar_score - prev.pillar_score).toFixed(1)
+            : null;
+          const deltaColor = delta === null ? "var(--ink-500)" : Number(delta) > 0 ? "var(--success-700)" : Number(delta) < 0 ? "var(--danger-700)" : "var(--ink-500)";
+          return (
+            <Card key={r.id} padding={14}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <Badge tone="brand">{PILLAR_LABELS[r.pillar] || r.pillar}</Badge>
+                    <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", fontFamily: "var(--font-mono)" }}>
+                      {new Date(r.ran_at).toLocaleString()}
+                    </span>
+                  </div>
+                  {r.headline && (
+                    <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-700)", marginTop: 4, lineHeight: 1.4 }}>
+                      {r.headline.slice(0, 200)}{r.headline.length > 200 ? "…" : ""}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "var(--fs-18)", fontWeight: 600 }}>{r.pillar_score?.toFixed?.(1) ?? "—"}</div>
+                  <div style={{ fontSize: "var(--fs-11)", color: deltaColor, marginTop: 2 }}>
+                    {delta === null ? "first run" : Number(delta) > 0 ? `+${delta}` : delta}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const exportJson = (data, name) => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `procvault-${name}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 const FindingCard = ({ f }) => {

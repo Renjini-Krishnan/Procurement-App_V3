@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Logo } from "../design/Logo.jsx";
 import { Badge } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { STAGES, PHASE_ORDER } from "../data/stages.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { api } from "../api/client.js";
+
+const INDUSTRIES = ["steel", "cement"];
 
 /* WorkspaceShell — left stage rail + main canvas.
    Adapted from /tmp/design_system/ds-screens.jsx WorkspaceShell pattern.
@@ -64,11 +67,7 @@ const Rail = () => {
         <div style={{ fontSize: "var(--fs-14)", fontWeight: 600, color: "var(--ink-900)" }}>
           {engagement?.client_name || "Loading…"}
         </div>
-        <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", marginTop: 2 }}>
-          {engagement
-            ? `${engagement.industry} · ${(engagement.plants || []).length} plants · ₹${engagement.annual_spend_inr_cr ?? "—"} Cr`
-            : ""}
-        </div>
+        {engagement && <IndustrySwitcher engagement={engagement} />}
       </div>
 
       {/* phases + stages */}
@@ -143,6 +142,44 @@ const Rail = () => {
         );
       })}
     </aside>
+  );
+};
+
+const IndustrySwitcher = ({ engagement }) => {
+  const [switching, setSwitching] = useState(false);
+  const switchTo = async (ind) => {
+    if (ind === engagement.industry || switching) return;
+    if (!confirm(`Switch industry to "${ind}"? Pillars will re-run with the ${ind} overlay on next visit.`)) return;
+    setSwitching(true);
+    try {
+      await api.updateEngagement(engagement.id, { ...engagement, industry: ind });
+      window.location.reload();
+    } catch (e) {
+      alert("Failed to switch: " + (e.message || e));
+      setSwitching(false);
+    }
+  };
+  return (
+    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
+        {(engagement.plants || []).length} plants · ₹{engagement.annual_spend_inr_cr ?? "—"} Cr
+      </div>
+      <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+        {INDUSTRIES.map((ind) => (
+          <button key={ind} onClick={() => switchTo(ind)} disabled={switching}
+                  style={{
+                    fontSize: "var(--fs-10)", padding: "2px 8px",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-pill)",
+                    background: engagement.industry === ind ? "var(--brand-600)" : "var(--surface-raised)",
+                    color: engagement.industry === ind ? "white" : "var(--ink-600)",
+                    cursor: switching ? "wait" : "pointer", textTransform: "uppercase", letterSpacing: "0.08em",
+                  }}>
+            {ind}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 };
 

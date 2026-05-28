@@ -88,6 +88,8 @@ export const api = {
     }),
   listFindings: (id, pillar) =>
     request(`/engagement/${id}/findings${pillar ? `?pillar=${pillar}` : ""}`),
+  listPillarRuns: (id, pillar) =>
+    request(`/engagement/${id}/pillar-runs${pillar ? `?pillar=${pillar}` : ""}`),
 
   // QRE
   getQRE: (id) => request(`/engagement/${id}/qre`),
@@ -103,4 +105,11 @@ export const api = {
   getPillarRcaRules: (pillar) => request(`/kb/pillars/${pillar}/rca-rules`),
   getPillarScoringDescriptors: (pillar) => request(`/kb/pillars/${pillar}/scoring-descriptors`),
   getPillarMd: (pillar, name) => request(`/kb/pillars/${pillar}/md/${name}`),
+
+  // KB file editor
+  listKbFiles: () => request("/kb/files/tree"),
+  readKbFile: (root, path) =>
+    request(`/kb/files/read?root=${encodeURIComponent(root)}&path=${encodeURIComponent(path)}`),
+  writeKbFile: (root, path, content) =>
+    request("/kb/files/write", { method: "POST", body: JSON.stringify({ root, path, content }) }),
 };

@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config, db, kb_loader
-from .api import engagement, health, kb, pillar, qre, upload
+from .api import engagement, health, kb, kb_files, pillar, qre, upload
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("procvault")
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(pillar.router)
     app.include_router(qre.router)
     app.include_router(kb.router)
+    app.include_router(kb_files.router)
 
     @app.on_event("startup")
     def on_startup():

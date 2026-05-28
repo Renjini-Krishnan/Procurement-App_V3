@@ -135,3 +135,10 @@ def list_findings(engagement_id: str, pillar: str = None):
     if not db.get_engagement(engagement_id):
         raise HTTPException(404, f"Engagement {engagement_id} not found")
     return {"findings": orchestrator.get_findings(engagement_id, pillar)}
+
+
+@router.get("/{engagement_id}/pillar-runs")
+def list_pillar_runs(engagement_id: str, pillar: str = None):
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    return {"runs": orchestrator.get_pillar_runs(engagement_id, pillar)}

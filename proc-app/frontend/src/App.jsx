@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./screens/Landing.jsx";
 import NewEngagement from "./screens/NewEngagement.jsx";
+import KBEditor from "./screens/KBEditor.jsx";
 import WorkspaceShell from "./screens/WorkspaceShell.jsx";
 import StagePlaceholder from "./screens/StagePlaceholder.jsx";
 import Upload from "./screens/Upload.jsx";
@@ -69,6 +70,7 @@ const App = () => (
       />
 
       <Route path="/engagement/new" element={<NewEngagement />} />
+      <Route path="/kb" element={<KBEditor />} />
       <Route path="/engagement/:engagementId" element={<Navigate to="upload" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -237,3 +237,14 @@ em.serif {
 }
 
 .mono { font-family: var(--font-mono); }
+
+/* ============================ PRINT ============================ */
+@media print {
+  aside { display: none !important; }
+  main { padding: 0 !important; }
+  button { display: none !important; }
+  details > summary { display: none; }
+  details[open] > summary + * { display: block; }
+  body { background: white !important; }
+}
+
