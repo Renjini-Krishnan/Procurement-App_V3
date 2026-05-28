@@ -1,0 +1,424 @@
+# =============================================================================
+# KPI Root Cause Library — KPI-keyed, with cross-pillar implications per band
+# =============================================================================
+# This file is the SINGLE SOURCE OF TRUTH for KPI narrative content.
+# Each per-pillar rca-rules.yml carries a kpi_implications section that
+# references entries here by KPI ID and band — never duplicates the narrative.
+#
+# Engine: backend/services/llm_prompts.py loads this file and uses each band's
+#         insight + action + benefit + pillar_implications[pillar] to construct
+#         the LLM prompt for finding narratives.
+#
+# Companion files:
+#   _meta/cross-kpi-causal-rules.yml  — multi-KPI causal rules
+#   _meta/ai-integration.md           — LLM wiring spec
+#   <pillar>/rca-rules.yml            — deterministic pillar finding rules (separate concern)
+#   <pillar>/rca-patterns.md          — pillar narrative patterns (separate concern)
+# =============================================================================
+
+metadata:
+  id: kpi-rca-library
+  layer: function
+  function: procurement
+  version: 1.0
+  source: "User-provided reference (carried forward from prior Procurement Assessment App)"
+  score_scale: "1=Foundation, 2=Developing, 3=Performing, 4=Leading"
+
+# =============================================================================
+# Each KPI:
+#   label / unit / direction
+#   bands: { 1, 2, 3, 4 } each with insight + action + benefit + pillar_implications
+#   pillars_affected: flat list of pillar IDs this KPI implicates
+#   ai_causal_rules: KPI-specific rules for LLM prompts
+# =============================================================================
+
+kpis:
+
+  # ==========================================================================
+  tat_pr_to_po:
+    label: "TAT (Procurement Cycle Time)"
+    unit: days
+    direction: lower_is_better
+    pillars_affected: [op-model, buying-channel, doa, org-structure]
+    bands:
+      1:
+        insight: "TAT significantly exceeds benchmark — severe bottlenecks in PR-to-PO cycle. Caused by manual approvals, sequential routing, lack of policy clarity."
+        action: "Implement parallel digital approval workflows; enforce TAT SLAs per category; deploy structured escalation matrix for overdue PRs."
+        benefit: "40-60% TAT reduction; buyer bandwidth freed for strategic sourcing; reduction in emergency procurement."
+        pillar_implications:
+          op-model:       "Process inefficiency in PR-to-PO handoff signals weak central operations function or unstandardised workflows across plants."
+          buying-channel: "Slow contracting drives users to spot buying; RC pipeline starves, perpetuating low contract coverage."
+          doa:            "Approval depth + sequential routing is the most likely structural driver; DoA simplification has direct TAT impact."
+          org-structure:  "Buyer bandwidth consumed by chase + expediting rather than category strategy; transactional ratio too high."
+      2:
+        insight: "TAT above benchmark — process inefficiencies in approvals or PR-to-PO handoff push buyers toward reactive procurement."
+        action: "Streamline multi-level approval hierarchies; introduce category-based fast-track channels for standard items; track TAT by category in live dashboard."
+        benefit: "20-35% TAT reduction; improved RC utilisation."
+        pillar_implications:
+          op-model:       "Process partially defined but not enforced uniformly — central guardrails needed."
+          buying-channel: "Channel discipline patchy; fast-track for high-frequency MGs the easiest win."
+          doa:            "Some delegation in place but layers can be collapsed for low-risk categories."
+          org-structure:  "Role design mostly OK; transactional workload still elevated."
+      3:
+        insight: "TAT at or near benchmark — solid but pockets of delay likely in specific categories or plants."
+        action: "Category-level TAT drill-down to identify outliers; extend fast-track channels to remaining categories."
+        benefit: "10-15% further reduction; reduced exception handling."
+        pillar_implications:
+          op-model:       "Operations mature; refine through analytics-driven exception management."
+          buying-channel: "Channel mix mostly right; close remaining gaps in mid-tier categories."
+          doa:            "DoA largely effective; targeted simplification on outlier categories."
+          org-structure:  "Productivity respectable; further uplift via deeper specialisation."
+      4:
+        insight: "Best-in-class TAT — well-optimised."
+        action: "Maintain; explore predictive PR triggers."
+        benefit: "Sustained competitive advantage."
+        pillar_implications:
+          op-model:       "Mature; institutionalise learnings."
+          buying-channel: "Channel discipline embedded."
+          doa:            "Lean approval chain; monitor for creep."
+          org-structure:  "FTE productivity at top quartile."
+    ai_causal_rules:
+      - if: { qre_match: "DoA is manual", kpi: "approval_tat", state: "high" }
+        root_cause: "Manual DoA driving {value}d approval TAT"
+      - if: { copilot_match: "too many approval layers", kpi: "pr_approval_tat", state: "high" }
+        root_cause: "Excessive approval depth driving PR TAT"
+      - guardrail: "High TAT can mean approval depth, ERP bottlenecks, vendor lead times, specification complexity — only cite the one(s) evidenced in data or QRE."
+
+  # ==========================================================================
+  savings_over_lpo:
+    label: "Savings over LPO"
+    unit: percent
+    direction: higher_is_better
+    pillars_affected: [op-model, buying-channel, org-structure]
+    bands:
+      1:
+        insight: "Below benchmark — limited competitive sourcing; buyers accepting repeat prices without negotiation or market testing."
+        action: "Mandate competitive RFQs for all non-RC spend above threshold; deploy should-cost modelling for key categories; track savings realisation in dashboard."
+        benefit: "2-4% incremental savings on addressable spend."
+        pillar_implications:
+          op-model:       "Sourcing not a measured operating motion; CoE absent or under-resourced."
+          buying-channel: "Spot purchases at face value — no contract-driven price discipline."
+          org-structure:  "Buyers lack negotiation capability or should-cost discipline."
+      2:
+        insight: "Some sourcing rigour but lacks rigour in high-spend categories."
+        action: "Category strategies for top 10 spend categories; introduce e-auctions for commodities; build savings pipeline tracker."
+        benefit: "1-2% incremental improvement."
+        pillar_implications:
+          op-model:       "Patchy CoE; top categories still leak."
+          buying-channel: "Coverage growing in standard categories; high-value still spot."
+          org-structure:  "Capability uneven across category teams."
+      3:
+        insight: "Near benchmark — category strategies in place but value leakage in tail spend."
+        action: "Extend category strategy coverage to mid-tier spend; vendor benchmarking; tighten compliance to contracted prices."
+        benefit: "0.5-1% incremental savings on tail."
+        pillar_implications:
+          op-model:       "Mature CoE; tail discipline the next frontier."
+          buying-channel: "Tail spend escaping channel governance."
+          org-structure:  "Capability strong on top categories; extend to tail."
+      4:
+        insight: "Best-in-class."
+        action: "Institutionalise savings methodology; explore TCO, demand management."
+        benefit: "Shift from cost reduction to value creation."
+        pillar_implications:
+          op-model:       "Mature; reinvest savings effort into TCO + demand."
+          buying-channel: "Sustained discipline."
+          org-structure:  "Top-tier capability."
+    ai_causal_rules:
+      - guardrail: "Negative Savings over LPO can result from market price inflation, emergency/urgency buying, specification creep, supplier concentration, or poor contract compliance. Do NOT default to 'low RC adoption causes poor savings' without category-level evidence showing the same categories have both low RC AND poor savings simultaneously."
+
+  # ==========================================================================
+  spend_per_fte:
+    label: "Spend per FTE"
+    unit: inr_cr_per_fte
+    direction: higher_is_better
+    pillars_affected: [org-structure, op-model, buying-channel]
+    bands:
+      1:
+        insight: "Significantly below benchmark — over-staffing relative to spend managed, excessive transactional workload, or fragmented team structure."
+        action: "FTE benchmarking and role redesign; shift transactional workload to automation and shared services; restructure teams around category ownership."
+        benefit: "15-25% productivity improvement; potential FTE redeployment to strategic sourcing."
+        pillar_implications:
+          org-structure: "Primary driver — FTE sizing and role design need redesign."
+          op-model:      "Lack of shared services / automation forces transactional load on category teams."
+          buying-channel: "Low RC + catalogue coverage drives transactional PO volume."
+      2:
+        insight: "Below benchmark — buyers spending significant time on low-value transactional activities."
+        action: "Automate PO creation for RCs and catalogues; introduce procurement bots for standard approvals; realign roles toward category management."
+        benefit: "10-20% productivity uplift per FTE."
+        pillar_implications:
+          org-structure: "Role composition transactional-heavy."
+          op-model:      "SSC / automation underdeveloped."
+          buying-channel: "RC + catalogue coverage building but incomplete."
+      3:
+        insight: "Near benchmark — acceptable but opportunity to shift more time to high-value activities."
+        action: "Increase RC coverage and catalogue buying to reduce transactional POs; invest in buyer upskilling."
+        benefit: "10% further improvement."
+        pillar_implications:
+          org-structure: "Sizing close to right; productivity uplift through upskilling."
+          op-model:      "Operations decent; refine through automation."
+          buying-channel: "Most coverage in place."
+      4:
+        insight: "Best-in-class."
+        action: "Maintain through continuous automation; benchmark against global leaders."
+        benefit: "Sustained leadership."
+        pillar_implications:
+          org-structure: "Top-tier sizing + role design."
+          op-model:      "Automation mature."
+          buying-channel: "Channel discipline embedded."
+
+  # ==========================================================================
+  rc_adoption:
+    label: "RC Adoption (Rate Contract %)"
+    unit: percent
+    direction: higher_is_better
+    pillars_affected: [buying-channel, op-model, org-structure]
+    bands:
+      1:
+        insight: "Very low — most procurement spot-based; price volatility, high TAT, poor vendor consolidation."
+        action: "Identify top 20 spend categories for RC conversion; negotiate multi-year framework agreements; enforce channel compliance through system controls."
+        benefit: "30-50% of spot spend converted to RC; immediate TAT reduction and price stability."
+        pillar_implications:
+          buying-channel: "Primary — channel mix dominated by spot; contracting programme absent or vestigial."
+          op-model:      "No central category function driving framework agreements."
+          org-structure: "Category management roles missing or under-resourced — no owner for RC build-out."
+      2:
+        insight: "Below benchmark — significant share remains spot despite opportunity."
+        action: "Expand RC coverage to next tier of categories; implement buying channel policy with system enforcement."
+        benefit: "20-30% increase in RC coverage; improved price predictability."
+        pillar_implications:
+          buying-channel: "Coverage building; mid-tier categories still spot."
+          op-model:      "Partial centralisation; CoE supporting but not driving."
+          org-structure: "Category roles exist but underweight."
+      3:
+        insight: "Near benchmark — framework agreements widely used but gaps in certain categories or BUs."
+        action: "Close gaps through targeted category RC negotiations; monitor RC utilisation vs leakage."
+        benefit: "10-15% further increase."
+        pillar_implications:
+          buying-channel: "Mature contract programme; targeted close-out."
+          op-model:      "CoE driving leverage."
+          org-structure: "Category function effective; specialisation deepening."
+      4:
+        insight: "Best-in-class."
+        action: "Maintain and refresh RC contracts; explore demand aggregation across sites."
+        benefit: "Continued price stability and low TAT."
+        pillar_implications:
+          buying-channel: "Channel discipline at top quartile."
+          op-model:      "Centralisation effective."
+          org-structure: "Mature category roles."
+    ai_causal_rules:
+      - if: { qre_match: "category management is reactive / no category strategies", kpi: "rc_adoption", state: "low" }
+        root_cause: "No category strategies driving RC gap"
+
+  # ==========================================================================
+  otd:
+    label: "On-Time Delivery (OTD)"
+    unit: percent
+    direction: higher_is_better
+    pillars_affected: [post-po, supplier, buying-channel, doa]
+    bands:
+      1:
+        insight: "Well below benchmark — poor supply chain reliability; production disruptions, emergency procurement, high expediting costs."
+        action: "Implement vendor scorecards with OTD as a key metric; delivery performance clauses in contracts; real-time PO tracking."
+        benefit: "15-20% improvement in OTD within 6 months; reduction in emergency PR incidence."
+        pillar_implications:
+          post-po:        "Primary — post-PO follow-up + expediting weak or unowned."
+          supplier:       "Vendor performance management absent; no scorecards or escalation."
+          buying-channel: "Contracts lack delivery performance clauses; spot buys lack lead-time buffer."
+          doa:            "Emergency PO approval routes overused — DoA allowing easy spot bypass."
+      2:
+        insight: "Below benchmark — vendor performance variability impacting operations."
+        action: "Segment vendors by performance; escalate with chronic underperformers; build buffer stock strategy for critical materials."
+        benefit: "10-15% OTD improvement; reduced expediting."
+        pillar_implications:
+          post-po:        "Some tracking exists; segmentation + escalation missing."
+          supplier:       "Scorecards exist but not acted on."
+          buying-channel: "Mid-tier categories with no contract enforcement."
+          doa:            "Emergency POs above policy threshold."
+      3:
+        insight: "Near benchmark — generally acceptable but some suppliers need improvement."
+        action: "Focus vendor development on bottom-quartile suppliers; collaborative forecasting for key vendors."
+        benefit: "5-8% OTD improvement."
+        pillar_implications:
+          post-po:        "Mature post-PO ops; tail-end vendors the issue."
+          supplier:       "Performance management in place; deepen development."
+          buying-channel: "Discipline solid; specific contract clauses to refresh."
+          doa:            "Emergency PO frequency tolerable."
+      4:
+        insight: "Best-in-class."
+        action: "Extend supply assurance programs; reward top performers with preferred supplier status."
+        benefit: "Sustained reliability."
+        pillar_implications:
+          post-po:        "Best-in-class operations."
+          supplier:       "Top-tier supplier relationship management."
+          buying-channel: "Discipline embedded."
+          doa:            "Minimal emergency routes."
+    ai_causal_rules:
+      - if: { org_chart_lacks: ["SRM", "VPM"], kpi: "vendor_otd", state: "low" }
+        root_cause: "No accountable SRM role — vendor performance is unowned"
+
+  # ==========================================================================
+  supplier_defect_rate:
+    label: "Supplier Defect Rate"
+    unit: percent
+    direction: lower_is_better
+    pillars_affected: [supplier, post-po, material-master, buying-channel]
+    bands:
+      1:
+        insight: "Significantly above benchmark — poor incoming quality, weak vendor qualification, absence of quality specs in contracts."
+        action: "Incoming quality inspection for top vendors; tighten quality clauses in contracts; vendor development programs."
+        benefit: "40-60% reduction in defect-related rework and rejection costs."
+        pillar_implications:
+          supplier:        "Primary — vendor qualification and development weak."
+          post-po:         "Incoming inspection inadequate."
+          material-master: "Specifications loose or absent."
+          buying-channel:  "Contracts lack quality clauses or acceptance criteria."
+      2:
+        insight: "Above benchmark — quality issues increasing rework, returns, indirect costs."
+        action: "Vendor quality audits; quality KPIs in vendor scorecards; mandatory corrective action plans."
+        benefit: "20-40% reduction."
+        pillar_implications:
+          supplier:        "Scorecards exist; audit + corrective action programs missing."
+          post-po:         "Inspection partial."
+          material-master: "Specs improving but inconsistent."
+          buying-channel:  "Some quality clauses; not enforced."
+      3:
+        insight: "Near benchmark — functioning but pockets of supplier non-conformance."
+        action: "Focus on specific material groups or vendors; tighten acceptance criteria for critical materials."
+        benefit: "10-20% further reduction."
+        pillar_implications:
+          supplier:        "Mature; close gaps."
+          post-po:         "Inspection effective; refine."
+          material-master: "Specs strong on critical materials."
+          buying-channel:  "Discipline solid."
+      4:
+        insight: "Best-in-class."
+        action: "Extend quality programs to new vendors; explore zero-defect certifications."
+        benefit: "Continued quality advantage; potential inspection cost reduction."
+        pillar_implications:
+          supplier:        "Top tier."
+          post-po:         "Optimised."
+          material-master: "Specs rigorous."
+          buying-channel:  "Discipline embedded."
+
+  # ==========================================================================
+  sourcing_tool_usage:
+    label: "Sourcing Tool Usage (Digital Procurement %)"
+    unit: percent
+    direction: higher_is_better
+    pillars_affected: [op-model, org-structure, buying-channel]
+    bands:
+      1:
+        insight: "Very low — most sourcing manual (phone/email RFQs); audit gaps, process inefficiency, lost negotiation data."
+        action: "Deploy or optimise e-sourcing platform (Ariba/Jaggaer/equivalent); mandate digital RFQs for all above-threshold events; buyer adoption training."
+        benefit: "30-50% of sourcing events digitised within 6 months; full audit trail."
+        pillar_implications:
+          op-model:       "Primary — sourcing not a measured digital motion."
+          org-structure:  "Buyer capability gap on e-sourcing tools."
+          buying-channel: "No structured RFQ-to-contract flow."
+      2:
+        insight: "Tool deployed but adoption partial — limiting ROI on technology investment."
+        action: "Increase mandatory digital sourcing threshold compliance; gamify adoption metrics; address usability barriers."
+        benefit: "20-30% increase in utilisation; improved data quality."
+        pillar_implications:
+          op-model:       "Tool in place; enforcement weak."
+          org-structure:  "Adoption uneven across teams."
+          buying-channel: "RFQ flow partial."
+      3:
+        insight: "Growing but full coverage not achieved."
+        action: "Close remaining gap by extending tool use to indirect and services categories."
+        benefit: "10-15% further coverage."
+        pillar_implications:
+          op-model:       "Mature; extend remit."
+          org-structure:  "Capability strong on direct; build indirect."
+          buying-channel: "Discipline solid on bulk; refine for services."
+      4:
+        insight: "Best-in-class."
+        action: "Explore advanced analytics on sourcing data; integrate AI-driven supplier recommendations."
+        benefit: "Continued digital leadership."
+        pillar_implications:
+          op-model:       "Top tier."
+          org-structure:  "Capability mature."
+          buying-channel: "Discipline embedded."
+    ai_causal_rules:
+      - if: { qre_match: "no formal capability assessment", kpi: "sourcing_tool_usage", state: "low" }
+        root_cause: "Capability gap driving low digital adoption"
+
+  # ==========================================================================
+  pac_single_vendor:
+    label: "PAC / Single-Vendor PRs"
+    unit: percent
+    direction: lower_is_better
+    pillars_affected: [buying-channel, doa, supplier]
+    bands:
+      1:
+        insight: "Very high — systemic lack of competitive procurement; high concentration risk."
+        action: "Audit PAC justifications; tighten approval requirements for sole-source; develop alternate sources for top PAC categories; report PAC% monthly to leadership."
+        benefit: "20-30% reduction in PAC spend; improved competition and price discovery."
+        pillar_implications:
+          buying-channel: "Primary — channel selection compromised; competitive procurement under-applied."
+          doa:            "PAC justification gate too permissive — DoA bypass route default for sole-source."
+          supplier:       "Vendor concentration risk; alternate-source pipeline absent."
+      2:
+        insight: "Above benchmark — competitive procurement not consistently applied."
+        action: "Mandatory alternate vendor identification for sole-source items; track and challenge PAC approvals in category reviews."
+        benefit: "10-20% reduction."
+        pillar_implications:
+          buying-channel: "Some categories disciplined; PAC creep in others."
+          doa:            "Gate exists but lenient."
+          supplier:       "Alternate sources patchy."
+      3:
+        insight: "Near benchmark — single-source risk managed but can be reduced."
+        action: "Expand approved vendor lists for key categories; periodic PAC audits."
+        benefit: "5-10% further reduction."
+        pillar_implications:
+          buying-channel: "Mature; targeted reduction."
+          doa:            "Gate effective."
+          supplier:       "Alternates managed."
+      4:
+        insight: "Minimal PAC — competitive sourcing well-institutionalised."
+        action: "Maintain vendor development programs; monitor for new sole-source creep."
+        benefit: "Continued competitive advantage."
+        pillar_implications:
+          buying-channel: "Top tier."
+          doa:            "Gate disciplined."
+          supplier:       "Alternates institutionalised."
+
+  # ==========================================================================
+  tail_spend:
+    label: "Tail Spend %"
+    unit: percent
+    direction: lower_is_better
+    pillars_affected: [op-model, buying-channel, org-structure]
+    bands:
+      1:
+        insight: "Very high (>40% of PO lines below INR 1 Lakh) — excessive transactional clutter, manual spot buys, poor buying channel discipline."
+        action: "Set mandatory minimum PO value policy; route low-value items to catalogue or P-card; consolidate tail vendors into blanket agreements."
+        benefit: "30-50% reduction in low-value PO transactions; significant buyer time freed."
+        pillar_implications:
+          op-model:       "Primary — tail spend programme absent."
+          buying-channel: "Channel discipline weak for low-value MGs."
+          org-structure:  "Buyers consumed by tail transactions; strategic capacity starved."
+      2:
+        insight: "Above benchmark — significant share of PO lines are low-value; administrative burden and procurement risk."
+        action: "Expand catalogue coverage for standard consumables; introduce P-card or petty cash for sub-threshold purchases."
+        benefit: "20-30% reduction in tail PO lines."
+        pillar_implications:
+          op-model:       "Programme exists; coverage incomplete."
+          buying-channel: "Catalogue growing."
+          org-structure:  "Transactional load moderating."
+      3:
+        insight: "Near benchmark — governance mostly in place but pockets of low-value spot buying."
+        action: "Targeted catalogue onboarding for recurring low-value categories."
+        benefit: "10-15% further reduction."
+        pillar_implications:
+          op-model:       "Mature; close residual gaps."
+          buying-channel: "Discipline solid."
+          org-structure:  "Productivity respectable."
+      4:
+        insight: "Minimal tail spend — buying channel discipline strong."
+        action: "Maintain catalogue and framework coverage; monitor for new tail-spend creep in indirect categories."
+        benefit: "Sustained transactional efficiency."
+        pillar_implications:
+          op-model:       "Top tier."
+          buying-channel: "Discipline embedded."
+          org-structure:  "Productivity optimised."

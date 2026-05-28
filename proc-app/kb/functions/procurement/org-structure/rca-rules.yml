@@ -347,3 +347,38 @@ rules:
 # Confidence level: MEDIUM.
 # Rule additions informed by real engagement learnings. Quarterly review.
 # =============================================================================
+
+
+# =============================================================================
+# KPI IMPLICATIONS
+# =============================================================================
+# Cross-references KPIs from _meta/kpi-rca-library.yml that have direct
+# implications for the Org Structure pillar.
+# =============================================================================
+
+kpi_implications:
+
+  - kpi_id: spend_per_fte
+    central_library_ref: kpi-rca-library#spend_per_fte
+    pillar_specific_note: "PRIMARY KPI for this pillar. FTE Sizing & Role Composition theme directly evaluates this — over-staffing or transactional-heavy roles surface here."
+    primary_kpi: true
+
+  - kpi_id: tat_pr_to_po
+    central_library_ref: kpi-rca-library#tat_pr_to_po
+    pillar_specific_note: "High TAT consumes buyer bandwidth in chase + expediting rather than category strategy. Role design with too much transactional weight perpetuates the problem."
+
+  - kpi_id: savings_over_lpo
+    central_library_ref: kpi-rca-library#savings_over_lpo
+    pillar_specific_note: "Buyers lack negotiation capability or should-cost discipline when sourcing-strong roles are absent. Hierarchy & Span theme assesses category-team specialisation."
+
+  - kpi_id: rc_adoption
+    central_library_ref: kpi-rca-library#rc_adoption
+    pillar_specific_note: "Category management roles missing or under-resourced — no owner for RC build-out. Organisation Posture + Hierarchy themes evaluate this."
+
+  - kpi_id: sourcing_tool_usage
+    central_library_ref: kpi-rca-library#sourcing_tool_usage
+    pillar_specific_note: "Buyer capability gap on e-sourcing tools. Role composition + capability assessment surfaces this."
+
+  - kpi_id: tail_spend
+    central_library_ref: kpi-rca-library#tail_spend
+    pillar_specific_note: "Buyers consumed by tail transactions starve strategic capacity. FTE Sizing theme should call out the bandwidth drain."

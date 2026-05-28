@@ -422,14 +422,29 @@ def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame,
             spark = po_spark[-12:] if po_spark else []
         else:
             spark = []
-        # Generate finding
-        finding = ""
+        # Generate finding — LLM where available, deterministic template fallback
+        finding_template = ""
         if d.get("finding_template"):
             try:
                 args = d.get("finding_args", lambda r: {})(pillar_results[d["pillar"]])
-                finding = d["finding_template"].format(value=value, **args)
+                finding_template = d["finding_template"].format(value=value, **args)
             except Exception:
                 pass
+
+        finding = finding_template
+        # LLM enrichment — opt-in via env var (off by default to keep KPI dashboard fast)
+        import os
+        if os.environ.get("PROCVAULT_LLM_FINDINGS", "0") in ("1", "true", "yes"):
+            try:
+                from ..services import llm, llm_prompts
+                prompt, fallback = llm_prompts.finding_narrative(
+                    kpi_id=d["id"], pillar=d["pillar"], value=value, unit=d["unit"],
+                    status=status, band_low=band["low"], band_high=band["high"],
+                    delta=delta, finding_template=finding_template,
+                )
+                finding = llm.generate_text(prompt, fallback)
+            except Exception:
+                finding = finding_template
 
         kpis.append({
             "id": d["id"],

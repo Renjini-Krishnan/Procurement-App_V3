@@ -344,3 +344,54 @@ rules:
 # Rule additions should be informed by real engagement learnings.
 # Quarterly review with engagement consultants recommended.
 # =============================================================================
+
+
+# =============================================================================
+# KPI IMPLICATIONS
+# =============================================================================
+# Cross-references KPIs from _meta/kpi-rca-library.yml that have direct
+# implications for the Buying Channel pillar. Full narrative + score-band
+# guidance lives in the central library — this section is a lookup index
+# with pillar-specific commentary.
+#
+# Reference format:  central_library_ref: kpi-rca-library#<kpi_id>
+# =============================================================================
+
+kpi_implications:
+
+  - kpi_id: tat_pr_to_po
+    central_library_ref: kpi-rca-library#tat_pr_to_po
+    pillar_specific_note: "High TAT pushes users to spot buying — RC pipeline starves and contracted % stagnates. When BC1 contracted% is low AND TAT is high in the same MGs, attribute the BC finding partly to the TAT-driven flight from contracting."
+    triggered_by_findings: [r01_very_low_contracted_pct, r12_contracted_but_high_tat]
+
+  - kpi_id: savings_over_lpo
+    central_library_ref: kpi-rca-library#savings_over_lpo
+    pillar_specific_note: "Spot purchases at face value — no contract-driven price discipline. Tie BC findings on missing RC coverage to savings opportunity in the same categories."
+    triggered_by_findings: [r01_very_low_contracted_pct, r03_bulk_mostly_spot]
+
+  - kpi_id: rc_adoption
+    central_library_ref: kpi-rca-library#rc_adoption
+    pillar_specific_note: "PRIMARY KPI for this pillar. BC1 contracted-spend% IS the RC adoption metric. Score-band narrative from central library is the canonical headline."
+    triggered_by_findings: [r01_very_low_contracted_pct, r02_contract_field_population_low, r05_catalogue_opportunity_unrealised, r06_ola_opportunity_unrealised]
+    primary_kpi: true
+
+  - kpi_id: pac_single_vendor
+    central_library_ref: kpi-rca-library#pac_single_vendor
+    pillar_specific_note: "BC8 sole-source risk + BC9 PAC justified — both fed by this KPI. Channel selection is compromised when PAC% is high."
+    triggered_by_findings: [r09_high_pac_concentration, r10_single_vendor_critical_direct]
+
+  - kpi_id: tail_spend
+    central_library_ref: kpi-rca-library#tail_spend
+    pillar_specific_note: "Tail spend escapes channel governance. BC5 misrouted-MG count correlates with low-value PO discipline gap."
+    triggered_by_findings: [r05_catalogue_opportunity_unrealised, r06_ola_opportunity_unrealised]
+
+  - kpi_id: otd
+    central_library_ref: kpi-rca-library#otd
+    pillar_specific_note: "Contracts lack delivery performance clauses; spot buys lack lead-time buffer. Tie BC findings on contract robustness to OTD where post-PO data exists."
+    triggered_by_findings: []   # Post-PO pillar V2 — V1 has no triggers
+    available_in: v2
+
+  - kpi_id: sourcing_tool_usage
+    central_library_ref: kpi-rca-library#sourcing_tool_usage
+    pillar_specific_note: "No structured RFQ-to-contract flow degrades BC4 recommendation quality."
+    triggered_by_findings: []   # Implicit — no specific BC rule

@@ -432,3 +432,41 @@ rules:
 # Rule additions should be informed by real engagement learnings.
 # Quarterly review with engagement consultants recommended.
 # =============================================================================
+
+
+# =============================================================================
+# KPI IMPLICATIONS
+# =============================================================================
+# Cross-references KPIs from _meta/kpi-rca-library.yml that have direct
+# implications for the Op Model pillar. Narrative + score-band guidance
+# lives in the central library — this section is a lookup index with
+# pillar-specific commentary.
+# =============================================================================
+
+kpi_implications:
+
+  - kpi_id: tat_pr_to_po
+    central_library_ref: kpi-rca-library#tat_pr_to_po
+    pillar_specific_note: "Process inefficiency in PR-to-PO handoff signals weak central operations function or unstandardised workflows across plants. Centralisation theme directly addresses this."
+
+  - kpi_id: savings_over_lpo
+    central_library_ref: kpi-rca-library#savings_over_lpo
+    pillar_specific_note: "Sourcing not a measured operating motion; CoE absent or under-resourced. CoE + Centralisation themes are the structural levers."
+
+  - kpi_id: spend_per_fte
+    central_library_ref: kpi-rca-library#spend_per_fte
+    pillar_specific_note: "Lack of shared services / automation forces transactional load on category teams — Shared Services theme is the lever."
+
+  - kpi_id: rc_adoption
+    central_library_ref: kpi-rca-library#rc_adoption
+    pillar_specific_note: "No central category function driving framework agreements — Centralisation maturity directly governs RC adoption ceiling."
+
+  - kpi_id: sourcing_tool_usage
+    central_library_ref: kpi-rca-library#sourcing_tool_usage
+    pillar_specific_note: "PRIMARY responsibility — sourcing not a measured digital motion. CoE theme should own e-sourcing platform rollout."
+    primary_kpi: true
+
+  - kpi_id: tail_spend
+    central_library_ref: kpi-rca-library#tail_spend
+    pillar_specific_note: "PRIMARY responsibility — Tail Spend theme directly addresses this KPI. Channel + catalogue programmes are the operating levers."
+    primary_kpi: true

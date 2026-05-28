@@ -225,8 +225,32 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
     by_col = {m["raw_column"]: m for m in matches}
     matches = [by_col[c] for c in raw_columns if c in by_col]
 
+    # Optional LLM enrichment — opt-in via env (heuristic is excellent on seeds;
+    # LLM mainly helps on noisy real-world client headers).
+    import os
+    if os.environ.get("PROCVAULT_LLM_COLMAP", "0") in ("1", "true", "yes"):
+        try:
+            from ..services import llm, llm_prompts
+            prompt, fallback = llm_prompts.column_mapping(
+                raw_columns=raw_columns, canonical_fields=schema["fields"],
+                heuristic_mapping=matches, file_type=file_type,
+            )
+            llm_result = llm.generate_json(prompt, fallback)
+            if isinstance(llm_result, list) and len(llm_result) == len(raw_columns):
+                matches = [
+                    {
+                        "raw_column": m.get("raw_column", raw_columns[i]),
+                        "suggested_field": m.get("suggested_field"),
+                        "confidence": m.get("confidence", "low"),
+                        "match_reason": m.get("reasoning", "LLM suggestion"),
+                    }
+                    for i, m in enumerate(llm_result)
+                ]
+        except Exception:
+            pass  # keep heuristic matches
+
     required_fields = {f["field"] for f in schema["fields"] if f["required"]}
-    mapped_canonical_set = set(matched_canonical.keys())
+    mapped_canonical_set = {m["suggested_field"] for m in matches if m.get("suggested_field")}
     missing_required = sorted(required_fields - mapped_canonical_set)
 
     return {

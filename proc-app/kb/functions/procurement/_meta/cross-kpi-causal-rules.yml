@@ -1,0 +1,42 @@
+# =============================================================================
+# Cross-KPI Causal Rules — multi-KPI linkages with evidence guardrails
+# =============================================================================
+# Hard-coded in the AI prompt for narrative generation. These linkages are
+# only valid when category / vendor drilldown shows the same entities driving
+# both gaps simultaneously. Blanket cross-KPI claims are forbidden.
+#
+# Engine: backend/services/llm_prompts.py composes these rules into the LLM
+#         prompt for finding + exec-summary narratives.
+# =============================================================================
+
+metadata:
+  id: cross-kpi-causal-rules
+  layer: function
+  function: procurement
+  version: 1.0
+
+rules:
+
+  - id: tat_x_rc
+    signals: [tat_high, rc_low]
+    valid_only_when: "Same categories have both poor TAT AND no contract"
+    forbidden_claim: "Low RC causes high TAT without naming the category"
+    pillar_anchors: [buying-channel, op-model, doa]
+
+  - id: savings_x_rc
+    signals: [savings_low, rc_low]
+    valid_only_when: "Same categories have both low RC AND negative savings (cite both percentages)"
+    forbidden_claim: "Low RC adoption causes poor savings as a blanket statement"
+    pillar_anchors: [buying-channel, op-model]
+
+  - id: pac_x_otd
+    signals: [pac_high, otd_low]
+    valid_only_when: "Same vendors appear in both PAC and poor OTD drilldown"
+    forbidden_claim: "PAC causes OTD issues without vendor-level proof"
+    pillar_anchors: [buying-channel, supplier, post-po]
+
+  - id: sourcing_x_savings
+    signals: [sourcing_tool_low, savings_low]
+    valid_only_when: "Same categories sourced manually AND showing poor savings"
+    forbidden_claim: "Tool usage drives savings without category-level overlap"
+    pillar_anchors: [op-model, buying-channel]

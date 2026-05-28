@@ -93,3 +93,28 @@ rules:
     root_causes: []
     confidence: high
     references: {pattern: rca-pat-doa-08, recommendation: rec-doa-continuous-improvement}
+
+
+# =============================================================================
+# KPI IMPLICATIONS
+# =============================================================================
+# Cross-references KPIs from _meta/kpi-rca-library.yml that have direct
+# implications for the DoA pillar.
+# =============================================================================
+
+kpi_implications:
+
+  - kpi_id: tat_pr_to_po
+    central_library_ref: kpi-rca-library#tat_pr_to_po
+    pillar_specific_note: "PRIMARY linkage — Approval depth + sequential routing is the most likely structural driver of TAT. DoA simplification has direct TAT impact. When QRE confirms manual DoA AND TAT is high, this attribution is supported."
+    primary_kpi: true
+
+  - kpi_id: pac_single_vendor
+    central_library_ref: kpi-rca-library#pac_single_vendor
+    pillar_specific_note: "PAC justification gate too permissive — DoA bypass route default for sole-source. System enforcement theme governs this."
+
+  - kpi_id: otd
+    central_library_ref: kpi-rca-library#otd
+    pillar_specific_note: "Emergency PO approval routes overused indicate DoA allowing easy spot bypass under urgency. Tighten emergency gate."
+    available_in: v2
+

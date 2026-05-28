@@ -1,0 +1,109 @@
+# =============================================================================
+# KPI Calculation Rules — machine-readable thresholds + lists
+# =============================================================================
+# Companion to kpi-calculation-rules.md (which carries the full rationale).
+# Edit either via the in-app KB editor; engines re-load on save.
+# =============================================================================
+
+metadata:
+  id: kpi-calculation-rules
+  layer: function
+  function: procurement
+  version: 1.0
+
+tat:
+  dedup: { by: PO_Number, agg_dates: min }
+  outlier:
+    method: iqr_upper_fence
+    multiplier: 1.5
+    drop_negatives_and_zero: true
+    minimum_rows_after_trim: 10
+  date_priority:
+    - "PR_Release_Date + PO_Creation_Date in PO dump"
+    - "Join PO + PR dump on PR_Reference = PR_Number"
+    - "Pre-computed TAT column (warn user)"
+
+savings_over_lpo:
+  method: monthly_avg_price_delta
+  formula: "(prior_month_avg - latest_month_avg) / prior_month_avg"
+  min_months: 2
+  lpo_priority:
+    - "LPO_Price column"
+    - "Most recent prior purchase of same material within 2 years"
+    - "Unit: Net_Price or Net_Price_Per_Unit"
+
+rc_adoption:
+  exclusion_list_case_insensitive:
+    - "non arc"
+    - "non-arc"
+    - "no"
+    - "none"
+    - "n/a"
+    - "na"
+    - "0"
+    - "no contract"
+    - "spot"
+    - "open po"
+    - "non-rc"
+    - "nonrc"
+    - "non rc"
+  fallback_po_type_codes:
+    rc:   [LP, LPA, WK, MK, KA, framework, RC, blanket]
+    spot: [NB]
+
+tail_spend:
+  threshold_inr_per_line: 100000
+  threshold_label: "INR 1 Lakh"
+  metric: pct_po_lines_below_threshold
+  unit_detection:
+    - if: "column_name contains 'cr' or 'crore'"
+      then: multiply_by_1e7
+    - elif: "median_of_positive_values < 10"
+      then: multiply_by_1e7
+    - else: raw_inr
+
+otd:
+  denominator: pos_with_gr_date_only
+  grace_period_days: 0
+  partial_delivery: not_on_time
+  rule: "gr_date <= delivery_date AND gr_quantity >= po_quantity"
+
+spend_unit_detection:
+  method: sum_based
+  bands:
+    - if: "sum >= 1e7"
+      treat_as: raw_inr
+      divisor: 1e7
+    - if: "sum >= 1e5"
+      treat_as: thousands
+      divisor: 1e5
+    - else: already_in_crore
+  preprocessing:
+    - strip_commas_from_strings   # "1,23,456" -> 123456
+
+pac:
+  binary_flag_column_priority:
+    - pac_flag
+    - pac_pr
+    - pac
+    - single_source_flag
+    - PAC_Flag
+    - PAC
+  text_columns_scanned: [Short_Text, PR_Text, Remarks, Reason]
+  text_match: "PAC (uppercase)"
+  yes_values: [yes, y, true, "1", pac, "single source", "sole source"]
+  denominator: unique_po_numbers
+
+column_alias_resolution:
+  fallback_order:
+    - col_map_override
+    - exact_match_case_sensitive
+    - case_insensitive_match
+    - underscore_space_normalised
+    - jsw_alias_list
+  fail_mode: "KPI marked available=false; UI shows em-dash"
+
+outlier_general:
+  principle: upper_fence_only
+  do_not_drop_fast_values: true
+  rationale: "Fast TATs / good performance are real. Only drop the slow tail (data quality issues)."
