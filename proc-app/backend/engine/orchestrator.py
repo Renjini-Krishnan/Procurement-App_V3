@@ -103,6 +103,66 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     return result
 
 
+def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
+    """Stage 8 + 9 + 10 only — pre-pillar gold/classify/portfolio view.
+    Used by Stage 9 (Categorisation), Stage 10 (KPIs), Stage 11 (Primer)."""
+    t0 = time.time()
+    df_gold = gold_data.build_gold_dataframe(upload_id)
+    gold_summary = gold_data.summarise(df_gold)
+    df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    classify_summary = stage9_classify.summarise(df_classified)
+    df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    portfolio = stage10_kpis.portfolio_summary(df_mg)
+
+    # Per-archetype breakdown with spend Cr
+    by_arch = {}
+    for arch, info in portfolio.get("by_archetype", {}).items():
+        by_arch[arch] = {
+            "mg_count": info["mg_count"],
+            "total_spend_inr_cr": round(info["total_spend_inr"] / 1e7, 1),
+            "spend_share_pct": round(info["spend_share_pct"], 1),
+        }
+
+    # Top categories by spend (per-MG table)
+    keep_cols = ["material_group", "material_group_desc", "archetype",
+                 "total_spend_inr", "po_count", "po_count_6mo", "distinct_months",
+                 "avg_po_value", "vendor_count", "top_vendor_share_pct",
+                 "plant_count", "contracted_pct", "pac_pct"]
+    keep_cols = [c for c in keep_cols if c in df_mg.columns]
+    top_mg = df_mg.nlargest(50, "total_spend_inr")[keep_cols].copy()
+    top_mg["total_spend_inr_cr"] = (top_mg["total_spend_inr"] / 1e7).round(2)
+    per_mg_table = top_mg.to_dict(orient="records")
+
+    db.set_stage_status(engagement_id, 8, "done", {"row_count": gold_summary.get("row_count")})
+    db.set_stage_status(engagement_id, 9, "done", {"unclassified_pct": classify_summary.get("unclassified_pct")})
+    db.set_stage_status(engagement_id, 10, "done", {"mg_count": len(df_mg)})
+
+    return {
+        "engagement_id": engagement_id,
+        "upload_id": upload_id,
+        "industry": industry,
+        "gold_summary": gold_summary,
+        "classify_summary": classify_summary,
+        "portfolio_summary": portfolio,
+        "by_archetype": by_arch,
+        "per_mg_table": per_mg_table,
+        "mg_count": len(df_mg),
+        "timings_seconds": {"total": round(time.time() - t0, 2)},
+    }
+
+
+def _load_qre(engagement_id: str) -> dict:
+    """Return QRE for engagement: DB-stored if any, else seed template."""
+    stored = db.get_qre_responses(engagement_id)
+    if stored and any(r.get("score") is not None for r in stored):
+        return {"responses": [r for r in stored if r.get("score") is not None]}
+    from pathlib import Path
+    seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
+    if seed.exists():
+        return json.loads(seed.read_text())
+    return {"responses": []}
+
+
 def _persist_findings(engagement_id: str, result: dict) -> None:
     """Persist a small set of high-level findings to the findings table for later
     UI retrieval. V1 stores theme-level headlines + key metrics."""
@@ -154,13 +214,9 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     timings["stage10_kpis"] = round(time.time() - t2, 2)
     t3 = time.time()
 
-    # Default QRE: load seed if not provided
+    # Default QRE: prefer DB, fall back to seed
     if qre_responses is None:
-        from pathlib import Path
-        import json
-        seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
-        if seed.exists():
-            qre_responses = json.loads(seed.read_text())
+        qre_responses = _load_qre(engagement_id)
 
     result = run_doa(df_classified, df_mg, qre_responses)
     timings["stage14_doa"] = round(time.time() - t3, 2)
@@ -241,12 +297,9 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
     timings["stage10_kpis"] = round(time.time() - t2, 2)
 
-    # Load QRE seed if not provided
+    # Load QRE: prefer DB, fall back to seed
     if qre_responses is None:
-        from pathlib import Path
-        seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
-        if seed.exists():
-            qre_responses = json.loads(seed.read_text())
+        qre_responses = _load_qre(engagement_id)
 
     engagement = db.get_engagement(engagement_id) or {}
 
@@ -308,12 +361,9 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     bc_result = run_buying_channel(df_classified, df_mg, industry=industry)
     timings["buying_channel"] = round(time.time() - t4, 2)
 
-    # Load QRE
+    # Load QRE: prefer DB, fall back to seed
     if qre_responses is None:
-        from pathlib import Path
-        seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
-        if seed.exists():
-            qre_responses = json.loads(seed.read_text())
+        qre_responses = _load_qre(engagement_id)
     engagement = db.get_engagement(engagement_id) or {}
 
     # Org Structure

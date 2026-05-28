@@ -11,6 +11,7 @@ export const STAGES = [
   { id: 4,  phase: "Diagnostic", name: "Data Upload",       slug: "upload",            status: "todo" },
   { id: 5,  phase: "Diagnostic", name: "AI Validation",     slug: "ai-validation",     status: "todo" },
   { id: 6,  phase: "Diagnostic", name: "User Validation",   slug: "user-validation",   status: "todo" },
+  { id: 15, phase: "Diagnostic", name: "QRE",               slug: "qre",               status: "todo" },
   { id: 7,  phase: "Diagnostic", name: "Bronze Data",       slug: "bronze-data",       status: "todo" },
   { id: 8,  phase: "Diagnostic", name: "Gold Data",         slug: "gold-data",         status: "todo" },
 
@@ -28,8 +29,8 @@ export const STAGES = [
   { id: 22, phase: "Analyze",    name: "Supplier",          slug: "supplier",          status: "todo", locked: true },
 
   // Output phase (28-30)
-  { id: 28, phase: "Output",     name: "Findings deck",     slug: "findings-deck",     status: "todo", locked: true },
-  { id: 29, phase: "Output",     name: "Exec summary",      slug: "exec-summary",      status: "todo", locked: true },
+  { id: 28, phase: "Output",     name: "Findings deck",     slug: "findings-deck",     status: "todo" },
+  { id: 29, phase: "Output",     name: "Exec summary",      slug: "exec-summary",      status: "todo" },
   { id: 30, phase: "Output",     name: "KPI dashboard",     slug: "kpi-dashboard",     status: "todo" },
 ];
 

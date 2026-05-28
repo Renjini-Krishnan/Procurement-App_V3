@@ -111,6 +111,25 @@ def run_kpi_dashboard(engagement_id: str, payload: RunPillarRequest):
     return result
 
 
+@router.post("/{engagement_id}/run-intel")
+def run_intel(engagement_id: str, payload: RunPillarRequest):
+    """Stage 8/9/10 intel (no pillar). Used by Stage 9, 10, 11 screens."""
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    upload = upload_service.get_upload(payload.upload_id)
+    if not upload or upload.get("engagement_id") != engagement_id:
+        raise HTTPException(404, "Upload not found for this engagement")
+    try:
+        return orchestrator.run_intel(
+            engagement_id=engagement_id,
+            upload_id=payload.upload_id,
+            industry=payload.industry,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Intel run failed: {e}")
+
+
 @router.get("/{engagement_id}/findings")
 def list_findings(engagement_id: str, pillar: str = None):
     if not db.get_engagement(engagement_id):

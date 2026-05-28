@@ -42,6 +42,14 @@ def get_engagement(engagement_id: str):
     return EngagementResponse(**eng)
 
 
+@router.patch("/{engagement_id}", response_model=EngagementResponse)
+def update_engagement(engagement_id: str, payload: EngagementCreate):
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    updated = db.update_engagement(engagement_id, payload.model_dump())
+    return EngagementResponse(**updated)
+
+
 @router.get("/{engagement_id}/stages")
 def get_stages(engagement_id: str):
     eng = db.get_engagement(engagement_id)

@@ -1,14 +1,39 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../design/components.jsx";
+import { Button, Card, Badge } from "../design/components.jsx";
 import { Logo } from "../design/Logo.jsx";
 import { I } from "../design/icons.jsx";
+import { api } from "../api/client.js";
+import { STAGES } from "../data/stages.js";
 
 /* Landing — adapted from /tmp/design_system/ds-screens.jsx LandingScreen.
    Indigo direction; hero "Run a maturity assessment in DAYS, not weeks." */
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [engagements, setEngagements] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await api.listEngagements();
+        setEngagements(list);
+      } catch {
+        setEngagements([]);
+      } finally {
+        setLoadingList(false);
+      }
+    })();
+  }, []);
+
+  const resume = () => {
+    if (engagements.length > 0) {
+      const e = engagements[0];
+      const stage = STAGES.find((s) => s.id === e.current_stage_id) || STAGES.find((s) => s.slug === "upload");
+      navigate(`/engagement/${e.id}/${stage.slug}`);
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface-page)", padding: 32 }}>
@@ -40,8 +65,12 @@ const Landing = () => {
         <div style={{ position: "relative", display: "flex", alignItems: "center", padding: "22px 32px" }}>
           <Logo inverted />
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: "var(--fs-13)", opacity: 0.7 }}>Renjini · Steel</span>
-            <Button variant="outline" size="sm" style={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }}>
+            <span style={{ fontSize: "var(--fs-13)", opacity: 0.7 }}>
+              {engagements.length} engagement{engagements.length === 1 ? "" : "s"}
+            </span>
+            <Button variant="outline" size="sm"
+                    style={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }}
+                    disabled={engagements.length === 0} onClick={resume}>
               Resume engagement
             </Button>
           </div>
@@ -120,6 +149,8 @@ const Landing = () => {
                 variant="outline"
                 size="lg"
                 style={{ color: "white", borderColor: "rgba(255,255,255,0.4)" }}
+                disabled={engagements.length === 0}
+                onClick={resume}
               >
                 Resume last session
               </Button>
@@ -162,6 +193,13 @@ const Landing = () => {
         </div>
       </div>
 
+      {/* engagement list */}
+      {!loadingList && engagements.length > 0 && (
+        <div style={{ maxWidth: 1200, margin: "48px auto 0 auto" }}>
+          <EngagementList engagements={engagements} navigate={navigate} />
+        </div>
+      )}
+
       {/* below-hero placeholder for principles / how-it-works */}
       <div style={{ maxWidth: 1200, margin: "48px auto" }}>
         <Principles />
@@ -169,6 +207,41 @@ const Landing = () => {
     </div>
   );
 };
+
+const EngagementList = ({ engagements, navigate }) => (
+  <div>
+    <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.18em", color: "var(--ink-500)", marginBottom: 16 }}>
+      Your engagements
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+      {engagements.map((e) => {
+        const stage = STAGES.find((s) => s.id === e.current_stage_id);
+        return (
+          <Card key={e.id} padding={20} style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/engagement/${e.id}/${stage?.slug || "upload"}`)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <div style={{ fontSize: "var(--fs-16)", fontWeight: 600, color: "var(--ink-900)" }}>
+                {e.client_name}
+              </div>
+              <Badge tone="brand">{e.industry}</Badge>
+            </div>
+            <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", marginBottom: 12 }}>
+              {e.sub_segment?.replace(/_/g, " ") || "—"}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
+              <div><span style={{ color: "var(--ink-500)" }}>Spend</span><br/>₹{e.annual_spend_inr_cr || "—"} Cr</div>
+              <div><span style={{ color: "var(--ink-500)" }}>FTEs</span><br/>{e.fte_count || "—"}</div>
+              <div style={{ gridColumn: "span 2", marginTop: 6 }}>
+                <span style={{ color: "var(--ink-500)" }}>Current stage</span><br/>
+                <span style={{ color: "var(--brand-700)", fontWeight: 500 }}>{stage?.name || `Stage ${e.current_stage_id}`}</span>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  </div>
+);
 
 const Stat = ({ label, value }) => (
   <div>

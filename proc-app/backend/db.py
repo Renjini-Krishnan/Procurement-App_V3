@@ -73,6 +73,19 @@ CREATE TABLE IF NOT EXISTS findings (
     FOREIGN KEY (engagement_id) REFERENCES engagements(id)
 );
 
+CREATE TABLE IF NOT EXISTS qre_responses (
+    engagement_id TEXT NOT NULL,
+    qre_id TEXT NOT NULL,                   -- e.g., 'D2.1'
+    area TEXT,
+    question TEXT,
+    required INTEGER DEFAULT 0,
+    score INTEGER,                          -- 1..4
+    evidence TEXT,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (engagement_id, qre_id),
+    FOREIGN KEY (engagement_id) REFERENCES engagements(id)
+);
+
 CREATE TABLE IF NOT EXISTS engagement_overrides (
     engagement_id TEXT NOT NULL,
     key TEXT NOT NULL,                      -- e.g., "benchmark.opmodel.centralisation.savings_rate"
@@ -163,6 +176,29 @@ def list_engagements() -> list[dict]:
     return out
 
 
+def update_engagement(engagement_id: str, fields: dict) -> Optional[dict]:
+    """Patch-update engagement core profile fields."""
+    allowed = {"client_name", "industry", "sub_segment", "plants",
+               "annual_spend_inr_cr", "annual_revenue_inr_cr", "fte_count"}
+    sets, vals = [], []
+    for k, v in fields.items():
+        if k not in allowed: continue
+        if k == "plants":
+            sets.append("plants = ?")
+            vals.append(json.dumps(v or []))
+        else:
+            sets.append(f"{k} = ?")
+            vals.append(v)
+    if not sets:
+        return get_engagement(engagement_id)
+    sets.append("updated_at = ?")
+    vals.append(now_iso())
+    vals.append(engagement_id)
+    with db_connection() as conn:
+        conn.execute(f"UPDATE engagements SET {', '.join(sets)} WHERE id = ?", vals)
+    return get_engagement(engagement_id)
+
+
 def update_engagement_stage(engagement_id: str, stage_id: int) -> None:
     with db_connection() as conn:
         conn.execute(
@@ -189,6 +225,46 @@ def get_stage_progress(engagement_id: str) -> dict[int, dict]:
             except Exception:
                 pass
         out[d["stage_id"]] = d
+    return out
+
+
+def upsert_qre_responses(engagement_id: str, responses: list[dict]) -> int:
+    """Bulk-upsert QRE responses."""
+    ts = now_iso()
+    with db_connection() as conn:
+        for r in responses:
+            conn.execute(
+                """INSERT INTO qre_responses
+                (engagement_id, qre_id, area, question, required, score, evidence, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(engagement_id, qre_id) DO UPDATE SET
+                  area = excluded.area, question = excluded.question,
+                  required = excluded.required, score = excluded.score,
+                  evidence = excluded.evidence, updated_at = excluded.updated_at""",
+                (engagement_id, r["id"], r.get("area"), r.get("question"),
+                 1 if r.get("required") else 0, r.get("score"),
+                 r.get("evidence"), ts),
+            )
+    return len(responses)
+
+
+def get_qre_responses(engagement_id: str) -> list[dict]:
+    with db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM qre_responses WHERE engagement_id = ? ORDER BY qre_id",
+            (engagement_id,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        out.append({
+            "id": d["qre_id"],
+            "area": d["area"],
+            "question": d["question"],
+            "required": bool(d["required"]),
+            "score": d["score"],
+            "evidence": d["evidence"],
+        })
     return out
 
 

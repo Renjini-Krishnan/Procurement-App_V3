@@ -411,9 +411,31 @@ const KPIList = ({ kpis, onSelect }) => (
 
 /* =========================================================== */
 
+const computeStatus = (v, band, meaning) => {
+  if (v === null || v === undefined) return "unknown";
+  if (meaning === "higher_is_better") return v >= band.low ? "in" : "under";
+  if (meaning === "lower_is_better") return v <= band.high ? "in" : "over";
+  if (v < band.low) return "under";
+  if (v > band.high) return "over";
+  return "in";
+};
+
 const Drawer = ({ kpi, onClose, engagementId }) => {
+  const [overrideLow, setOverrideLow] = useState(kpi.band.low);
+  const [overrideHigh, setOverrideHigh] = useState(kpi.band.high);
+  useEffect(() => { setOverrideLow(kpi.band.low); setOverrideHigh(kpi.band.high); }, [kpi.id]);
+
+  const liveBand = { low: Number(overrideLow), high: Number(overrideHigh) };
+  const liveStatus = computeStatus(kpi.value, liveBand, kpi.band_meaning);
+  const liveMeta = STATUS_META[liveStatus];
+  const bandDirty = liveBand.low !== kpi.band.low || liveBand.high !== kpi.band.high;
+
   const meta = STATUS_META[kpi.status];
   const navTo = PILLAR_META[kpi.pillar]?.stageUrl;
+  const deepLink = navTo
+    ? `/engagement/${engagementId}/${navTo}?theme=${encodeURIComponent(kpi.theme)}&metric=${encodeURIComponent(kpi.drill_down.metric_key)}`
+    : null;
+
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 50 }} />
@@ -476,6 +498,22 @@ const Drawer = ({ kpi, onClose, engagementId }) => {
           </div>
         </div>
 
+        {/* Band override (preview-only — not yet persisted) */}
+        <div style={{ marginTop: 16 }}>
+          <SectionLabel>Band override (preview)</SectionLabel>
+          <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, alignItems: "center" }}>
+            <Input type="number" value={overrideLow} onChange={(e) => setOverrideLow(e.target.value)} />
+            <Input type="number" value={overrideHigh} onChange={(e) => setOverrideHigh(e.target.value)} />
+            <StatusPill status={liveStatus} />
+          </div>
+          {bandDirty && (
+            <div style={{ marginTop: 8, padding: 8, background: "var(--warn-50)", color: "var(--warn-700)", borderRadius: "var(--r-md)", fontSize: "var(--fs-12)" }}>
+              Preview only — persisted band overrides are Build 2. To make this permanent today, edit{" "}
+              <code style={{ fontFamily: "var(--font-mono)" }}>kb/functions/procurement/{kpi.pillar}/benchmarks.yml</code>.
+            </div>
+          )}
+        </div>
+
         <div style={{ marginTop: 16 }}>
           <SectionLabel>Drill-down reference</SectionLabel>
           <div style={{ marginTop: 6, fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)", color: "var(--ink-600)", background: "var(--surface-sunk)", padding: 10, borderRadius: "var(--r-md)" }}>
@@ -486,9 +524,9 @@ const Drawer = ({ kpi, onClose, engagementId }) => {
         </div>
 
         <div style={{ marginTop: 20, display: "flex", gap: 8 }}>
-          {navTo && (
-            <Button onClick={() => { window.location.href = `/engagement/${engagementId}/${navTo}`; }}>
-              Open {PILLAR_META[kpi.pillar]?.label}
+          {deepLink && (
+            <Button onClick={() => { window.location.href = deepLink; }}>
+              Open {PILLAR_META[kpi.pillar]?.label} · {kpi.theme}
             </Button>
           )}
           <Button variant="secondary" onClick={onClose}>Close</Button>

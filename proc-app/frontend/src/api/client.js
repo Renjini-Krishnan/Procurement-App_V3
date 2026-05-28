@@ -29,6 +29,7 @@ export const api = {
   createEngagement: (data) => request("/engagement", { method: "POST", body: JSON.stringify(data) }),
   listEngagements: () => request("/engagement"),
   getEngagement: (id) => request(`/engagement/${id}`),
+  updateEngagement: (id, data) => request(`/engagement/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   getStages: (id) => request(`/engagement/${id}/stages`),
   setStageStatus: (id, stageId, payload) =>
     request(`/engagement/${id}/stages/${stageId}`, { method: "POST", body: JSON.stringify(payload) }),
@@ -80,8 +81,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ upload_id: uploadId, industry }),
     }),
+  runIntel: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-intel`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
   listFindings: (id, pillar) =>
     request(`/engagement/${id}/findings${pillar ? `?pillar=${pillar}` : ""}`),
+
+  // QRE
+  getQRE: (id) => request(`/engagement/${id}/qre`),
+  saveQRE: (id, responses) =>
+    request(`/engagement/${id}/qre`, { method: "POST", body: JSON.stringify({ responses }) }),
 
   // KB
   getStagesKB: () => request("/kb/stages"),

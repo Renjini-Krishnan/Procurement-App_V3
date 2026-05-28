@@ -1,9 +1,10 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { Logo } from "../design/Logo.jsx";
 import { Badge } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { STAGES, PHASE_ORDER } from "../data/stages.js";
+import { useEngagement } from "../hooks/useEngagement.js";
 
 /* WorkspaceShell — left stage rail + main canvas.
    Adapted from /tmp/design_system/ds-screens.jsx WorkspaceShell pattern.
@@ -23,7 +24,9 @@ const STATUS_DOT = (s) => {
 
 const Rail = () => {
   const loc = useLocation();
+  const { engagementId } = useParams();
   const activeSlug = loc.pathname.split("/").pop();
+  const { engagement } = useEngagement();
 
   return (
     <aside
@@ -59,10 +62,12 @@ const Rail = () => {
           Engagement
         </div>
         <div style={{ fontSize: "var(--fs-14)", fontWeight: 600, color: "var(--ink-900)" }}>
-          Demo Steel Mill
+          {engagement?.client_name || "Loading…"}
         </div>
         <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", marginTop: 2 }}>
-          Steel · 3 plants · ₹5,000 Cr
+          {engagement
+            ? `${engagement.industry} · ${(engagement.plants || []).length} plants · ₹${engagement.annual_spend_inr_cr ?? "—"} Cr`
+            : ""}
         </div>
       </div>
 
@@ -90,7 +95,7 @@ const Rail = () => {
               {stages.map((s) => {
                 const isActive = activeSlug === s.slug;
                 const isLocked = !!s.locked;
-                const target = isLocked ? "#" : `/engagement/demo/${s.slug}`;
+                const target = isLocked ? "#" : `/engagement/${engagementId}/${s.slug}`;
                 return (
                   <Link
                     key={s.id}
