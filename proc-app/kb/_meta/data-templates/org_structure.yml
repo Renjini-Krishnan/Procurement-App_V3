@@ -1,0 +1,92 @@
+file_type: ORG_STRUCTURE
+label: Organisation Structure (Procurement HR roster)
+source_template: Client HR export
+description: |
+  Procurement function headcount, reporting lines, role/grade, location.
+  Unlocks real Org Structure scoring (currently QRE-driven in V1):
+  spend-per-FTE, role-composition mix, span-of-control, hierarchy depth.
+
+fields:
+  - field: employee_id
+    aliases: [Employee_ID, Emp ID, EmpCode, Personnel Number, PERNR]
+    type: string
+    required: true
+    description: Unique employee identifier.
+
+  - field: employee_name
+    aliases: [Employee_Name, Name, Full Name]
+    type: string
+    required: false
+    description: Employee name (PII — anonymise on export).
+
+  - field: role_title
+    aliases: [Role, Role Title, Designation, Job Title, Position]
+    type: string
+    required: true
+    description: Role/position title. Used for role-composition mix.
+
+  - field: role_grade
+    aliases: [Grade, Band, Job Grade, Level]
+    type: string
+    required: true
+    description: Internal grade/band. Used for hierarchy depth.
+
+  - field: reports_to
+    aliases: [Manager_ID, Reports_To, Reports To, Supervisor ID]
+    type: string
+    required: true
+    description: Manager's employee_id. Used for span-of-control + hierarchy depth.
+
+  - field: function
+    aliases: [Function, Department, Org Unit, ORGEH]
+    type: string
+    required: true
+    description: Procurement / SCM / Finance / etc.
+
+  - field: sub_function
+    aliases: [Sub_Function, Sub-Function, Vertical, Category Team]
+    type: string
+    required: false
+    description: Direct procurement / Indirect / Services / CoE / etc.
+
+  - field: plant
+    aliases: [Plant, Location, Plant Code, Office]
+    type: string
+    required: true
+    description: Plant / office location. Used for centre-vs-plant split.
+
+  - field: hire_date
+    aliases: [Hire_Date, Joining Date, Date of Joining, EINDT_HR]
+    type: date
+    required: false
+    description: Joining date. Used for tenure analysis.
+
+  - field: ctc_inr_lakhs
+    aliases: [CTC, Annual CTC, Compensation, Cost to Company]
+    type: number
+    required: false
+    description: Annual CTC in INR Lakhs. Used for cost-per-buyer benchmark (sensitive).
+
+  - field: fte_factor
+    aliases: [FTE, FTE Factor, Allocation]
+    type: number
+    required: false
+    description: FTE allocation (1.0 = full-time; <1.0 if part-time / shared).
+
+  - field: employment_type
+    aliases: [Employment_Type, Type, Permanent_Contract]
+    type: string
+    required: false
+    description: Permanent / Contract / Consultant / Trainee.
+
+  - field: status
+    aliases: [Status, Active Flag, Employee Status]
+    type: string
+    required: true
+    description: Active / Resigned / On-leave.
+
+  - field: skill_specialisation
+    aliases: [Specialisation, Skills, Category Specialisation]
+    type: string
+    required: false
+    description: Category / commodity / specialisation focus area.

@@ -1,0 +1,86 @@
+file_type: PR
+label: Purchase Requisition (PR) Dump
+source_template: Accenture Client Pack v10
+fields:
+- field: pr_number
+  aliases:
+  - PR_Number
+  - PR Number
+  - BANFN
+  type: string
+  required: true
+  description: Unique PR document number. Join key to PO.
+- field: pr_item
+  aliases:
+  - PR_Item
+  - PR Item
+  type: integer
+  required: true
+  description: PR line item number.
+- field: pr_creation_date
+  aliases:
+  - PR_Creation_Date
+  - PR Creation Date
+  type: date
+  required: true
+  description: Date the PR was raised.
+- field: plant
+  aliases:
+  - Plant
+  - Plant Code
+  type: string
+  required: true
+  description: Requesting plant.
+- field: purchase_group
+  aliases:
+  - Purchase_Group
+  - Purchase Group
+  - Purch. Group
+  type: string
+  required: true
+  description: Assigned buyer group.
+- field: material_group
+  aliases:
+  - Material_Group
+  - Material Group
+  - MATKL
+  type: string
+  required: true
+  description: Material group code.
+- field: pr_release_date
+  aliases:
+  - PR_Release_Date
+  - PR Release Date
+  type: date
+  required: true
+  description: Date the PR was approved / released.
+- field: pr_requisitioner
+  aliases:
+  - PR_Requisitioner_Name
+  - Requisitioner
+  - PR_Requestor
+  type: string
+  required: false
+  description: Person who raised the PR.
+- field: pr_total_value
+  aliases:
+  - PR_Total_Value
+  - PR Total Value
+  type: number
+  required: false
+  description: Total estimated PR value.
+- field: delivery_date
+  aliases:
+  - Delivery_Date
+  - Required Date
+  type: date
+  required: false
+  description: Required delivery date.
+- field: pr_approver
+  aliases:
+  - PR_Approver
+  - PR Approver
+  - Approver
+  type: string
+  required: false
+  description: Final approver name/ID. Used for DoA compliance.

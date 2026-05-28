@@ -106,9 +106,9 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
 
 def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
     """Stage 8 + 9 + 10 only — pre-pillar gold/classify/portfolio view.
-    Used by Stage 9 (Categorisation), Stage 10 (KPIs), Stage 11 (Primer)."""
+    Used by Stage 7 (Bronze report), 9 (Categorisation), 10 (KPIs), 11 (Primer)."""
     t0 = time.time()
-    df_gold = gold_data.build_gold_dataframe(upload_id)
+    df_gold, cleansing_report = gold_data.build_gold_dataframe_with_report(upload_id)
     gold_summary = gold_data.summarise(df_gold)
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
     classify_summary = stage9_classify.summarise(df_classified)
@@ -148,6 +148,7 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         "by_archetype": by_arch,
         "per_mg_table": per_mg_table,
         "mg_count": len(df_mg),
+        "cleansing_report": cleansing_report,
         "timings_seconds": {"total": round(time.time() - t0, 2)},
     }
 
@@ -387,8 +388,18 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
         "org-structure": org_result,
         "doa": doa_result,
     }
+    # Record each pillar run for comparison history
+    for pid, pres in pillar_results.items():
+        _record_run(engagement_id, pid, pres)
+
     t7 = time.time()
-    kpis = kpi_calculator.assemble_kpis(pillar_results, df_classified)
+    # Pull engagement-level overrides for KPI bands
+    override_rows = db.get_overrides(engagement_id)
+    band_overrides = {}
+    for row in override_rows:
+        if row.get("override_type") == "kpi_band":
+            band_overrides[row["key"]] = row["value"]
+    kpis = kpi_calculator.assemble_kpis(pillar_results, df_classified, overrides=band_overrides)
     timings["kpi_assemble"] = round(time.time() - t7, 2)
 
     # Pillar-level summaries (for sidebar counts)

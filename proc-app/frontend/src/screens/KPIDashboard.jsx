@@ -522,18 +522,34 @@ const Drawer = ({ kpi, onClose, engagementId }) => {
           </div>
         </div>
 
-        {/* Band override (preview-only — not yet persisted) */}
+        {/* Band override — persists per engagement */}
         <div style={{ marginTop: 16 }}>
-          <SectionLabel>Band override (preview)</SectionLabel>
+          <SectionLabel>Band override {kpi.band_overridden && "· active"}</SectionLabel>
           <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, alignItems: "center" }}>
             <Input type="number" value={overrideLow} onChange={(e) => setOverrideLow(e.target.value)} />
             <Input type="number" value={overrideHigh} onChange={(e) => setOverrideHigh(e.target.value)} />
             <StatusPill status={liveStatus} />
           </div>
-          {bandDirty && (
-            <div style={{ marginTop: 8, padding: 8, background: "var(--warn-50)", color: "var(--warn-700)", borderRadius: "var(--r-md)", fontSize: "var(--fs-12)" }}>
-              Preview only — persisted band overrides are Build 2. To make this permanent today, edit{" "}
-              <code style={{ fontFamily: "var(--font-mono)" }}>kb/functions/procurement/{kpi.pillar}/benchmarks.yml</code>.
+          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+            <Button disabled={!bandDirty} onClick={async () => {
+              try {
+                await api.upsertOverride(engagementId, kpi.id,
+                  { low: liveBand.low, high: liveBand.high }, "kpi_band");
+                alert("Saved. Reload the dashboard to recompute statuses.");
+              } catch (e) { alert("Save failed: " + (e.message || e)); }
+            }}>Save override</Button>
+            {kpi.band_overridden && (
+              <Button variant="outline" onClick={async () => {
+                try {
+                  await api.deleteOverride(engagementId, kpi.id);
+                  alert("Override cleared. Reload to recompute.");
+                } catch (e) { alert("Failed: " + (e.message || e)); }
+              }}>Clear override</Button>
+            )}
+          </div>
+          {kpi.band_default && (kpi.band_default.low !== liveBand.low || kpi.band_default.high !== liveBand.high) && (
+            <div style={{ marginTop: 6, fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+              Default band: {kpi.band_default.low}–{kpi.band_default.high}
             </div>
           )}
         </div>

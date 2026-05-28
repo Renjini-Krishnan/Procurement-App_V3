@@ -32,6 +32,7 @@ export const STAGES = [
   { id: 28, phase: "Output",     name: "Findings deck",     slug: "findings-deck",     status: "todo" },
   { id: 29, phase: "Output",     name: "Exec summary",      slug: "exec-summary",      status: "todo" },
   { id: 30, phase: "Output",     name: "KPI dashboard",     slug: "kpi-dashboard",     status: "todo" },
+  { id: 31, phase: "Output",     name: "Run comparison",    slug: "comparison",        status: "todo" },
 ];
 
 export const PHASE_ORDER = ["Diagnostic", "Analyze", "Output"];

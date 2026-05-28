@@ -23,6 +23,7 @@ import OrgStructure from "./screens/OrgStructure.jsx";
 import FindingsDeck from "./screens/FindingsDeck.jsx";
 import ExecSummary from "./screens/ExecSummary.jsx";
 import KPIDashboard from "./screens/KPIDashboard.jsx";
+import Comparison from "./screens/Comparison.jsx";
 
 /* Map stage slug → real screen component (when one exists).
    Stages without a real component fall through to StagePlaceholder. */
@@ -46,6 +47,7 @@ const STAGE_SCREENS = {
   "findings-deck": FindingsDeck,
   "exec-summary": ExecSummary,
   "kpi-dashboard": KPIDashboard,
+  comparison: Comparison,
 };
 
 const StageRouter = () => {

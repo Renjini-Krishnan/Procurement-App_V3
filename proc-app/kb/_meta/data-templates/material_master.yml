@@ -1,0 +1,91 @@
+file_type: MATERIAL_MASTER
+label: Material Master
+source_template: Accenture Client Pack v10 / SAP MARA
+description: |
+  Material master records. Used for material-group / archetype validation,
+  duplicate detection, classification quality, and code-creation TAT.
+
+fields:
+  - field: material_number
+    aliases: [Material_Number, Material Number, MATNR, Material Code, SKU]
+    type: string
+    required: true
+    description: Unique material master ID. SAP MARA.MATNR.
+
+  - field: material_description
+    aliases: [Material_Description, Description, Short Text, MAKTX]
+    type: string
+    required: true
+    description: Free-text material description.
+
+  - field: material_group
+    aliases: [Material_Group, Material Group, MATKL, MG Code]
+    type: string
+    required: true
+    description: Material group code. SAP MARA.MATKL.
+
+  - field: material_group_desc
+    aliases: [Material_Group_Desc, MG Description, Material Group Description]
+    type: string
+    required: false
+    description: Material group description.
+
+  - field: material_type
+    aliases: [Material_Type, Material Type, MTART]
+    type: string
+    required: true
+    description: SAP MTART — ROH (raw), HALB (semi), FERT (finished), ERSA (spare), DIEN (service), etc.
+
+  - field: base_uom
+    aliases: [Base_UoM, Base Unit, MEINS]
+    type: string
+    required: true
+    description: Base unit of measure.
+
+  - field: created_date
+    aliases: [Created_On, Creation Date, ERSDA]
+    type: date
+    required: true
+    description: Material master creation date. Used for code-creation TAT.
+
+  - field: created_by
+    aliases: [Created_By, Created By, ERNAM]
+    type: string
+    required: false
+    description: User who created the material code.
+
+  - field: plant
+    aliases: [Plant, Plant Code, WERKS]
+    type: string
+    required: false
+    description: Plant assignment (if plant-specific master).
+
+  - field: industry_sector
+    aliases: [Industry_Sector, Sector, MBRSH]
+    type: string
+    required: false
+    description: SAP industry sector code.
+
+  - field: deletion_flag
+    aliases: [Deletion_Flag, Marked for Deletion, LVORM]
+    type: string
+    required: false
+    description: Marked-for-deletion indicator.
+
+  - field: hsn_sac_code
+    aliases: [HSN, SAC, HSN/SAC, HS Code]
+    type: string
+    required: false
+    description: HSN / SAC code (Indian GST classification).
+
+  - field: classification
+    aliases: [Classification, Class, ABC Class]
+    type: string
+    required: false
+    description: ABC / XYZ classification.
+
+  - field: standard_price
+    aliases: [Standard_Price, Std Price, STPRS]
+    type: number
+    required: false
+    description: Standard price for valuation.

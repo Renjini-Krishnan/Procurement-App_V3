@@ -1,0 +1,97 @@
+file_type: GRN
+label: Goods Receipt Note (GRN)
+source_template: Accenture Client Pack v10 / SAP MSEG + MKPF
+description: |
+  Goods-receipt records — receipts against POs. Used for OTD (on-time
+  delivery), GRN TAT, quality rejection rate, 3-way match (PO/GRN/Invoice).
+
+fields:
+  - field: grn_number
+    aliases: [GRN_Number, Material Document Number, MBLNR]
+    type: string
+    required: true
+    description: Material document number. SAP MKPF.MBLNR.
+
+  - field: grn_item
+    aliases: [GRN_Item, Item Number, ZEILE]
+    type: integer
+    required: true
+    description: GRN line item.
+
+  - field: po_number
+    aliases: [PO_Number, EBELN]
+    type: string
+    required: true
+    description: Source PO. Join key to PO dump.
+
+  - field: po_item
+    aliases: [PO_Item, EBELP]
+    type: integer
+    required: true
+    description: Source PO line item.
+
+  - field: posting_date
+    aliases: [Posting_Date, GR Date, BUDAT]
+    type: date
+    required: true
+    description: GRN posting date. Used for OTD vs PO delivery_date.
+
+  - field: document_date
+    aliases: [Document_Date, BLDAT]
+    type: date
+    required: false
+    description: GRN document date.
+
+  - field: movement_type
+    aliases: [Movement_Type, BWART]
+    type: string
+    required: true
+    description: 101 (goods receipt) / 102 (reversal) / 122 (return). Used to filter reversals.
+
+  - field: quantity
+    aliases: [Quantity, MENGE]
+    type: number
+    required: true
+    description: Received quantity.
+
+  - field: amount
+    aliases: [Amount, GR Value, DMBTR]
+    type: number
+    required: false
+    description: GRN value (local currency).
+
+  - field: vendor_id
+    aliases: [Vendor_Number, Vendor, LIFNR]
+    type: string
+    required: false
+    description: Vendor (denormalised for direct queries).
+
+  - field: plant
+    aliases: [Plant, WERKS]
+    type: string
+    required: false
+    description: Receiving plant.
+
+  - field: storage_location
+    aliases: [Storage_Location, LGORT]
+    type: string
+    required: false
+    description: Storage location.
+
+  - field: quality_inspection_status
+    aliases: [QI_Status, Quality Status, QI Flag]
+    type: string
+    required: false
+    description: Pending / Released / Rejected — used for defect-rate analysis.
+
+  - field: rejected_quantity
+    aliases: [Rejected_Qty, Rejection Quantity]
+    type: number
+    required: false
+    description: Quantity rejected on QI.
+
+  - field: created_by
+    aliases: [Created_By, USNAM]
+    type: string
+    required: false
+    description: GRN creator. Used for segregation-of-duties checks.

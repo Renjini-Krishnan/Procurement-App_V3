@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, Button, Input, Select, Badge, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { api } from "../api/client.js";
@@ -14,11 +15,23 @@ const SUB_SEGMENTS_BY_INDUSTRY = {
 };
 
 const Client = () => {
+  const nav = useNavigate();
   const { engagement, loading: engLoading } = useEngagement();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
+
+  const deleteEng = async () => {
+    if (!confirm(`Delete engagement "${engagement.client_name}"? This is permanent — uploads, runs, QRE, findings, overrides will all be removed.`)) return;
+    if (!confirm("Really delete? Type yes in the next box to confirm.")) return;
+    try {
+      await api.deleteEngagement(engagement.id);
+      nav("/");
+    } catch (e) {
+      alert("Delete failed: " + (e.message || e));
+    }
+  };
 
   useEffect(() => {
     if (!engagement) return;
@@ -107,7 +120,11 @@ const Client = () => {
       {msg && <div style={{ marginTop: 16 }}><Callout tone="success" title={msg} icon={<I.Check size={16} />} /></div>}
       {err && <div style={{ marginTop: 16 }}><Callout tone="danger" title="Save failed" icon={<I.X size={16} />}>{err}</Callout></div>}
 
-      <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+      <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "space-between" }}>
+        <Button variant="outline" onClick={deleteEng}
+                style={{ color: "var(--danger-700)", borderColor: "var(--danger-500)" }}>
+          Delete engagement
+        </Button>
         <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
       </div>
     </div>

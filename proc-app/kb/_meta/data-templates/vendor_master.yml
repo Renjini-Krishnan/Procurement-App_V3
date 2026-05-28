@@ -1,0 +1,97 @@
+file_type: VENDOR_MASTER
+label: Vendor Master
+source_template: Accenture Client Pack v10 / SAP LFA1 + LFB1
+description: |
+  Supplier master records. Used for vendor dedup, classification (manufacturer
+  vs trader vs service provider), MSME tagging, and supplier-performance joins.
+
+fields:
+  - field: vendor_id
+    aliases: [Vendor_Number, Vendor Number, Vendor ID, LIFNR, Supplier ID, Vendor Code]
+    type: string
+    required: true
+    description: Unique vendor master ID. SAP LFA1.LIFNR.
+
+  - field: vendor_name
+    aliases: [Vendor_Name, Vendor Name, NAME1, Supplier Name, Legal Name]
+    type: string
+    required: true
+    description: Legal vendor name. SAP LFA1.NAME1.
+
+  - field: vendor_status
+    aliases: [Status, Vendor Status, Active Flag, Blocked Flag]
+    type: string
+    required: true
+    description: Active / Blocked / Marked-for-deletion.
+
+  - field: created_date
+    aliases: [Created_Date, Created On, Creation Date, ERDAT]
+    type: date
+    required: true
+    description: Vendor master creation date.
+
+  - field: vendor_type
+    aliases: [Vendor_Type, Vendor Type, Vendor Category, KTOKK]
+    type: string
+    required: true
+    description: Account group — Manufacturer / Trader / Service Provider / Government / Affiliate.
+
+  - field: country
+    aliases: [Country, Country Code, LAND1]
+    type: string
+    required: true
+    description: Country of registration (ISO 3166-1 alpha-2).
+
+  - field: city
+    aliases: [City, ORT01]
+    type: string
+    required: false
+    description: City of registered office.
+
+  - field: state
+    aliases: [State, REGIO]
+    type: string
+    required: false
+    description: State / region of registered office.
+
+  - field: pan
+    aliases: [PAN, PAN Number, Permanent Account Number]
+    type: string
+    required: false
+    description: Indian PAN — primary tax identifier.
+
+  - field: gstin
+    aliases: [GSTIN, GST Number, GST Registration]
+    type: string
+    required: false
+    description: Goods and Services Tax Identification Number (India).
+
+  - field: msme_flag
+    aliases: [MSME, MSME Flag, MSME Registered, Udyam]
+    type: string
+    required: false
+    description: MSME registration flag (Micro / Small / Medium / No).
+
+  - field: payment_terms
+    aliases: [Payment_Terms, Payment Terms, ZTERM]
+    type: string
+    required: false
+    description: Standard payment terms code.
+
+  - field: bank_account_number
+    aliases: [Bank_Account, Bank Account Number]
+    type: string
+    required: false
+    description: Bank account for payments (sensitive).
+
+  - field: classification_tier
+    aliases: [Tier, Vendor Tier, Strategic Tier]
+    type: string
+    required: false
+    description: Strategic / Preferred / Approved / Transactional tier classification.
+
+  - field: parent_vendor_id
+    aliases: [Parent_Vendor, Group Vendor, Holding Vendor]
+    type: string
+    required: false
+    description: Parent vendor ID for group-aggregation (vendor dedup).

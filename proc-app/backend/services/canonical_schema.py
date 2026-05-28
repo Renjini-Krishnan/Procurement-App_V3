@@ -82,14 +82,80 @@ PR_SCHEMA = {
 }
 
 
-SCHEMAS = {
+# Schemas now live as YAML in proc-app/kb/_meta/data-templates/<lowercase>.yml
+# This makes them editable via the in-app KB editor. The Python constants above
+# remain as fallbacks if a YAML file is missing.
+
+import yaml
+from pathlib import Path
+from .. import config as _config
+
+_TEMPLATE_DIR = _config.REPO_ROOT / "proc-app" / "kb" / "_meta" / "data-templates"
+
+_FALLBACK_SCHEMAS = {
     "PO": PO_SCHEMA,
     "PR": PR_SCHEMA,
 }
 
+_FILE_NAME_BY_TYPE = {
+    "PO": "po.yml",
+    "PR": "pr.yml",
+    "VENDOR_MASTER": "vendor_master.yml",
+    "MATERIAL_MASTER": "material_master.yml",
+    "ORG_STRUCTURE": "org_structure.yml",
+    "CONTRACT_MASTER": "contract_master.yml",
+    "GRN": "grn.yml",
+    "INVOICE": "invoice.yml",
+}
+
+_schema_cache: dict[str, dict] = {}
+
 
 def get_schema(file_type: str) -> dict:
-    return SCHEMAS[file_type]
+    """Load a canonical schema. Prefers YAML in data-templates/; falls back
+    to inlined Python constants for PO + PR if the YAML is absent."""
+    key = file_type.upper()
+    if key in _schema_cache:
+        return _schema_cache[key]
+    yml_name = _FILE_NAME_BY_TYPE.get(key)
+    if yml_name:
+        path = _TEMPLATE_DIR / yml_name
+        if path.exists():
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            if data and "fields" in data:
+                _schema_cache[key] = data
+                return data
+    if key in _FALLBACK_SCHEMAS:
+        _schema_cache[key] = _FALLBACK_SCHEMAS[key]
+        return _FALLBACK_SCHEMAS[key]
+    raise KeyError(f"No canonical schema for file_type={file_type}")
+
+
+def list_schema_types() -> list[dict]:
+    """Used by the Upload UI to populate the file-type selector."""
+    out = []
+    for key, yml_name in _FILE_NAME_BY_TYPE.items():
+        path = _TEMPLATE_DIR / yml_name
+        if path.exists():
+            try:
+                data = yaml.safe_load(path.read_text(encoding="utf-8"))
+                out.append({
+                    "file_type": key,
+                    "label": data.get("label", key),
+                    "yaml_path": f"_meta/data-templates/{yml_name}",
+                    "field_count": len(data.get("fields", [])),
+                    "required_count": sum(1 for f in data.get("fields", []) if f.get("required")),
+                })
+            except Exception:
+                pass
+    return out
+
+
+def invalidate_schema_cache():
+    _schema_cache.clear()
+
+
+SCHEMAS = _FALLBACK_SCHEMAS  # back-compat for any callers reading SCHEMAS dict
 
 
 # --------------------------------------------------------------------------

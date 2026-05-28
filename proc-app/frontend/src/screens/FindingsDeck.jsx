@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Button, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { api } from "../api/client.js";
+import { api, postDownload } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
 /* Stage 28 — Findings Deck.
@@ -76,7 +76,9 @@ const FindingsDeck = () => {
       <Header />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <Tabs items={tabItems} value={pillarTab} onChange={setPillarTab} />
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button onClick={() => downloadDeck(engagement)}>Export PPT deck</Button>
+          <Button variant="outline" onClick={() => downloadXlsx(engagement)}>Export Excel</Button>
           <Button variant="outline" onClick={() => exportJson(visible, `findings-${pillarTab}`)}>Export JSON</Button>
           <Button variant="outline" onClick={() => window.print()}>Print</Button>
         </div>
@@ -139,6 +141,26 @@ const RunHistoryPanel = ({ runs, pillarTab }) => {
       </div>
     </div>
   );
+};
+
+const downloadDeck = async (engagement) => {
+  if (!engagement) return alert("No engagement context");
+  const uploads = await api.listUploads(engagement.id);
+  if (uploads.length === 0) return alert("No uploads — generate the dashboard first.");
+  try {
+    await postDownload(`/engagement/${engagement.id}/export/findings-deck.pptx`,
+      { upload_id: uploads[0].id, industry: engagement.industry }, "findings.pptx");
+  } catch (e) { alert("PPT export failed: " + e.message); }
+};
+
+const downloadXlsx = async (engagement) => {
+  if (!engagement) return;
+  const uploads = await api.listUploads(engagement.id);
+  if (uploads.length === 0) return alert("No uploads.");
+  try {
+    await postDownload(`/engagement/${engagement.id}/export/kpis.xlsx`,
+      { upload_id: uploads[0].id, industry: engagement.industry }, "kpis.xlsx");
+  } catch (e) { alert("Excel export failed: " + e.message); }
 };
 
 const exportJson = (data, name) => {

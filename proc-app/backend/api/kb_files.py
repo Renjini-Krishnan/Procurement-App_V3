@@ -19,10 +19,11 @@ router = APIRouter(prefix="/api/kb/files", tags=["kb-files"])
 
 # Roots that are browseable + writable. Each entry is (label, abs path).
 KB_ROOTS = {
-    "function": config.PROC_KB_ROOT,           # proc-app/kb/functions/procurement
-    "standards": config.STANDARDS_DIR,         # shared-kb/standards
-    "references": config.REFERENCES_DIR,       # shared-kb/references
-    "industries": config.INDUSTRIES_DIR,       # shared-kb/industries
+    "function": config.PROC_KB_ROOT,                                   # proc-app/kb/functions/procurement
+    "data-templates": config.REPO_ROOT / "proc-app" / "kb" / "_meta" / "data-templates",
+    "standards": config.STANDARDS_DIR,                                 # shared-kb/standards
+    "references": config.REFERENCES_DIR,                               # shared-kb/references
+    "industries": config.INDUSTRIES_DIR,                               # shared-kb/industries
 }
 
 ALLOWED_EXTS = {".yml", ".yaml", ".md"}
@@ -107,7 +108,10 @@ def write_file(payload: WriteRequest):
         except yaml.YAMLError as e:
             raise HTTPException(400, f"YAML parse error: {e}")
     p.write_text(payload.content, encoding="utf-8")
-    # Invalidate loader cache
+    # Invalidate loader caches
     if hasattr(kb_loader, "_cache"):
         kb_loader._cache.clear()
+    if payload.root == "data-templates":
+        from ..services import canonical_schema
+        canonical_schema.invalidate_schema_cache()
     return {"status": "ok", "bytes_written": len(payload.content.encode("utf-8"))}

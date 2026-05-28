@@ -1,9 +1,10 @@
 """Engagement CRUD + stage progress endpoints."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from .. import db
 from ..models import (
@@ -48,6 +49,41 @@ def update_engagement(engagement_id: str, payload: EngagementCreate):
         raise HTTPException(404, f"Engagement {engagement_id} not found")
     updated = db.update_engagement(engagement_id, payload.model_dump())
     return EngagementResponse(**updated)
+
+
+@router.delete("/{engagement_id}")
+def delete_engagement(engagement_id: str):
+    if not db.delete_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    return {"status": "deleted", "engagement_id": engagement_id}
+
+
+class OverrideRequest(BaseModel):
+    key: str
+    value: Any
+    override_type: str = "threshold"
+
+
+@router.get("/{engagement_id}/overrides")
+def list_overrides(engagement_id: str):
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    return {"overrides": db.get_overrides(engagement_id)}
+
+
+@router.post("/{engagement_id}/overrides")
+def upsert_override(engagement_id: str, payload: OverrideRequest):
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    db.upsert_override(engagement_id, payload.key, payload.value, payload.override_type)
+    return {"status": "ok", "key": payload.key}
+
+
+@router.delete("/{engagement_id}/overrides/{key}")
+def delete_override(engagement_id: str, key: str):
+    if not db.delete_override(engagement_id, key):
+        raise HTTPException(404, f"Override '{key}' not found for engagement")
+    return {"status": "deleted", "key": key}
 
 
 @router.get("/{engagement_id}/stages")

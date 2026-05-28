@@ -1,6 +1,30 @@
 /* API client — thin fetch wrapper around backend /api/*.
    Dev: vite proxies /api → http://localhost:8000. */
 
+/* Download a binary response from a POST endpoint. */
+export async function postDownload(path, body, suggestedFilename) {
+  const res = await fetch(`/api${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let err;
+    try { err = await res.json(); } catch { err = await res.text(); }
+    throw new Error(`Export failed: ${res.status} — ${typeof err === "string" ? err : err.detail}`);
+  }
+  const blob = await res.blob();
+  const cd = res.headers.get("Content-Disposition") || "";
+  const m = cd.match(/filename="([^"]+)"/);
+  const filename = m ? m[1] : suggestedFilename || "download.bin";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -30,6 +54,12 @@ export const api = {
   listEngagements: () => request("/engagement"),
   getEngagement: (id) => request(`/engagement/${id}`),
   updateEngagement: (id, data) => request(`/engagement/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteEngagement: (id) => request(`/engagement/${id}`, { method: "DELETE" }),
+  listOverrides: (id) => request(`/engagement/${id}/overrides`),
+  upsertOverride: (id, key, value, override_type = "kpi_band") =>
+    request(`/engagement/${id}/overrides`, { method: "POST", body: JSON.stringify({ key, value, override_type }) }),
+  deleteOverride: (id, key) =>
+    request(`/engagement/${id}/overrides/${encodeURIComponent(key)}`, { method: "DELETE" }),
   getStages: (id) => request(`/engagement/${id}/stages`),
   setStageStatus: (id, stageId, payload) =>
     request(`/engagement/${id}/stages/${stageId}`, { method: "POST", body: JSON.stringify(payload) }),
@@ -105,6 +135,19 @@ export const api = {
   getPillarRcaRules: (pillar) => request(`/kb/pillars/${pillar}/rca-rules`),
   getPillarScoringDescriptors: (pillar) => request(`/kb/pillars/${pillar}/scoring-descriptors`),
   getPillarMd: (pillar, name) => request(`/kb/pillars/${pillar}/md/${name}`),
+
+  // Upload schemas (all file types)
+  listUploadSchemas: () => request("/upload-schemas"),
+  getUploadSchema: (file_type) => request(`/upload-schemas/${file_type}`),
+
+  // Exports
+  exportFindingsDeckUrl: (id) => `/api/engagement/${id}/export/findings-deck.pptx`,
+  exportExecSummaryUrl: (id) => `/api/engagement/${id}/export/exec-summary.pptx`,
+  exportKpisXlsxUrl: (id) => `/api/engagement/${id}/export/kpis.xlsx`,
+
+  // Comparison
+  getComparison: (id, pillar) =>
+    request(`/engagement/${id}/comparison${pillar ? `?pillar=${pillar}` : ""}`),
 
   // KB file editor
   listKbFiles: () => request("/kb/files/tree"),

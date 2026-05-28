@@ -32,6 +32,10 @@ const DataPreview = ({ stage, title, phase, blurb }) => {
         <>
           <SummaryGrid summary={data.gold_summary} />
 
+          {data.cleansing_report && (
+            <CleansingReport report={data.cleansing_report} />
+          )}
+
           <div style={{ marginTop: 24 }}>
             <Card padding={20}>
               <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-500)", marginBottom: 12 }}>
@@ -65,6 +69,65 @@ const DataPreview = ({ stage, title, phase, blurb }) => {
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+const SEVERITY_TONES = {
+  fix: { bg: "var(--success-50)", fg: "var(--success-700)", border: "var(--success-500)" },
+  drop: { bg: "var(--warn-50)", fg: "var(--warn-700)", border: "var(--warn-500)" },
+  warn: { bg: "var(--warn-50)", fg: "var(--warn-700)", border: "var(--warn-500)" },
+  info: { bg: "var(--surface-sunk)", fg: "var(--ink-600)", border: "var(--ink-300)" },
+};
+
+const CleansingReport = ({ report }) => {
+  const entries = report.entries || [];
+  const summary = report.summary || {};
+  if (entries.length === 0) return null;
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
+        Cleansing report · {summary.rules_fired} rules fired
+      </div>
+      <Card padding={20}>
+        <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
+          <span>Total rules: <strong>{summary.rules_fired}</strong></span>
+          <span>Rows fixed: <strong>{summary.rows_fixed_total}</strong></span>
+          <span>Rows dropped: <strong>{summary.rows_dropped_total}</strong></span>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+          <thead>
+            <tr>
+              {["Severity", "Stage", "Rule", "Rows affected", "Action"].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e, i) => {
+              const tone = SEVERITY_TONES[e.severity] || SEVERITY_TONES.info;
+              return (
+                <tr key={i}>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <span style={{ background: tone.bg, color: tone.fg, padding: "2px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>
+                      {e.severity}
+                    </span>
+                  </td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{e.stage}</td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <div style={{ fontWeight: 500 }}>{e.rule_name}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{e.rule_id}</div>
+                  </td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", textAlign: "right", fontFamily: "var(--font-mono)" }}>
+                    {e.rows_affected?.toLocaleString?.("en-IN") || e.rows_affected}
+                  </td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{e.action}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 };

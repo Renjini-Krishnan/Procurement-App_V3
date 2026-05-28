@@ -1,0 +1,268 @@
+file_type: PO
+label: Purchase Order (PO) Dump
+source_template: Accenture Client Pack v10
+fields:
+- field: po_number
+  aliases:
+  - PO_Number
+  - PO Number
+  - Pur.Order Number
+  - EBELN
+  type: string
+  required: true
+  description: Unique PO document number. SAP EKKO.EBELN.
+- field: po_item
+  aliases:
+  - PO_Item
+  - PO Item
+  - Item
+  - EBELP
+  - Line Item
+  type: integer
+  required: true
+  description: PO line item number. SAP EKPO.EBELP.
+- field: po_creation_date
+  aliases:
+  - PO_Creation_Date
+  - PO Creation Date
+  - PO Doc. Date
+  - BEDAT
+  type: date
+  required: true
+  description: Date PO was created. SAP EKKO.BEDAT.
+- field: company_code
+  aliases:
+  - Company_Code
+  - Company Code
+  - BUKRS
+  type: string
+  required: true
+  description: Legal entity / company code. SAP EKKO.BUKRS.
+- field: plant
+  aliases:
+  - Plant
+  - Plant Code
+  - WERKS
+  type: string
+  required: true
+  description: Receiving plant code. SAP EKPO.WERKS.
+- field: purchase_group
+  aliases:
+  - Purchase_Group
+  - Purchase Group
+  - Purch. Group
+  - EKGRP
+  type: string
+  required: true
+  description: Buyer group code. SAP EKKO.EKGRP.
+- field: vendor_id
+  aliases:
+  - Vendor_Number
+  - Vendor Number
+  - Vendor
+  - LIFNR
+  type: string
+  required: true
+  description: Unique supplier master ID. SAP LFA1.LIFNR.
+- field: vendor_name
+  aliases:
+  - Vendor_Name
+  - Vendor Name
+  - NAME1
+  - Supplier Name
+  type: string
+  required: true
+  description: Vendor name. SAP LFA1.NAME1.
+- field: material_group
+  aliases:
+  - Material_Group
+  - Material Group
+  - Mat.Group
+  - MATKL
+  type: string
+  required: true
+  description: Material group code (primary classification key). SAP EKPO.MATKL.
+- field: material_group_desc
+  aliases:
+  - Material_Group_Desc
+  - Material Group Description
+  - Mat.Group.1
+  - MG Description
+  type: string
+  required: false
+  description: Material group description (free text).
+- field: net_value
+  aliases:
+  - Net_Value
+  - Net Value
+  - Net Order Value
+  - NETWR
+  type: number
+  required: true
+  description: "Net order value (Qty \xD7 Net Price). SAP EKPO.NETWR."
+- field: currency
+  aliases:
+  - Currency
+  - Curr
+  - WAERS
+  type: string
+  required: true
+  description: Transaction currency (ISO 4217). SAP EKKO.WAERS.
+- field: delivery_date
+  aliases:
+  - Delivery_Date
+  - Delivery Date
+  - EINDT
+  type: date
+  required: true
+  description: Scheduled delivery date. SAP EKPO.EINDT. Used for OTD.
+- field: gr_date
+  aliases:
+  - GR_Date
+  - GR Date
+  - Goods Receipt Date
+  type: date
+  required: true
+  description: Actual goods-receipt date. SAP EKBE. Used for OTD, DPO.
+- field: pr_reference
+  aliases:
+  - PR_Reference
+  - PR Reference
+  - BANFN
+  type: string
+  required: true
+  description: Source PR number. Critical for PR-to-PO TAT.
+- field: contract_number
+  aliases:
+  - Contract_Number
+  - Contract Number
+  - Agreement Number
+  - KONNR
+  type: string
+  required: true
+  description: Linked rate contract / scheduling agreement.
+- field: material_number
+  aliases:
+  - Material_Number
+  - Material Number
+  - MATNR
+  type: string
+  required: true
+  description: Material master number. Used for price comparison.
+- field: po_type
+  aliases:
+  - PO_Type
+  - PO Type
+  - BSART
+  type: string
+  required: false
+  description: PO document type (NB=standard, FO=framework, UB=transfer).
+- field: net_price
+  aliases:
+  - Net_Price
+  - Net Price
+  - Net_Price_Per_Unit
+  - NETPR
+  type: number
+  required: false
+  description: Unit net price. Used for LPO savings analysis.
+- field: quantity
+  aliases:
+  - Quantity
+  - Qty
+  - MENGE
+  type: number
+  required: false
+  description: Order quantity. SAP EKPO.MENGE.
+- field: gr_quantity
+  aliases:
+  - GR_Quantity
+  - GR Quantity
+  type: number
+  required: false
+  description: Quantity received.
+- field: gr_value
+  aliases:
+  - GR_Value
+  - GR Value
+  type: number
+  required: false
+  description: Value of goods received.
+- field: invoice_date
+  aliases:
+  - Invoice_Date
+  - Invoice Date
+  type: date
+  required: false
+  description: Invoice posting date. Used for DPO.
+- field: invoice_value
+  aliases:
+  - Invoice_Value
+  - Invoice Value
+  type: number
+  required: false
+  description: Invoice value against this PO line.
+- field: outline_agreement
+  aliases:
+  - Outline_Agreement
+  - Outline Agreement
+  - Framework Agreement
+  type: string
+  required: false
+  description: Framework agreement / blanket PO reference.
+- field: vendor_evaluation_score
+  aliases:
+  - Vendor_Evaluation_Score
+  - ME6H
+  type: number
+  required: false
+  description: Vendor performance score from ERP evaluation.
+- field: short_text
+  aliases:
+  - Short_Text
+  - Short Text
+  - Item Description
+  - TXZ01
+  type: string
+  required: false
+  description: Free-text line description.
+- field: scheduling_agreement
+  aliases:
+  - Scheduling_Agreement
+  - Scheduling Agreement
+  type: string
+  required: false
+  description: Scheduling agreement / catalogue item ref.
+- field: item_category
+  aliases:
+  - Item_Category
+  - Item Category
+  - Pstyp
+  - PSTYP
+  type: string
+  required: false
+  description: "SAP PSTYP \u2014 A=Asset/CAPEX, D=Service."
+- field: material_type
+  aliases:
+  - Material_Type
+  - Material Type
+  - MTART
+  type: string
+  required: false
+  description: "SAP MTART \u2014 DIEN=Service, ANLZ=Asset, ERSA=Spare."
+- field: cost_center
+  aliases:
+  - Cost_Center
+  - Cost Center
+  - KOSTL
+  type: string
+  required: false
+  description: Cost centre.
+- field: uom
+  aliases:
+  - UoM
+  - Unit
+  - MEINS
+  type: string
+  required: false
+  description: Unit of measure.

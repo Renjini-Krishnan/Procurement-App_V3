@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, Badge, Button, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { MaturityGauge } from "../design/patterns.jsx";
-import { api } from "../api/client.js";
+import { api, postDownload } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
 /* Stage 29 — Exec Summary. Runs the KPI dashboard once and renders a
@@ -129,12 +129,34 @@ const ExecSummary = () => {
         Open the Findings Deck (Stage 28) for the full evidence pack, or the KPI Dashboard (Stage 30) for interactive drill-downs.
       </Callout>
 
-      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+      <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Button onClick={() => downloadExecDeck(engagement)}>Export PPT</Button>
+        <Button variant="outline" onClick={() => downloadKpisXlsx(engagement)}>Export Excel</Button>
         <Button variant="outline" onClick={() => window.print()}>Print / Save as PDF</Button>
         <Button variant="outline" onClick={() => exportExec(data, engagement)}>Export JSON</Button>
       </div>
     </div>
   );
+};
+
+const downloadExecDeck = async (engagement) => {
+  if (!engagement) return;
+  const uploads = await api.listUploads(engagement.id);
+  if (uploads.length === 0) return alert("No uploads.");
+  try {
+    await postDownload(`/engagement/${engagement.id}/export/exec-summary.pptx`,
+      { upload_id: uploads[0].id, industry: engagement.industry }, "exec-summary.pptx");
+  } catch (e) { alert("PPT export failed: " + e.message); }
+};
+
+const downloadKpisXlsx = async (engagement) => {
+  if (!engagement) return;
+  const uploads = await api.listUploads(engagement.id);
+  if (uploads.length === 0) return alert("No uploads.");
+  try {
+    await postDownload(`/engagement/${engagement.id}/export/kpis.xlsx`,
+      { upload_id: uploads[0].id, industry: engagement.industry }, "kpis.xlsx");
+  } catch (e) { alert("Excel export failed: " + e.message); }
 };
 
 const exportExec = (data, engagement) => {

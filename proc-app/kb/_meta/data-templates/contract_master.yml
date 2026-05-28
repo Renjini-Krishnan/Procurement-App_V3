@@ -1,0 +1,98 @@
+file_type: CONTRACT_MASTER
+label: Contract Master / Outline Agreements
+source_template: Accenture Client Pack v10 / SAP EKKO (where BSART in MK,WK,LP,LU)
+description: |
+  Active rate contracts, outline agreements, and scheduling agreements.
+  Sharpens buying-channel current-state detection (which categories actually
+  have contract coverage vs spot buying inferred from PO fields).
+
+fields:
+  - field: contract_number
+    aliases: [Contract_Number, Contract ID, Agreement Number, EBELN_KONTRAKT]
+    type: string
+    required: true
+    description: Unique contract document number.
+
+  - field: contract_type
+    aliases: [Contract_Type, Agreement Type, BSART]
+    type: string
+    required: true
+    description: MK (Quantity contract) / WK (Value contract) / LP (Sched. agreement) / LU (Stock transfer).
+
+  - field: vendor_id
+    aliases: [Vendor_Number, Vendor Number, LIFNR]
+    type: string
+    required: true
+    description: Contracted vendor.
+
+  - field: vendor_name
+    aliases: [Vendor_Name, Vendor Name, NAME1]
+    type: string
+    required: false
+    description: Vendor name.
+
+  - field: material_group
+    aliases: [Material_Group, Material Group, MATKL]
+    type: string
+    required: false
+    description: Material group covered. Used for category coverage.
+
+  - field: material_number
+    aliases: [Material_Number, MATNR]
+    type: string
+    required: false
+    description: Specific material covered (item-level contract).
+
+  - field: plant
+    aliases: [Plant, Plant Code, WERKS]
+    type: string
+    required: false
+    description: Plant scope (blank if multi-plant).
+
+  - field: contract_start_date
+    aliases: [Contract_Start, Valid From, KDATB]
+    type: date
+    required: true
+    description: Contract validity start.
+
+  - field: contract_end_date
+    aliases: [Contract_End, Valid To, KDATE]
+    type: date
+    required: true
+    description: Contract validity end.
+
+  - field: target_value
+    aliases: [Target_Value, Contract Value, KTWRT]
+    type: number
+    required: false
+    description: Target/ceiling value of the contract.
+
+  - field: released_value
+    aliases: [Released_Value, Released Quantity, KZWI1]
+    type: number
+    required: false
+    description: Value already drawn against the contract.
+
+  - field: currency
+    aliases: [Currency, WAERS]
+    type: string
+    required: false
+    description: Contract currency.
+
+  - field: payment_terms
+    aliases: [Payment_Terms, ZTERM]
+    type: string
+    required: false
+    description: Negotiated payment terms.
+
+  - field: status
+    aliases: [Status, Contract Status, FRGKE]
+    type: string
+    required: false
+    description: Active / Expired / Closed / On Hold.
+
+  - field: incoterms
+    aliases: [Incoterms, INCO1]
+    type: string
+    required: false
+    description: Incoterms code (FOB, CIF, DDP, etc.).

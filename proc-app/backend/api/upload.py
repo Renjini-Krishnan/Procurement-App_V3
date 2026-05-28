@@ -12,6 +12,25 @@ from ..services import upload_service
 router = APIRouter(prefix="/api/engagement", tags=["upload"])
 
 
+# Shared metadata endpoint (not under /engagement/{id}) — list supported file types
+meta_router = APIRouter(prefix="/api", tags=["upload-meta"])
+
+
+@meta_router.get("/upload-schemas")
+def list_upload_schemas():
+    from ..services import canonical_schema
+    return {"schemas": canonical_schema.list_schema_types()}
+
+
+@meta_router.get("/upload-schemas/{file_type}")
+def get_upload_schema(file_type: str):
+    from ..services import canonical_schema
+    try:
+        return canonical_schema.get_schema(file_type)
+    except KeyError:
+        raise HTTPException(404, f"Schema not found for file_type={file_type}")
+
+
 class ConfirmMappingRequest(BaseModel):
     confirmed_mapping: list[dict]
 

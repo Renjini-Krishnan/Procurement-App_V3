@@ -37,7 +37,16 @@ FX_RATES_TO_INR = {
 
 
 def build_gold_dataframe(upload_id: str) -> pd.DataFrame:
-    """Apply canonical mapping + cleanse + return gold DataFrame."""
+    """Backwards-compatible wrapper around build_gold_dataframe_with_report."""
+    df, _report = build_gold_dataframe_with_report(upload_id)
+    return df
+
+
+def build_gold_dataframe_with_report(upload_id: str):
+    """Apply canonical mapping + cleanse via the rule-tracking engine.
+
+    Returns (gold_df, cleansing_report_dict).
+    """
     upload = upload_service.get_upload(upload_id)
     if not upload:
         raise ValueError(f"Upload {upload_id} not found")
@@ -53,38 +62,26 @@ def build_gold_dataframe(upload_id: str) -> pd.DataFrame:
     for m in confirmed:
         raw = m.get("raw_column")
         canonical = m.get("canonical_field") or m.get("suggested_field")
-        if raw and canonical and canonical in df_raw.columns is False:
-            rename_map[raw] = canonical
-        elif raw and canonical:
+        if raw and canonical:
             rename_map[raw] = canonical
 
     df = df_raw.rename(columns=rename_map).copy()
-    # Drop unmapped raw columns + collapse any duplicate canonical names
     canonical_cols = [c for c in set(rename_map.values()) if c in df.columns]
     df = df.loc[:, canonical_cols]
-    # If duplicate column labels emerged from the rename (rare: two raw columns
-    # mapped to the same canonical), keep the first occurrence
     if df.columns.duplicated().any():
         df = df.loc[:, ~df.columns.duplicated()]
 
-    # Type coercion
     df = _coerce_types(df)
 
-    # Vendor dedup (canonical_vendor_name)
-    df = _dedup_vendors(df)
+    # Run cleansing engine (rule-tracking) — uses primitives below.
+    from . import cleansing_engine
+    file_type = upload.get("file_type", "PO")
+    df, report = cleansing_engine.apply_pipeline(df, file_type=file_type)
 
-    # Currency normalisation
-    df = _normalise_currency_to_inr(df)
-
-    # Negative value tagging
-    df = _tag_negative_values(df)
-
-    # Drop rows with missing required keys
-    for col in ["po_number", "material_group", "net_value", "vendor_id", "plant"]:
-        if col in df.columns:
-            df = df.dropna(subset=[col])
-
-    return df.reset_index(drop=True)
+    return df.reset_index(drop=True), {
+        "entries": report.entries,
+        "summary": report.summary(),
+    }
 
 
 # --------------------------------------------------------------------------

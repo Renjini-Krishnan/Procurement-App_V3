@@ -1,0 +1,68 @@
+file_type: QRE
+label: Qualitative Response Evaluation (QRE) Bank
+source_template: Accenture Client Pack v10 — Diagnostic Questionnaire
+description: |
+  52 maturity questions across 13 areas. Each answered 1-4 with evidence text.
+  Feeds DoA scoring (system enforcement, ambiguity) and Org Structure
+  scoring (posture, FTE sizing, distribution, hierarchy).
+
+  This template defines the question bank. Engagement-specific answers are
+  stored in the qre_responses SQLite table; this YAML is the canonical
+  question + area + required-flag definition.
+
+scoring_scale:
+  - score: 1
+    label: Ad hoc / absent
+    description: Process not defined; reactive / one-off behaviour.
+  - score: 2
+    label: Emerging / partial
+    description: Process defined but not consistently applied.
+  - score: 3
+    label: Defined / documented
+    description: Process documented + consistently applied; partial digitisation.
+  - score: 4
+    label: Managed / measured
+    description: Process measured + reviewed; KPIs published.
+
+areas:
+  - id: D1
+    label: Strategy & Vision
+    questions: 4
+  - id: D2
+    label: Scope & Coverage / Organisation Posture
+    questions: 5
+  - id: D3
+    label: Sourcing & Negotiation
+    questions: 4
+  - id: D4
+    label: Demand & Spec Management
+    questions: 4
+  - id: D5
+    label: Contract Management
+    questions: 5
+  - id: D6
+    label: Supplier Management
+    questions: 4
+  - id: D7
+    label: PR-to-PO / Operations
+    questions: 4
+  - id: D8
+    label: Risk & Compliance
+    questions: 4
+  - id: D9
+    label: Sustainability
+    questions: 4
+  - id: D10
+    label: Governance & Policy
+    questions: 3
+  - id: D11
+    label: Talent & Capability
+    questions: 4
+  - id: D12
+    label: Technology & Data
+    questions: 4
+  - id: D13
+    label: Performance Management
+    questions: 3
+
+seed_file: backend/data/seed/demo_qre_responses.json

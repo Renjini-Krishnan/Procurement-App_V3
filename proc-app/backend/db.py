@@ -177,6 +177,75 @@ def get_engagement(engagement_id: str) -> Optional[dict]:
     return d
 
 
+def delete_engagement(engagement_id: str) -> bool:
+    """Hard-delete engagement + all owned rows (uploads, qre, runs, findings, overrides).
+    File-system upload artefacts are also removed."""
+    eng = get_engagement(engagement_id)
+    if not eng:
+        return False
+    with db_connection() as conn:
+        conn.execute("DELETE FROM findings WHERE engagement_id = ?", (engagement_id,))
+        conn.execute("DELETE FROM stage_progress WHERE engagement_id = ?", (engagement_id,))
+        conn.execute("DELETE FROM qre_responses WHERE engagement_id = ?", (engagement_id,))
+        conn.execute("DELETE FROM pillar_runs WHERE engagement_id = ?", (engagement_id,))
+        conn.execute("DELETE FROM engagement_overrides WHERE engagement_id = ?", (engagement_id,))
+        conn.execute("DELETE FROM uploads WHERE engagement_id = ?", (engagement_id,))
+        conn.execute("DELETE FROM engagements WHERE id = ?", (engagement_id,))
+    # Remove on-disk upload dir
+    try:
+        import shutil
+        from pathlib import Path
+        up_dir = Path(__file__).resolve().parent / "data" / "uploads" / engagement_id
+        if up_dir.exists():
+            shutil.rmtree(up_dir, ignore_errors=True)
+    except Exception:
+        pass
+    return True
+
+
+def upsert_override(engagement_id: str, key: str, value, override_type: str = "threshold",
+                     set_by: Optional[str] = None) -> None:
+    ts = now_iso()
+    with db_connection() as conn:
+        conn.execute(
+            """INSERT INTO engagement_overrides
+            (engagement_id, key, value, override_type, set_by, set_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(engagement_id, key) DO UPDATE SET
+              value = excluded.value,
+              override_type = excluded.override_type,
+              set_by = excluded.set_by,
+              set_at = excluded.set_at""",
+            (engagement_id, key, json.dumps(value), override_type, set_by, ts),
+        )
+
+
+def get_overrides(engagement_id: str) -> list[dict]:
+    with db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM engagement_overrides WHERE engagement_id = ? ORDER BY key",
+            (engagement_id,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["value"] = json.loads(d["value"])
+        except Exception:
+            pass
+        out.append(d)
+    return out
+
+
+def delete_override(engagement_id: str, key: str) -> bool:
+    with db_connection() as conn:
+        cur = conn.execute(
+            "DELETE FROM engagement_overrides WHERE engagement_id = ? AND key = ?",
+            (engagement_id, key),
+        )
+    return cur.rowcount > 0
+
+
 def list_engagements() -> list[dict]:
     with db_connection() as conn:
         rows = conn.execute("SELECT * FROM engagements ORDER BY updated_at DESC").fetchall()

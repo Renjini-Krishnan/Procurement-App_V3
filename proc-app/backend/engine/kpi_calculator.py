@@ -388,10 +388,15 @@ def _compute_monthly_spark(df_gold: pd.DataFrame, agg: str = "total_spend") -> l
     return [round(float(v), 2) for v in series.tolist()]
 
 
-def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame) -> list[dict]:
-    """Run extractors against each pillar's run output. Returns a list of KPI dicts."""
+def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame,
+                   overrides: Optional[dict] = None) -> list[dict]:
+    """Run extractors against each pillar's run output. Returns a list of KPI dicts.
+
+    overrides: {kpi_id: {"low": x, "high": y}} — engagement-level band overrides.
+    """
     spend_spark = _compute_monthly_spark(df_gold, "total_spend")
     po_spark = _compute_monthly_spark(df_gold, "po_count")
+    overrides = overrides or {}
 
     kpis = []
     for d in KPI_DEFINITIONS:
@@ -399,8 +404,17 @@ def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame) -> list[dict]:
             value = d["extract"](pillar_results[d["pillar"]])
         except (KeyError, TypeError, IndexError):
             continue
-        status = _status(value, d["band"], d["band_meaning"])
-        delta = _delta(value, d["band"], d["band_meaning"])
+        # Apply engagement override if present
+        band = dict(d["band"])
+        band_overridden = False
+        if d["id"] in overrides:
+            ov = overrides[d["id"]]
+            if isinstance(ov, dict):
+                if "low" in ov: band["low"] = ov["low"]
+                if "high" in ov: band["high"] = ov["high"]
+                band_overridden = True
+        status = _status(value, band, d["band_meaning"])
+        delta = _delta(value, band, d["band_meaning"])
         # Spark trend: spend KPIs get spend spark; count KPIs get po spark; otherwise mock
         if d["unit"].startswith("₹"):
             spark = spend_spark[-12:] if spend_spark else []
@@ -424,7 +438,9 @@ def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame) -> list[dict]:
             "theme": d["theme"],
             "value": value,
             "unit": d["unit"],
-            "band": d["band"],
+            "band": band,
+            "band_overridden": band_overridden,
+            "band_default": d["band"],
             "band_meaning": d["band_meaning"],
             "status": status,
             "delta": delta,
