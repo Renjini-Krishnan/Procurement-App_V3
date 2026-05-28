@@ -9,3 +9,4 @@ data/*.db-journal
 .pytest_cache/
 .mypy_cache/
 .coverage
+data/uploads/
