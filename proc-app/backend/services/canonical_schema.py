@@ -204,32 +204,54 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
         for alias in f["aliases"]:
             canonical_index[_normalise(alias)] = (f["field"], "high", f"alias match: '{alias}'")
 
-    matches = []
-    matched_canonical = set()
+    # Two passes:
+    # Pass 1 — exact / alias matches (HIGH confidence). One winner per canonical.
+    # Pass 2 — substring fallback (MEDIUM), only for canonical fields not yet matched.
+    matched_canonical = {}   # canonical_field -> (raw_column, confidence, reason)
+    matches: list[dict] = []
+    pending_substring = []
+
     for col in raw_columns:
         norm = _normalise(col)
-        suggested, confidence, reason = (None, "none", "no match")
         if norm in canonical_index:
-            suggested, confidence, reason = canonical_index[norm]
-        else:
-            # Try substring contains
-            for k, (field_name, _, _) in canonical_index.items():
-                if k and (k in norm or norm in k):
-                    suggested = field_name
-                    confidence = "medium"
-                    reason = f"substring match on '{k}'"
-                    break
-        if suggested:
-            matched_canonical.add(suggested)
+            field_name, conf, reason = canonical_index[norm]
+            if field_name not in matched_canonical:
+                matched_canonical[field_name] = (col, conf, reason)
+                matches.append({
+                    "raw_column": col, "suggested_field": field_name,
+                    "confidence": conf, "match_reason": reason,
+                })
+                continue
+        # Defer for substring pass
+        pending_substring.append((col, norm))
+
+    # Fill in already-matched rows for the first pass (they're appended in order)
+    # Now do substring matching for the remaining columns
+    for col, norm in pending_substring:
+        suggested, confidence, reason = (None, "none", "no match")
+        for k, (field_name, _, _) in canonical_index.items():
+            if not k:
+                continue
+            if field_name in matched_canonical:
+                continue
+            if k in norm or (len(norm) >= 4 and norm in k):
+                suggested = field_name
+                confidence = "medium"
+                reason = f"substring match on '{k}'"
+                matched_canonical[field_name] = (col, confidence, reason)
+                break
         matches.append({
-            "raw_column": col,
-            "suggested_field": suggested,
-            "confidence": confidence,
-            "match_reason": reason,
+            "raw_column": col, "suggested_field": suggested,
+            "confidence": confidence, "match_reason": reason,
         })
 
+    # Reorder matches to follow raw_columns order
+    by_col = {m["raw_column"]: m for m in matches}
+    matches = [by_col[c] for c in raw_columns if c in by_col]
+
     required_fields = {f["field"] for f in schema["fields"] if f["required"]}
-    missing_required = sorted(required_fields - matched_canonical)
+    mapped_canonical_set = set(matched_canonical.keys())
+    missing_required = sorted(required_fields - mapped_canonical_set)
 
     return {
         "matches": matches,
