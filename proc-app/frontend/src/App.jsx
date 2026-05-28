@@ -5,12 +5,14 @@ import WorkspaceShell from "./screens/WorkspaceShell.jsx";
 import StagePlaceholder from "./screens/StagePlaceholder.jsx";
 import Upload from "./screens/Upload.jsx";
 import UserValidation from "./screens/UserValidation.jsx";
+import OpModel from "./screens/OpModel.jsx";
 
 /* Map stage slug → real screen component (when one exists).
    Stages without a real component fall through to StagePlaceholder. */
 const STAGE_SCREENS = {
   upload: Upload,
   "user-validation": UserValidation,
+  "op-model": OpModel,
 };
 
 const StageRouter = () => {

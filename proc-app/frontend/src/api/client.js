@@ -54,6 +54,15 @@ export const api = {
       body: JSON.stringify({ confirmed_mapping: confirmedMapping }),
     }),
 
+  // Pillar
+  runOpModel: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/op-model`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  listFindings: (id, pillar) =>
+    request(`/engagement/${id}/findings${pillar ? `?pillar=${pillar}` : ""}`),
+
   // KB
   getStagesKB: () => request("/kb/stages"),
   listPillars: () => request("/kb/pillars"),
