@@ -65,6 +65,21 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ upload_id: uploadId, industry }),
     }),
+  runBuyingChannel: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/buying-channel`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  runOrgStructure: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/org-structure`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  runKpiDashboard: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-kpi-dashboard`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
   listFindings: (id, pillar) =>
     request(`/engagement/${id}/findings${pillar ? `?pillar=${pillar}` : ""}`),
 

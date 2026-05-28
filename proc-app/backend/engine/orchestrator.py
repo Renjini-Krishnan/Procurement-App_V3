@@ -11,8 +11,11 @@ from typing import Any, Optional
 
 from .. import db, kb_loader
 from . import gold_data, rca_engine, scoring, stage9_classify, stage10_kpis
+from . import kpi_calculator
+from .buying_channel import run_buying_channel
 from .doa import run_doa
 from .op_model import run_centralisation, run_coe, run_shared_services, run_tail_spend
+from .org_structure import run_org_structure
 
 
 # Op Model theme weights (from analysis-config.yml — function default)
@@ -191,6 +194,191 @@ def _persist_findings_doa(engagement_id: str, result: dict) -> None:
                  citations, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (fid, engagement_id, "doa", theme_id, "headline", "medium",
+                 theme_data.get("headline", ""), json.dumps(theme_data.get("metrics", {})),
+                 json.dumps(theme_data.get("metrics", {})), None, None, json.dumps([]), ts),
+            )
+
+
+def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
+    """Stage 16 — Buying Channel pillar."""
+    timings = {}
+    t0 = time.time()
+    df_gold = gold_data.build_gold_dataframe(upload_id)
+    timings["stage8_gold"] = round(time.time() - t0, 2)
+    t1 = time.time()
+    df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    timings["stage9_classify"] = round(time.time() - t1, 2)
+    t2 = time.time()
+    df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    timings["stage10_kpis"] = round(time.time() - t2, 2)
+    t3 = time.time()
+    result = run_buying_channel(df_classified, df_mg, industry=industry)
+    timings["stage16_buying_channel"] = round(time.time() - t3, 2)
+    timings["total"] = round(time.time() - t0, 2)
+
+    result["engagement_id"] = engagement_id
+    result["upload_id"] = upload_id
+    result["industry"] = industry
+    result["timings_seconds"] = timings
+
+    db.set_stage_status(engagement_id, 16, "done", {"pillar_score": result["pillar_score"]})
+    db.update_engagement_stage(engagement_id, 17)
+    _persist_findings_generic(engagement_id, result, "buying-channel")
+    return result
+
+
+def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str = "steel",
+                              qre_responses: Optional[dict] = None) -> dict:
+    """Stage 13 — Org Structure pillar (V1 QRE-driven)."""
+    timings = {}
+    t0 = time.time()
+    df_gold = gold_data.build_gold_dataframe(upload_id)
+    timings["stage8_gold"] = round(time.time() - t0, 2)
+    t1 = time.time()
+    df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    timings["stage9_classify"] = round(time.time() - t1, 2)
+    t2 = time.time()
+    df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    timings["stage10_kpis"] = round(time.time() - t2, 2)
+
+    # Load QRE seed if not provided
+    if qre_responses is None:
+        from pathlib import Path
+        seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
+        if seed.exists():
+            qre_responses = json.loads(seed.read_text())
+
+    engagement = db.get_engagement(engagement_id) or {}
+
+    t3 = time.time()
+    result = run_org_structure(df_mg, df_gold, engagement, qre_responses=qre_responses)
+    timings["stage13_org_structure"] = round(time.time() - t3, 2)
+    timings["total"] = round(time.time() - t0, 2)
+
+    result["engagement_id"] = engagement_id
+    result["upload_id"] = upload_id
+    result["industry"] = industry
+    result["timings_seconds"] = timings
+
+    db.set_stage_status(engagement_id, 13, "done", {"pillar_score": result["pillar_score"]})
+    db.update_engagement_stage(engagement_id, 14)
+    _persist_findings_generic(engagement_id, result, "org-structure")
+    return result
+
+
+def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel",
+                       qre_responses: Optional[dict] = None) -> dict:
+    """Stage 30 — KPI Dashboard. Runs all 4 pillars, assembles unified KPI list."""
+    timings = {}
+    t0 = time.time()
+
+    # Stage 8/9/10 once
+    df_gold = gold_data.build_gold_dataframe(upload_id)
+    timings["stage8_gold"] = round(time.time() - t0, 2)
+    t1 = time.time()
+    df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    timings["stage9_classify"] = round(time.time() - t1, 2)
+    t2 = time.time()
+    df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    portfolio = stage10_kpis.portfolio_summary(df_mg)
+    timings["stage10_kpis"] = round(time.time() - t2, 2)
+
+    # Op Model
+    t3 = time.time()
+    cent = run_centralisation(df_mg, industry=industry)
+    ss = run_shared_services(df_mg, industry=industry)
+    coe_out = run_coe(df_mg, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
+    tail = run_tail_spend(df_mg, df_classified, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
+    op_theme_scores = {
+        "centralisation": scoring.score_centralisation(cent),
+        "shared-services": scoring.score_shared_services(ss),
+        "coe": scoring.score_coe(coe_out),
+        "tail-spend": scoring.score_tail_spend(tail),
+    }
+    op_result = {
+        "pillar": "op-model",
+        "themes": {"centralisation": cent, "shared-services": ss, "coe": coe_out, "tail-spend": tail},
+        "theme_scores": op_theme_scores,
+        "pillar_score": scoring.pillar_score(op_theme_scores, OP_MODEL_THEME_WEIGHTS),
+    }
+    timings["op_model"] = round(time.time() - t3, 2)
+
+    # Buying Channel
+    t4 = time.time()
+    bc_result = run_buying_channel(df_classified, df_mg, industry=industry)
+    timings["buying_channel"] = round(time.time() - t4, 2)
+
+    # Load QRE
+    if qre_responses is None:
+        from pathlib import Path
+        seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
+        if seed.exists():
+            qre_responses = json.loads(seed.read_text())
+    engagement = db.get_engagement(engagement_id) or {}
+
+    # Org Structure
+    t5 = time.time()
+    org_result = run_org_structure(df_mg, df_gold, engagement, qre_responses=qre_responses)
+    timings["org_structure"] = round(time.time() - t5, 2)
+
+    # DoA
+    t6 = time.time()
+    doa_result = run_doa(df_classified, df_mg, qre_responses)
+    timings["doa"] = round(time.time() - t6, 2)
+
+    # Assemble unified KPI list
+    pillar_results = {
+        "op-model": op_result,
+        "buying-channel": bc_result,
+        "org-structure": org_result,
+        "doa": doa_result,
+    }
+    t7 = time.time()
+    kpis = kpi_calculator.assemble_kpis(pillar_results, df_classified)
+    timings["kpi_assemble"] = round(time.time() - t7, 2)
+
+    # Pillar-level summaries (for sidebar counts)
+    pillar_summary = {
+        pid: {
+            "pillar_score": pres["pillar_score"],
+            "kpi_count": sum(1 for k in kpis if k["pillar"] == pid),
+            "in_band": sum(1 for k in kpis if k["pillar"] == pid and k["status"] == "in"),
+            "under": sum(1 for k in kpis if k["pillar"] == pid and k["status"] == "under"),
+            "over": sum(1 for k in kpis if k["pillar"] == pid and k["status"] == "over"),
+        }
+        for pid, pres in pillar_results.items()
+    }
+
+    timings["total"] = round(time.time() - t0, 2)
+
+    db.set_stage_status(engagement_id, 30, "done", {"kpi_count": len(kpis)})
+    db.update_engagement_stage(engagement_id, 30)
+
+    return {
+        "engagement_id": engagement_id,
+        "upload_id": upload_id,
+        "industry": industry,
+        "portfolio": portfolio,
+        "kpis": kpis,
+        "pillar_summary": pillar_summary,
+        "pillar_results": pillar_results,
+        "timings_seconds": timings,
+    }
+
+
+def _persist_findings_generic(engagement_id: str, result: dict, pillar: str) -> None:
+    with db.db_connection() as conn:
+        conn.execute("DELETE FROM findings WHERE engagement_id = ? AND pillar = ?", (engagement_id, pillar))
+        ts = db.now_iso()
+        for theme_id, theme_data in result.get("themes", {}).items():
+            fid = uuid.uuid4().hex[:12]
+            conn.execute(
+                """INSERT INTO findings
+                (id, engagement_id, pillar, theme, component_id, severity,
+                 headline, body, metrics, rca_pattern_id, recommendation_id,
+                 citations, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (fid, engagement_id, pillar, theme_id, "headline", "medium",
                  theme_data.get("headline", ""), json.dumps(theme_data.get("metrics", {})),
                  json.dumps(theme_data.get("metrics", {})), None, None, json.dumps([]), ts),
             )

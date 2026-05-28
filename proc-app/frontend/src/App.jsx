@@ -7,6 +7,9 @@ import Upload from "./screens/Upload.jsx";
 import UserValidation from "./screens/UserValidation.jsx";
 import OpModel from "./screens/OpModel.jsx";
 import DoA from "./screens/DoA.jsx";
+import BuyingChannel from "./screens/BuyingChannel.jsx";
+import OrgStructure from "./screens/OrgStructure.jsx";
+import KPIDashboard from "./screens/KPIDashboard.jsx";
 
 /* Map stage slug → real screen component (when one exists).
    Stages without a real component fall through to StagePlaceholder. */
@@ -14,7 +17,10 @@ const STAGE_SCREENS = {
   upload: Upload,
   "user-validation": UserValidation,
   "op-model": OpModel,
+  "org-structure": OrgStructure,
+  "buying-channel": BuyingChannel,
   doa: DoA,
+  "kpi-dashboard": KPIDashboard,
 };
 
 const StageRouter = () => {
