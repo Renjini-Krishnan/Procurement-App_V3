@@ -1,0 +1,90 @@
+# =============================================================================
+# DoA — Function-Default Benchmarks
+# =============================================================================
+metadata:
+  id: doa-benchmarks-function-default
+  layer: function
+  function: procurement
+  pillar: doa
+  version: 1.0
+
+benchmarks:
+  - id: doa.coverage.spend_pct
+    name: "DoA spend coverage % (categories covered by DoA / total spend)"
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [60, 85]
+      confidence: high
+      year: 2024
+    composite:
+      typical_low: 60
+      typical_high: 85
+      bic_min: 95
+    applies_to_pillars: [doa]
+    edit_risk: high
+
+  - id: doa.compliance.seventy_rule_pct
+    name: "70% rule compliance — % of POs within prescribed tier"
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [70, 90]
+      confidence: high
+      year: 2024
+    composite:
+      typical_low: 70
+      typical_high: 90
+      bic_min: 90
+    applies_to_pillars: [doa]
+    edit_risk: high
+
+  - id: doa.compliance.cap_breach_pct
+    name: "Cap breach rate — POs above tier cap"
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [2, 8]
+      confidence: high
+      year: 2024
+    composite:
+      typical_low: 2
+      typical_high: 8
+      bic_max: 2
+    applies_to_pillars: [doa]
+    edit_risk: high
+
+  - id: doa.enforcement.automation_pct
+    name: "% of POs approved via ERP workflow (vs manual)"
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [50, 80]
+      confidence: high
+      year: 2024
+    composite:
+      typical_low: 50
+      typical_high: 80
+      bic_min: 90
+    applies_to_pillars: [doa]
+    edit_risk: high
+
+  - id: doa.robustness.mandatory_cases_covered_pct
+    name: "% of mandatory cases (PAC, MSME, capex, etc.) covered by DoA"
+    metric_type: percentage_range
+    unit: "%"
+    primary:
+      source_id: ACN-Proc-Benchmark-DB
+      value_range: [60, 90]
+      confidence: high
+      year: 2024
+    composite:
+      typical_low: 60
+      typical_high: 90
+      bic_min: 95
+    applies_to_pillars: [doa]
+    edit_risk: high

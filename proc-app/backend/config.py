@@ -26,6 +26,7 @@ PILLAR_DIRS = {
     "op-model": PROC_KB_ROOT / "op-model",
     "org-structure": PROC_KB_ROOT / "org-structure",
     "buying-channel": PROC_KB_ROOT / "buying-channel",
+    "doa": PROC_KB_ROOT / "doa",
 }
 
 # Industry overlay roots (per industry, per pillar)

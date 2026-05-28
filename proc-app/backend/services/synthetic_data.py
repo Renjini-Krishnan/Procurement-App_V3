@@ -272,32 +272,39 @@ def generate_steel_po_dump(seed: int = 42, months: int = 18) -> pd.DataFrame:
             if not line_short_text and rng.random() < pac_pct / 100.0:
                 line_short_text = "PAC PROPRIETARY OEM SPEC"
 
-            # Quantity (rough)
-            qty = max(1, int(rng.lognormvariate(2, 0.8)))
-            uom = "NOS" if archetype in ("INDIRECT", "CAPEX") else "MT" if archetype == "BULK" else "EA"
-
             rows.append({
-                "Pur.Order Number": po_num,
-                "Item": rng.randint(10, 90) // 10 * 10,
-                "PO Doc. Date": po_date.strftime("%d-%m-%Y"),
-                "Mat.Group": mg_code,
-                "Mat.Group.1": mg_desc,
-                "Net Value": net_value,
-                "Curr": currency,
-                "Vendor": vendor[0],
-                "Vendor Name": vendor[1],
+                "PO_Number": po_num,
+                "PO_Item": rng.randint(10, 90) // 10 * 10,
+                "PO_Creation_Date": po_date.strftime("%d-%m-%Y"),
+                "Company_Code": "1000",
                 "Plant": plant[0],
-                "Plant Name": plant[1],
-                "Purch. Group": pgroup,
-                "Cost Center": f"CC{rng.randint(1000, 9999)}",
-                "Short Text": line_short_text,
-                "Agreement Number": contract_num,
-                "Outline Agreement": ola_num,
-                "Scheduling Agreement": sched_num,
+                "Purchase_Group": pgroup,
+                "Vendor_Number": vendor[0],
+                "Vendor_Name": vendor[1],
+                "Material_Group": mg_code,
+                "Material_Group_Desc": mg_desc,
+                "Net_Value": net_value,
+                "Currency": currency,
+                "Delivery_Date": (po_date + timedelta(days=rng.randint(7, 45))).strftime("%d-%m-%Y"),
+                "GR_Date": (po_date + timedelta(days=rng.randint(10, 60))).strftime("%d-%m-%Y") if rng.random() < 0.85 else "",
+                "PR_Reference": f"10{po_counter + 5000:07d}",
+                "Contract_Number": contract_num,
+                "Material_Number": f"M{rng.randint(1000000, 9999999)}",
+                "PO_Type": "NB" if archetype != "CAPEX" else "FO",
+                "Net_Price": round(net_value / max(1, rng.randint(1, 50)), 2),
+                "Quantity": max(1, int(rng.lognormvariate(2, 0.8))),
+                "GR_Quantity": max(1, int(rng.lognormvariate(2, 0.8))) if rng.random() < 0.85 else "",
+                "GR_Value": net_value if rng.random() < 0.85 else "",
+                "Invoice_Date": (po_date + timedelta(days=rng.randint(15, 75))).strftime("%d-%m-%Y") if rng.random() < 0.7 else "",
+                "Invoice_Value": net_value if rng.random() < 0.7 else "",
+                "Outline_Agreement": ola_num,
+                "Vendor_Evaluation_Score": round(rng.uniform(60, 95), 1) if rng.random() < 0.4 else "",
+                "Short_Text": line_short_text,
+                "Scheduling_Agreement": sched_num,
                 "Pstyp": sap["item_cat"],
-                "Material Type": sap["mat_type"],
-                "Quantity": qty,
-                "UoM": uom,
+                "Material_Type": sap["mat_type"],
+                "Cost_Center": f"CC{rng.randint(1000, 9999)}",
+                "UoM": "NOS" if archetype in ("INDIRECT", "CAPEX") else "MT" if archetype == "BULK" else "EA",
             })
 
     df = pd.DataFrame(rows)
@@ -326,16 +333,181 @@ def _weighted_pick(rng: random.Random, pool: list) -> tuple:
     return pool[-1][0]
 
 
+def generate_pr_dump(po_df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
+    """Generate a PR dump aligned with the PO dump via PR_Reference join key.
+    Realistic PR-to-PO TAT: 5-45 days median, with tail.
+    """
+    rng = random.Random(seed + 1)
+    rows = []
+    # One PR per distinct PR_Reference in PO data
+    for pr_ref in po_df["PR_Reference"].unique():
+        po_subset = po_df[po_df["PR_Reference"] == pr_ref]
+        first_po_date = pd.to_datetime(po_subset["PO_Creation_Date"], format="%d-%m-%Y").min()
+        # PR raised 5-45 days before earliest PO
+        days_before_po = max(1, int(rng.lognormvariate(2.4, 0.7)))
+        pr_creation = first_po_date - timedelta(days=days_before_po)
+        # PR release date — somewhere between PR creation and earliest PO
+        days_to_release = max(1, days_before_po - rng.randint(1, max(1, days_before_po - 1)))
+        pr_release = pr_creation + timedelta(days=days_to_release)
+        for _, po_row in po_subset.iterrows():
+            rows.append({
+                "PR_Number": pr_ref,
+                "PR_Item": rng.randint(1, 9) * 10,
+                "PR_Creation_Date": pr_creation.strftime("%d-%m-%Y"),
+                "Plant": po_row["Plant"],
+                "Purchase_Group": po_row["Purchase_Group"],
+                "Material_Group": po_row["Material_Group"],
+                "PR_Release_Date": pr_release.strftime("%d-%m-%Y"),
+                "PR_Requisitioner_Name": f"User{rng.randint(100, 999)}",
+                "PR_Total_Value": float(po_row["Net_Value"]),
+                "Delivery_Date": po_row["Delivery_Date"],
+                "PR_Approver": f"Approver{rng.randint(1, 20)}",
+            })
+    return pd.DataFrame(rows)
+
+
+def generate_qre_responses(seed: int = 42) -> dict:
+    """Generate plausible QRE responses for an Indian large-enterprise client.
+    Aligned with the Client Pack v10 QRE structure (D1-D13, ~52 questions, 1-4 scoring).
+    Returns a dict ready to persist as JSON.
+    """
+    rng = random.Random(seed + 2)
+    # Targeted maturity per area — most Indian large enterprises sit at 2 (Intermediate)
+    # with some areas weaker (D6 Analytics, D13 ESG) and some stronger (D5 P2P, D7 Contracts)
+    area_means = {
+        "D1": 2.5, "D2": 2.8, "D3": 2.2, "D4": 2.6, "D5": 3.0,
+        "D6": 1.8, "D7": 2.5, "D8": 2.0, "D9": 2.3, "D10": 2.4,
+        "D11": 2.1, "D12": 2.3, "D13": 1.6,
+    }
+    questions = _client_pack_qre_questions()
+    responses = []
+    for q in questions:
+        area = q["id"].split(".")[0]
+        mean = area_means.get(area, 2.5)
+        # Sample score 1-4 around the area mean
+        raw = rng.gauss(mean, 0.6)
+        score = max(1, min(4, round(raw)))
+        responses.append({
+            "id": q["id"],
+            "area": q["area"],
+            "question": q["question"],
+            "required": q["required"],
+            "score": score,
+            "evidence": _sample_evidence(q, score, rng),
+        })
+    return {
+        "client_pack_version": "v10",
+        "scoring_scale": {
+            "1": "Foundation (ad-hoc, no defined process)",
+            "2": "Intermediate (defined but inconsistently applied)",
+            "3": "Advanced (consistent, largely digitised)",
+            "4": "Leading (best-in-class, automated, predictive)",
+        },
+        "responses": responses,
+        "summary": {
+            "total_questions": len(responses),
+            "mean_score": round(sum(r["score"] for r in responses) / len(responses), 2),
+            "mandatory_answered": sum(1 for r in responses if r["required"]),
+        },
+    }
+
+
+def _sample_evidence(q: dict, score: int, rng: random.Random) -> str:
+    """Light-touch evidence text."""
+    if score == 1:
+        return "No formal process documented; ad-hoc handling reported."
+    elif score == 2:
+        return "Process defined but not consistently applied across plants/BUs."
+    elif score == 3:
+        return "Documented process consistently applied; partial digitisation in place."
+    else:
+        return "Best-practice process; fully digitised + measured."
+
+
+def _client_pack_qre_questions() -> list[dict]:
+    """The Client Pack v10 QRE structure — 52 questions across 13 areas."""
+    return [
+        {"id": "D1.1", "area": "Strategy & Vision",      "question": "Is there a documented procurement strategy aligned to business goals?", "required": True},
+        {"id": "D1.2", "area": "Scope & Coverage",       "question": "What are the major spend categories (CAPEX, MRO, RM, services, logistics, energy)?", "required": False},
+        {"id": "D1.3", "area": "Maturity Baseline",      "question": "Has a procurement maturity assessment been conducted previously?", "required": False},
+        {"id": "D1.4", "area": "Digital Ambition",       "question": "What is the organisation's vision for analytics and automation in procurement?", "required": False},
+        {"id": "D2.1", "area": "Structure",              "question": "How is procurement structured? Central vs unit-level split, reporting lines.", "required": True},
+        {"id": "D2.2", "area": "Roles & Bandwidth",      "question": "What % of procurement team bandwidth is spent on strategic activities?", "required": False},
+        {"id": "D2.3", "area": "Spend Governance",       "question": "Which spend categories are centrally managed vs unit-managed?", "required": False},
+        {"id": "D2.4", "area": "Delegation of Authority", "question": "What is the DoA framework — value-based, category-based, or entity-based?", "required": True},
+        {"id": "D2.5", "area": "Shared Services",        "question": "Is there a shared service centre for procurement? What processes does it handle?", "required": False},
+        {"id": "D3.1", "area": "Category Strategy",      "question": "Are formal category strategies developed for key spend categories?", "required": True},
+        {"id": "D3.2", "area": "Market Intelligence",    "question": "Is external market data (benchmarks, commodity indices) used?", "required": False},
+        {"id": "D3.3", "area": "TCO & Value",            "question": "Is TCO or should-cost modelling applied in sourcing decisions?", "required": False},
+        {"id": "D3.4", "area": "Stakeholder Alignment",  "question": "Are internal stakeholders systematically engaged during sourcing?", "required": False},
+        {"id": "D4.1", "area": "Buying Channels",        "question": "What buying channels are currently in use (rate contracts, spot buys, ASLs)?", "required": True},
+        {"id": "D4.2", "area": "Sourcing Process",       "question": "Are competitive bidding processes documented and consistently followed?", "required": False},
+        {"id": "D4.3", "area": "Negotiation Approach",   "question": "Are structured negotiation approaches (fact-based, BATNA, multi-round) used?", "required": False},
+        {"id": "D4.4", "area": "Low-Value Spend",        "question": "How is low-value / tail spend managed today?", "required": False},
+        {"id": "D5.1", "area": "Process Documentation",  "question": "Are S2C and P2P processes documented as SOPs?", "required": True},
+        {"id": "D5.2", "area": "System Compliance",      "question": "What % of procurement processes are system-supported vs offline?", "required": True},
+        {"id": "D5.3", "area": "Technology Landscape",   "question": "Which ERP and procurement systems are in use across entities?", "required": False},
+        {"id": "D5.4", "area": "Digital Roadmap",        "question": "What is the timeline for planned ERP or procurement system upgrades?", "required": False},
+        {"id": "D5.5", "area": "Invoice Processing",     "question": "How are invoices currently processed and matched to POs/GRNs?", "required": False},
+        {"id": "D6.1", "area": "KPIs & KRAs",            "question": "What KPIs and KRAs are currently used for procurement?", "required": True},
+        {"id": "D6.2", "area": "Reporting",              "question": "How are KPI reports generated and disseminated?", "required": False},
+        {"id": "D6.3", "area": "Analytics Capability",   "question": "What analytical reports are currently available?", "required": False},
+        {"id": "D6.4", "area": "Benchmarking",           "question": "Are external procurement benchmarks used to set targets?", "required": False},
+        {"id": "D7.1", "area": "Contract Repository",    "question": "Is there a centralised contract repository?", "required": False},
+        {"id": "D7.2", "area": "Compliance & Renewals",  "question": "How is contract compliance monitored?", "required": False},
+        {"id": "D7.3", "area": "Standardisation",        "question": "Are standard contract templates used across categories?", "required": False},
+        {"id": "D7.4", "area": "Coverage",               "question": "What % of total procurement spend is covered by active rate contracts?", "required": True},
+        {"id": "D8.1", "area": "Vendor Onboarding",      "question": "How is supplier onboarding handled?", "required": False},
+        {"id": "D8.2", "area": "Performance Management", "question": "Is there a formal supplier performance management process?", "required": True},
+        {"id": "D8.3", "area": "Preferred Vendor List",  "question": "Is there an approved / preferred vendor list?", "required": False},
+        {"id": "D8.4", "area": "Strategic Suppliers",    "question": "Are any suppliers classified as strategic partners?", "required": False},
+        {"id": "D9.1", "area": "Regulatory Requirements", "question": "Are there specific regulatory requirements governing procurement?", "required": False},
+        {"id": "D9.2", "area": "Audit Findings",         "question": "Are there recent internal audit observations on procurement?", "required": True},
+        {"id": "D9.3", "area": "Supply Chain Risk",      "question": "Is supply chain risk systematically assessed?", "required": False},
+        {"id": "D9.4", "area": "Business Continuity",    "question": "Is there a contingency / BCP for critical categories?", "required": False},
+        {"id": "D10.1", "area": "Governance Forums",     "question": "What procurement governance forums exist?", "required": True},
+        {"id": "D10.2", "area": "Policy Framework",      "question": "Are procurement policies and code of conduct formally documented?", "required": False},
+        {"id": "D10.3", "area": "Stakeholder Alignment", "question": "Who are the key internal stakeholders for procurement transformation?", "required": False},
+        {"id": "D11.1", "area": "Skills Profile",        "question": "What is the current capability profile of the procurement team?", "required": True},
+        {"id": "D11.2", "area": "Learning & Development", "question": "Is there a structured L&D program for procurement?", "required": False},
+        {"id": "D11.3", "area": "Incentives & Retention", "question": "What incentive structures exist for the procurement function?", "required": False},
+        {"id": "D11.4", "area": "Role Specialisation",   "question": "Are there dedicated category specialists?", "required": False},
+        {"id": "D12.1", "area": "Application Landscape", "question": "What procurement applications are currently in use?", "required": True},
+        {"id": "D12.2", "area": "Sourcing Tool Utilisation", "question": "Which modules of your sourcing tool are actively used?", "required": False},
+        {"id": "D12.3", "area": "Data Infrastructure",   "question": "Is there a data warehouse with historical procurement data?", "required": False},
+        {"id": "D12.4", "area": "Automation & AI",       "question": "What automation or AI initiatives are planned for procurement?", "required": False},
+        {"id": "D13.1", "area": "Sustainable Procurement", "question": "Does the organisation have a documented sustainable procurement policy?", "required": True},
+        {"id": "D13.2", "area": "Supplier ESG Criteria", "question": "Are ESG criteria applied during supplier onboarding?", "required": False},
+        {"id": "D13.3", "area": "Scope 3 Emissions",     "question": "Is there any tracking of Scope 3 emissions through the supply chain?", "required": False},
+    ]
+
+
 # --------------------------------------------------------------------------
 # CLI entry for manual generation
 # --------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import json
     import sys
-    out_path = sys.argv[1] if len(sys.argv) > 1 else "po_dump_demo.csv"
+    from pathlib import Path
+
+    out_dir = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     df = generate_steel_po_dump(seed=42)
-    df.to_csv(out_path, index=False)
-    print(f"Wrote {len(df)} rows to {out_path}")
-    print(f"Columns ({len(df.columns)}): {list(df.columns)}")
-    print(f"Total spend (INR): {df['Net Value'].sum():,.0f}")
-    print(f"Plants: {df['Plant'].nunique()}, Vendors: {df['Vendor'].nunique()}, MGs: {df['Mat.Group'].nunique()}")
+    po_path = out_dir / "demo_po_dump.csv"
+    df.to_csv(po_path, index=False)
+    print(f"PO: {len(df)} rows → {po_path}")
+    print(f"  Total spend (INR): {df['Net_Value'].sum():,.0f}")
+    print(f"  Plants: {df['Plant'].nunique()}, Vendors: {df['Vendor_Number'].nunique()}, MGs: {df['Material_Group'].nunique()}")
+
+    pr_df = generate_pr_dump(df, seed=42)
+    pr_path = out_dir / "demo_pr_dump.csv"
+    pr_df.to_csv(pr_path, index=False)
+    print(f"PR: {len(pr_df)} rows → {pr_path}")
+
+    qre = generate_qre_responses(seed=42)
+    qre_path = out_dir / "demo_qre_responses.json"
+    qre_path.write_text(json.dumps(qre, indent=2))
+    print(f"QRE: {len(qre['responses'])} responses → {qre_path}")
+    print(f"  Mean score: {qre['summary']['mean_score']}")

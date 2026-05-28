@@ -1,0 +1,95 @@
+# =============================================================================
+# DoA — RCA Rules
+# =============================================================================
+metadata:
+  id: doa-rca-rules
+  layer: function
+  function: procurement
+  pillar: doa
+  version: 1.0
+
+rules:
+  - id: rca.doa.r01_no_formal_doa
+    theme: document-audit
+    trigger: |
+      doa_document_present = false
+    root_causes:
+      - "No formal DoA established — approvals via informal practice"
+      - "DoA exists but not communicated to plants / buyers"
+      - "Historical informality protected by senior-leadership culture"
+    confidence: high
+    references: {pattern: rca-pat-doa-01, recommendation: rec-doa-establish-formal-doa}
+
+  - id: rca.doa.r02_partial_coverage
+    theme: document-audit
+    trigger: |
+      coverage_pct < 60
+    root_causes:
+      - "DoA covers transactional categories but not strategic / project / CAPEX"
+      - "Coverage extended ad-hoc without systematic taxonomy"
+      - "Indian regulatory cases (PAC, MSME) treated as one-off exceptions"
+    confidence: medium
+    references: {pattern: rca-pat-doa-02, recommendation: rec-doa-coverage-expansion}
+
+  - id: rca.doa.r03_indian_cases_missing
+    theme: robustness
+    trigger: |
+      indian_special_cases_covered < 70
+    root_causes:
+      - "PAC, MSME compliance, NFA thresholds not codified in DoA"
+      - "Treated as case-by-case approvals — audit trail weak"
+      - "Recent regulatory updates not reflected in DoA version"
+    confidence: high
+    references: {pattern: rca-pat-doa-03, recommendation: rec-doa-indian-cases}
+
+  - id: rca.doa.r04_high_breach_rate
+    theme: po-compliance
+    trigger: |
+      cap_breach_pct > 10
+    root_causes:
+      - "Thresholds unrealistic for current spend distribution"
+      - "Approval workflow bypassed via splitting POs below threshold"
+      - "System does not enforce DoA at PO creation time"
+    confidence: high
+    references: {pattern: rca-pat-doa-04, recommendation: rec-doa-system-enforce-thresholds}
+
+  - id: rca.doa.r05_paper_only
+    theme: system-enforcement
+    trigger: |
+      erp_workflow_present = false
+    root_causes:
+      - "DoA exists only as a policy document"
+      - "ERP doesn't have approval workflow module activated"
+      - "Manual sign-off — audit trail incomplete"
+    confidence: high
+    references: {pattern: rca-pat-doa-05, recommendation: rec-doa-implement-erp-workflow}
+
+  - id: rca.doa.r06_low_seventy_rule
+    theme: po-compliance
+    trigger: |
+      seventy_rule_pct < 60
+    root_causes:
+      - "Spend distribution outgrew bucket thresholds (inflation / scale-up)"
+      - "Categories spanning multiple tiers default to highest approval"
+      - "Buyers escalate everything as a control habit"
+    confidence: medium
+    references: {pattern: rca-pat-doa-06, recommendation: rec-doa-rebucket-thresholds}
+
+  - id: rca.doa.r07_bucket_misfit
+    theme: bucket-optimisation
+    trigger: |
+      bucket_fit_score < 2
+    root_causes:
+      - "Bucket thresholds not refreshed since DoA inception"
+      - "All-rounder thresholds across category-types missing nuance"
+      - "Operational vs strategic distinction absent"
+    confidence: medium
+    references: {pattern: rca-pat-doa-07, recommendation: rec-doa-bucket-redesign}
+
+  - id: rca.doa.r08_already_mature
+    theme: synthesis
+    trigger: |
+      doa_pillar_score >= 4
+    root_causes: []
+    confidence: high
+    references: {pattern: rca-pat-doa-08, recommendation: rec-doa-continuous-improvement}

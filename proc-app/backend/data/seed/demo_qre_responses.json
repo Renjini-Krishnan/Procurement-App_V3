@@ -1,0 +1,432 @@
+{
+  "client_pack_version": "v10",
+  "scoring_scale": {
+    "1": "Foundation (ad-hoc, no defined process)",
+    "2": "Intermediate (defined but inconsistently applied)",
+    "3": "Advanced (consistent, largely digitised)",
+    "4": "Leading (best-in-class, automated, predictive)"
+  },
+  "responses": [
+    {
+      "id": "D1.1",
+      "area": "Strategy & Vision",
+      "question": "Is there a documented procurement strategy aligned to business goals?",
+      "required": true,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D1.2",
+      "area": "Scope & Coverage",
+      "question": "What are the major spend categories (CAPEX, MRO, RM, services, logistics, energy)?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D1.3",
+      "area": "Maturity Baseline",
+      "question": "Has a procurement maturity assessment been conducted previously?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D1.4",
+      "area": "Digital Ambition",
+      "question": "What is the organisation's vision for analytics and automation in procurement?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D2.1",
+      "area": "Structure",
+      "question": "How is procurement structured? Central vs unit-level split, reporting lines.",
+      "required": true,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D2.2",
+      "area": "Roles & Bandwidth",
+      "question": "What % of procurement team bandwidth is spent on strategic activities?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D2.3",
+      "area": "Spend Governance",
+      "question": "Which spend categories are centrally managed vs unit-managed?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D2.4",
+      "area": "Delegation of Authority",
+      "question": "What is the DoA framework \u2014 value-based, category-based, or entity-based?",
+      "required": true,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D2.5",
+      "area": "Shared Services",
+      "question": "Is there a shared service centre for procurement? What processes does it handle?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D3.1",
+      "area": "Category Strategy",
+      "question": "Are formal category strategies developed for key spend categories?",
+      "required": true,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D3.2",
+      "area": "Market Intelligence",
+      "question": "Is external market data (benchmarks, commodity indices) used?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D3.3",
+      "area": "TCO & Value",
+      "question": "Is TCO or should-cost modelling applied in sourcing decisions?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D3.4",
+      "area": "Stakeholder Alignment",
+      "question": "Are internal stakeholders systematically engaged during sourcing?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D4.1",
+      "area": "Buying Channels",
+      "question": "What buying channels are currently in use (rate contracts, spot buys, ASLs)?",
+      "required": true,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D4.2",
+      "area": "Sourcing Process",
+      "question": "Are competitive bidding processes documented and consistently followed?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D4.3",
+      "area": "Negotiation Approach",
+      "question": "Are structured negotiation approaches (fact-based, BATNA, multi-round) used?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D4.4",
+      "area": "Low-Value Spend",
+      "question": "How is low-value / tail spend managed today?",
+      "required": false,
+      "score": 4,
+      "evidence": "Best-practice process; fully digitised + measured."
+    },
+    {
+      "id": "D5.1",
+      "area": "Process Documentation",
+      "question": "Are S2C and P2P processes documented as SOPs?",
+      "required": true,
+      "score": 4,
+      "evidence": "Best-practice process; fully digitised + measured."
+    },
+    {
+      "id": "D5.2",
+      "area": "System Compliance",
+      "question": "What % of procurement processes are system-supported vs offline?",
+      "required": true,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D5.3",
+      "area": "Technology Landscape",
+      "question": "Which ERP and procurement systems are in use across entities?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D5.4",
+      "area": "Digital Roadmap",
+      "question": "What is the timeline for planned ERP or procurement system upgrades?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D5.5",
+      "area": "Invoice Processing",
+      "question": "How are invoices currently processed and matched to POs/GRNs?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D6.1",
+      "area": "KPIs & KRAs",
+      "question": "What KPIs and KRAs are currently used for procurement?",
+      "required": true,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D6.2",
+      "area": "Reporting",
+      "question": "How are KPI reports generated and disseminated?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D6.3",
+      "area": "Analytics Capability",
+      "question": "What analytical reports are currently available?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D6.4",
+      "area": "Benchmarking",
+      "question": "Are external procurement benchmarks used to set targets?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D7.1",
+      "area": "Contract Repository",
+      "question": "Is there a centralised contract repository?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D7.2",
+      "area": "Compliance & Renewals",
+      "question": "How is contract compliance monitored?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D7.3",
+      "area": "Standardisation",
+      "question": "Are standard contract templates used across categories?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D7.4",
+      "area": "Coverage",
+      "question": "What % of total procurement spend is covered by active rate contracts?",
+      "required": true,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D8.1",
+      "area": "Vendor Onboarding",
+      "question": "How is supplier onboarding handled?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D8.2",
+      "area": "Performance Management",
+      "question": "Is there a formal supplier performance management process?",
+      "required": true,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D8.3",
+      "area": "Preferred Vendor List",
+      "question": "Is there an approved / preferred vendor list?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D8.4",
+      "area": "Strategic Suppliers",
+      "question": "Are any suppliers classified as strategic partners?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D9.1",
+      "area": "Regulatory Requirements",
+      "question": "Are there specific regulatory requirements governing procurement?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D9.2",
+      "area": "Audit Findings",
+      "question": "Are there recent internal audit observations on procurement?",
+      "required": true,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D9.3",
+      "area": "Supply Chain Risk",
+      "question": "Is supply chain risk systematically assessed?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D9.4",
+      "area": "Business Continuity",
+      "question": "Is there a contingency / BCP for critical categories?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D10.1",
+      "area": "Governance Forums",
+      "question": "What procurement governance forums exist?",
+      "required": true,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D10.2",
+      "area": "Policy Framework",
+      "question": "Are procurement policies and code of conduct formally documented?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D10.3",
+      "area": "Stakeholder Alignment",
+      "question": "Who are the key internal stakeholders for procurement transformation?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D11.1",
+      "area": "Skills Profile",
+      "question": "What is the current capability profile of the procurement team?",
+      "required": true,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D11.2",
+      "area": "Learning & Development",
+      "question": "Is there a structured L&D program for procurement?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D11.3",
+      "area": "Incentives & Retention",
+      "question": "What incentive structures exist for the procurement function?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D11.4",
+      "area": "Role Specialisation",
+      "question": "Are there dedicated category specialists?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D12.1",
+      "area": "Application Landscape",
+      "question": "What procurement applications are currently in use?",
+      "required": true,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D12.2",
+      "area": "Sourcing Tool Utilisation",
+      "question": "Which modules of your sourcing tool are actively used?",
+      "required": false,
+      "score": 2,
+      "evidence": "Process defined but not consistently applied across plants/BUs."
+    },
+    {
+      "id": "D12.3",
+      "area": "Data Infrastructure",
+      "question": "Is there a data warehouse with historical procurement data?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D12.4",
+      "area": "Automation & AI",
+      "question": "What automation or AI initiatives are planned for procurement?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    },
+    {
+      "id": "D13.1",
+      "area": "Sustainable Procurement",
+      "question": "Does the organisation have a documented sustainable procurement policy?",
+      "required": true,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D13.2",
+      "area": "Supplier ESG Criteria",
+      "question": "Are ESG criteria applied during supplier onboarding?",
+      "required": false,
+      "score": 1,
+      "evidence": "No formal process documented; ad-hoc handling reported."
+    },
+    {
+      "id": "D13.3",
+      "area": "Scope 3 Emissions",
+      "question": "Is there any tracking of Scope 3 emissions through the supply chain?",
+      "required": false,
+      "score": 3,
+      "evidence": "Documented process consistently applied; partial digitisation in place."
+    }
+  ],
+  "summary": {
+    "total_questions": 52,
+    "mean_score": 2.31,
+    "mandatory_answered": 15
+  }
+}

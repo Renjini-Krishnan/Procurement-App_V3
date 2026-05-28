@@ -20,6 +20,7 @@ export const STAGES = [
   { id: 11, phase: "Analyze",    name: "Primer",            slug: "primer",            status: "todo" },
   { id: 12, phase: "Analyze",    name: "Op Model",          slug: "op-model",          status: "todo" },
   { id: 13, phase: "Analyze",    name: "Org Structure",     slug: "org-structure",     status: "todo" },
+  { id: 14, phase: "Analyze",    name: "DoA",               slug: "doa",               status: "todo" },
   { id: 16, phase: "Analyze",    name: "Buying Channel",    slug: "buying-channel",    status: "todo" },
   { id: 18, phase: "Analyze",    name: "Material Master",   slug: "material-master",   status: "todo", locked: true },
   { id: 20, phase: "Analyze",    name: "PR-to-PO",          slug: "pr-to-po",          status: "todo", locked: true },

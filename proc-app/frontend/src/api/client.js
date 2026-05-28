@@ -60,6 +60,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ upload_id: uploadId, industry }),
     }),
+  runDoA: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/doa`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
   listFindings: (id, pillar) =>
     request(`/engagement/${id}/findings${pillar ? `?pillar=${pillar}` : ""}`),
 

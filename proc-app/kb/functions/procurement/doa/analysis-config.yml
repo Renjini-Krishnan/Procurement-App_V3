@@ -1,0 +1,97 @@
+# =============================================================================
+# DoA — Analysis Configuration
+# =============================================================================
+metadata:
+  id: doa-analysis-config
+  layer: function
+  function: procurement
+  pillar: doa
+  version: 1.0
+  last_updated: 2026-05-28
+  status: active
+
+pillar:
+  id: doa
+  display_name: "Delegation of Authority"
+  scope_note: |
+    Governance / compliance / control on procurement approval matrix.
+    5 themes: Document Audit + Coverage · Robustness vs Reference ·
+    PO Compliance & Distribution · System Enforcement (QRE-only) ·
+    Bucket Optimisation. NO ₹ cost-out — outputs are maturity scores +
+    governance + control diagnostics.
+  run_order: 14
+  themes_in_order: [document-audit, robustness, po-compliance, system-enforcement, bucket-optimisation]
+  pillar_maturity_rollup: true
+
+themes:
+  document-audit:
+    display_name: "DoA Document Audit + PO Coverage Cross-Check"
+    pillar_weight: 0.20
+    decision_driving: true
+    qre_inputs: [D2.4]   # DoA framework type
+    po_inputs: [material_group, net_value]
+    components:
+      - id: da1_doa_document_present
+      - id: da2_coverage_check
+      - id: da3_tier_structure
+      - id: da4_indian_special_cases   # PAC, MSME, regulatory thresholds
+
+  robustness:
+    display_name: "DoA Robustness vs Reference"
+    pillar_weight: 0.25
+    decision_driving: true
+    qre_inputs: [D2.4, D10.2]
+    components:
+      - id: rb1_tier_coverage_vs_reference
+      - id: rb2_mandatory_cases_check
+      - id: rb3_ambiguity_audit
+      - id: rb4_quality_indicators
+
+  po-compliance:
+    display_name: "DoA-vs-PO Compliance & Distribution"
+    pillar_weight: 0.25
+    decision_driving: true
+    po_inputs: [pr_reference, net_value, material_group]
+    pr_inputs: [pr_approver, pr_total_value]
+    components:
+      - id: pc1_seventy_rule    # 70% rule — most spend within prescribed tier
+      - id: pc2_cap_breaches
+      - id: pc3_distribution_by_value_band
+      - id: pc4_approver_spread
+
+  system-enforcement:
+    display_name: "DoA System Enforcement Maturity"
+    pillar_weight: 0.15
+    decision_driving: true
+    qre_inputs: [D2.4, D5.2, D12.1]
+    components:
+      - id: se1_erp_workflow_present
+      - id: se2_automation_pct
+      - id: se3_paper_workflow_pct
+
+  bucket-optimisation:
+    display_name: "DoA Bucket Optimisation"
+    pillar_weight: 0.15
+    decision_driving: true
+    po_inputs: [net_value]
+    components:
+      - id: bo1_current_bucket_fit
+      - id: bo2_recommended_thresholds
+      - id: bo3_consolidation_opportunity
+
+thresholds:
+  seventy_rule_pct:
+    value: 70
+    edit_risk: MEDIUM
+  high_pac_pct:
+    value: 15
+    edit_risk: MEDIUM
+  ambiguity_max_acceptable_pct:
+    value: 10
+    edit_risk: MEDIUM
+  system_enforcement_min_pct:
+    value: 50
+    edit_risk: MEDIUM
+
+# Theme pillar score formula — weighted average
+pillar_score_formula: "0.20*document_audit + 0.25*robustness + 0.25*po_compliance + 0.15*system_enforcement + 0.15*bucket_optimisation"

@@ -1,0 +1,161 @@
+# =============================================================================
+# DoA — Scoring Descriptors (1-5 Maturity per theme)
+# =============================================================================
+metadata:
+  id: doa-scoring-descriptors
+  layer: function
+  function: procurement
+  pillar: doa
+  version: 1.0
+
+document_audit_score_descriptors:
+  - level: 1
+    label: "Initial"
+    signals: {doa_document_present: false, coverage_pct: "< 30%"}
+    narrative: "No formal DoA, or DoA covers minimal share of procurement spend."
+    typical_finding: "Establish formal DoA; baseline tier structure."
+  - level: 2
+    label: "Developing"
+    signals: {coverage_pct: "30-60%"}
+    narrative: "DoA exists but covers selected categories; major Indian regulatory cases (PAC, MSME) missing."
+    typical_finding: "Expand coverage; codify Indian regulatory cases."
+  - level: 3
+    label: "Defined"
+    signals: {coverage_pct: "60-80%", indian_cases_covered: true}
+    narrative: "DoA covers majority of spend; Indian regulatory anchors present."
+    typical_finding: "Selective coverage gap closure."
+  - level: 4
+    label: "Managed"
+    signals: {coverage_pct: "80-95%"}
+    narrative: "Comprehensive coverage; selective edge cases remain."
+    typical_finding: "Close residual edge cases."
+  - level: 5
+    label: "Optimised"
+    signals: {coverage_pct: "> 95%"}
+    narrative: "Best-practice coverage."
+    typical_finding: "No action."
+
+robustness_score_descriptors:
+  - level: 1
+    label: "Initial"
+    signals: {mandatory_cases_covered: "< 30%", ambiguity_rate: "> 30%"}
+    narrative: "DoA structurally weak; many mandatory cases missing; high ambiguity in thresholds."
+    typical_finding: "Re-draft DoA against reference template."
+  - level: 2
+    label: "Developing"
+    signals: {mandatory_cases_covered: "30-60%", ambiguity_rate: "20-30%"}
+    narrative: "DoA covers basics; gaps in PAC handling, MSME, capex tiers."
+    typical_finding: "Add missing mandatory cases; resolve ambiguity in 2-3 critical thresholds."
+  - level: 3
+    label: "Defined"
+    signals: {mandatory_cases_covered: "60-80%", ambiguity_rate: "10-20%"}
+    narrative: "Most mandatory cases covered; some ambiguity in edge cases."
+    typical_finding: "Close 2-3 mandatory case gaps; clarify ambiguous thresholds."
+  - level: 4
+    label: "Managed"
+    signals: {mandatory_cases_covered: "80-95%", ambiguity_rate: "< 10%"}
+    narrative: "Comprehensive structure; minor ambiguity."
+    typical_finding: "Periodic review."
+  - level: 5
+    label: "Optimised"
+    signals: {mandatory_cases_covered: "> 95%", ambiguity_rate: "< 5%"}
+    narrative: "Best-practice robustness."
+    typical_finding: "Maintain."
+
+po_compliance_score_descriptors:
+  - level: 1
+    label: "Initial"
+    signals: {seventy_rule_pct: "< 40%", cap_breach_pct: "> 20%"}
+    narrative: "Severe non-compliance; thresholds frequently bypassed."
+    typical_finding: "Investigate root cause: weak system enforcement OR unrealistic thresholds."
+  - level: 2
+    label: "Developing"
+    signals: {seventy_rule_pct: "40-60%", cap_breach_pct: "10-20%"}
+    narrative: "Material non-compliance; meaningful breach pattern."
+    typical_finding: "Enforce system controls; review threshold realism."
+  - level: 3
+    label: "Defined"
+    signals: {seventy_rule_pct: "60-75%", cap_breach_pct: "5-10%"}
+    narrative: "Most spend compliant; breach pattern manageable."
+    typical_finding: "Targeted compliance interventions for outlier categories."
+  - level: 4
+    label: "Managed"
+    signals: {seventy_rule_pct: "75-90%", cap_breach_pct: "2-5%"}
+    narrative: "Strong compliance; rare breaches."
+    typical_finding: "Monitor + periodic audit."
+  - level: 5
+    label: "Optimised"
+    signals: {seventy_rule_pct: "> 90%", cap_breach_pct: "< 2%"}
+    narrative: "Best-in-class compliance."
+    typical_finding: "Maintain."
+
+system_enforcement_score_descriptors:
+  - level: 1
+    label: "Initial"
+    signals: {erp_workflow_present: false}
+    narrative: "DoA is paper-only; no ERP workflow."
+    typical_finding: "Implement ERP-based approval workflow."
+  - level: 2
+    label: "Developing"
+    signals: {erp_workflow_present: true, automation_pct: "< 50%"}
+    narrative: "ERP workflow exists for some categories; others manual."
+    typical_finding: "Expand workflow scope across categories + plants."
+  - level: 3
+    label: "Defined"
+    signals: {automation_pct: "50-75%"}
+    narrative: "Majority of approvals via ERP workflow."
+    typical_finding: "Close remaining manual gaps."
+  - level: 4
+    label: "Managed"
+    signals: {automation_pct: "75-95%"}
+    narrative: "Near-complete system enforcement."
+    typical_finding: "Optimise workflow exceptions handling."
+  - level: 5
+    label: "Optimised"
+    signals: {automation_pct: "> 95%"}
+    narrative: "Fully digitised + audit-trail-complete."
+    typical_finding: "Maintain."
+
+bucket_optimisation_score_descriptors:
+  - level: 1
+    label: "Initial"
+    signals: {bucket_fit: "poor"}
+    narrative: "Bucket structure mismatched with spend distribution; either over- or under-bucketed."
+    typical_finding: "Redesign bucket structure based on spend distribution."
+  - level: 2
+    label: "Developing"
+    signals: {bucket_fit: "weak"}
+    narrative: "Buckets partially align; clear consolidation/split opportunities."
+    typical_finding: "Selective bucket restructuring."
+  - level: 3
+    label: "Defined"
+    signals: {bucket_fit: "fair"}
+    narrative: "Bucket structure broadly aligns with spend; refinement possible."
+    typical_finding: "Marginal threshold adjustments."
+  - level: 4
+    label: "Managed"
+    signals: {bucket_fit: "good"}
+    narrative: "Bucket thresholds well-tuned to spend distribution."
+    typical_finding: "Periodic review."
+  - level: 5
+    label: "Optimised"
+    signals: {bucket_fit: "excellent"}
+    narrative: "Bucket structure optimal."
+    typical_finding: "Maintain."
+
+pillar_score_descriptors:
+  - score_range: [1.0, 1.5]
+    label: "Initial"
+    narrative: "DoA under-built across multiple themes; multi-pronged remediation."
+  - score_range: [1.5, 2.5]
+    label: "Developing"
+    narrative: "DoA emerging; significant gaps in robustness + compliance."
+  - score_range: [2.5, 3.5]
+    label: "Defined"
+    narrative: "DoA defined + applied; refinement opportunities."
+  - score_range: [3.5, 4.5]
+    label: "Managed"
+    narrative: "DoA mature + measured."
+  - score_range: [4.5, 5.0]
+    label: "Optimised"
+    narrative: "Best-practice DoA."

@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from .. import db, kb_loader
 from . import gold_data, rca_engine, scoring, stage9_classify, stage10_kpis
+from .doa import run_doa
 from .op_model import run_centralisation, run_coe, run_shared_services, run_tail_spend
 
 
@@ -132,6 +133,66 @@ def _persist_findings(engagement_id: str, result: dict) -> None:
                     json.dumps([]),
                     ts,
                 ),
+            )
+
+
+def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", qre_responses: Optional[dict] = None) -> dict:
+    """Stage 14 — DoA pillar. Re-uses Stage 8/9/10 outputs."""
+    import time
+    timings = {}
+    t0 = time.time()
+    df_gold = gold_data.build_gold_dataframe(upload_id)
+    timings["stage8_gold"] = round(time.time() - t0, 2)
+    t1 = time.time()
+    df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    timings["stage9_classify"] = round(time.time() - t1, 2)
+    t2 = time.time()
+    df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    timings["stage10_kpis"] = round(time.time() - t2, 2)
+    t3 = time.time()
+
+    # Default QRE: load seed if not provided
+    if qre_responses is None:
+        from pathlib import Path
+        import json
+        seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
+        if seed.exists():
+            qre_responses = json.loads(seed.read_text())
+
+    result = run_doa(df_classified, df_mg, qre_responses)
+    timings["stage14_doa"] = round(time.time() - t3, 2)
+    timings["total"] = round(time.time() - t0, 2)
+
+    result["engagement_id"] = engagement_id
+    result["upload_id"] = upload_id
+    result["industry"] = industry
+    result["timings_seconds"] = timings
+
+    # Persist + advance stages
+    db.set_stage_status(engagement_id, 14, "done", {"pillar_score": result["pillar_score"]})
+    db.update_engagement_stage(engagement_id, 15)
+    _persist_findings_doa(engagement_id, result)
+
+    return result
+
+
+def _persist_findings_doa(engagement_id: str, result: dict) -> None:
+    import json
+    import uuid
+    with db.db_connection() as conn:
+        conn.execute("DELETE FROM findings WHERE engagement_id = ? AND pillar = ?", (engagement_id, "doa"))
+        ts = db.now_iso()
+        for theme_id, theme_data in result["themes"].items():
+            fid = uuid.uuid4().hex[:12]
+            conn.execute(
+                """INSERT INTO findings
+                (id, engagement_id, pillar, theme, component_id, severity,
+                 headline, body, metrics, rca_pattern_id, recommendation_id,
+                 citations, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (fid, engagement_id, "doa", theme_id, "headline", "medium",
+                 theme_data.get("headline", ""), json.dumps(theme_data.get("metrics", {})),
+                 json.dumps(theme_data.get("metrics", {})), None, None, json.dumps([]), ts),
             )
 
 

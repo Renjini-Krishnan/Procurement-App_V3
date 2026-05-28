@@ -1,10 +1,14 @@
 """Canonical schema definitions per data file type.
 
+Aligned to the Accenture Client Pack v10 template — uses the exact column
+names the client receives in the workbook + their SAP source columns +
+common variants as aliases.
+
 For V1 these are inlined here. In Build 2 they move to
 data-templates/<file>.yml so the consultant can edit via the KB editor.
 
 Each canonical field has:
-  - field: the canonical name the engine uses internally
+  - field: the canonical name the engine uses internally (lowercase_snake)
   - aliases: list of common raw column names (fuzzy-match candidates)
   - type: expected dtype
   - required: whether the field blocks downstream analytics if missing
@@ -17,153 +21,70 @@ from typing import Optional
 PO_SCHEMA = {
     "file_type": "PO",
     "label": "Purchase Order (PO) Dump",
+    "source_template": "Accenture Client Pack v10",
     "fields": [
-        {
-            "field": "po_number",
-            "aliases": ["PO Number", "PO_Number", "Pur.Order Number", "EBELN", "Document Number", "PurchaseOrderNo"],
-            "type": "string",
-            "required": True,
-            "description": "Unique PO document number.",
-        },
-        {
-            "field": "po_item",
-            "aliases": ["PO Item", "PO_Item", "Item", "EBELP", "Line Item"],
-            "type": "integer",
-            "required": True,
-            "description": "Line item number within the PO.",
-        },
-        {
-            "field": "po_creation_date",
-            "aliases": ["PO Creation Date", "PO Date", "PO Doc. Date", "PO Doc Date", "PO Document Date", "Document Date", "Doc Date", "BEDAT", "PO_Date", "Created On"],
-            "type": "date",
-            "required": True,
-            "description": "Date the PO was created.",
-        },
-        {
-            "field": "material_group",
-            "aliases": ["Material Group", "Mat.Group", "MATKL", "MG Code", "Commodity Code"],
-            "type": "string",
-            "required": True,
-            "description": "Material group / commodity code — the primary classification key.",
-        },
-        {
-            "field": "material_group_desc",
-            "aliases": ["Material Group Description", "Mat.Group.1", "MG Description", "Material_Group_Desc", "Commodity Description"],
-            "type": "string",
-            "required": True,
-            "description": "Free-text description of the material group.",
-        },
-        {
-            "field": "net_value",
-            "aliases": ["Net Value", "Net Order Value", "NETWR", "PO Value", "Amount", "Line Value"],
-            "type": "number",
-            "required": True,
-            "description": "Line-item value (in PO currency).",
-        },
-        {
-            "field": "currency",
-            "aliases": ["Currency", "Curr", "WAERS"],
-            "type": "string",
-            "required": False,
-            "description": "Currency code (ISO 4217). Defaults to engagement currency if blank.",
-        },
-        {
-            "field": "vendor_id",
-            "aliases": ["Vendor", "Vendor ID", "Vendor No", "LIFNR", "Vendor Number"],
-            "type": "string",
-            "required": True,
-            "description": "Unique vendor identifier.",
-        },
-        {
-            "field": "vendor_name",
-            "aliases": ["Vendor Name", "NAME1", "Supplier Name"],
-            "type": "string",
-            "required": True,
-            "description": "Vendor display name.",
-        },
-        {
-            "field": "plant",
-            "aliases": ["Plant", "Plant Code", "WERKS", "Plant_Code"],
-            "type": "string",
-            "required": True,
-            "description": "Receiving plant code.",
-        },
-        {
-            "field": "purchase_group",
-            "aliases": ["Purchase Group", "Purch. Group", "EKGRP", "Buyer Group", "PurchGrp"],
-            "type": "string",
-            "required": False,
-            "description": "Buyer / purchase group code.",
-        },
-        {
-            "field": "cost_center",
-            "aliases": ["Cost Center", "Cost Centre", "KOSTL", "CC"],
-            "type": "string",
-            "required": False,
-            "description": "Cost centre to which the PO is charged.",
-        },
-        {
-            "field": "short_text",
-            "aliases": ["Short Text", "Item Description", "TXZ01", "Item Short Text"],
-            "type": "string",
-            "required": False,
-            "description": "Free-text short description of the line item.",
-        },
-        {
-            "field": "contract_number",
-            "aliases": ["Contract Number", "Agreement Number", "KONNR", "Contract Ref"],
-            "type": "string",
-            "required": False,
-            "description": "Reference to long-term rate contract / ARC.",
-        },
-        {
-            "field": "outline_agreement",
-            "aliases": ["Outline Agreement", "OLA Number", "Blanket PO", "OLA Ref"],
-            "type": "string",
-            "required": False,
-            "description": "Reference to annual blanket OLA.",
-        },
-        {
-            "field": "scheduling_agreement",
-            "aliases": ["Scheduling Agreement", "Sched Agreement", "Catalog Ref"],
-            "type": "string",
-            "required": False,
-            "description": "Reference to scheduling agreement / catalogue item.",
-        },
-        {
-            "field": "item_category",
-            "aliases": ["Item Category", "Pstyp", "PSTYP", "Item Type"],
-            "type": "string",
-            "required": False,
-            "description": "SAP PSTYP — A=Asset/CAPEX, D=Service.",
-        },
-        {
-            "field": "material_type",
-            "aliases": ["Material Type", "MTART", "Mat Type"],
-            "type": "string",
-            "required": False,
-            "description": "SAP MTART — DIEN=Service, ANLZ=Asset, ERSA/NLAG=Spare/Non-stock.",
-        },
-        {
-            "field": "quantity",
-            "aliases": ["Quantity", "Qty", "MENGE", "Order Quantity"],
-            "type": "number",
-            "required": False,
-            "description": "Order quantity.",
-        },
-        {
-            "field": "uom",
-            "aliases": ["UoM", "Unit", "MEINS", "Unit of Measure"],
-            "type": "string",
-            "required": False,
-            "description": "Unit of measure.",
-        },
+        {"field": "po_number",         "aliases": ["PO_Number", "PO Number", "Pur.Order Number", "EBELN"],         "type": "string",  "required": True,  "description": "Unique PO document number. SAP EKKO.EBELN."},
+        {"field": "po_item",           "aliases": ["PO_Item", "PO Item", "Item", "EBELP", "Line Item"],            "type": "integer", "required": True,  "description": "PO line item number. SAP EKPO.EBELP."},
+        {"field": "po_creation_date",  "aliases": ["PO_Creation_Date", "PO Creation Date", "PO Doc. Date", "BEDAT"], "type": "date",   "required": True,  "description": "Date PO was created. SAP EKKO.BEDAT."},
+        {"field": "company_code",      "aliases": ["Company_Code", "Company Code", "BUKRS"],                       "type": "string",  "required": True,  "description": "Legal entity / company code. SAP EKKO.BUKRS."},
+        {"field": "plant",             "aliases": ["Plant", "Plant Code", "WERKS"],                                "type": "string",  "required": True,  "description": "Receiving plant code. SAP EKPO.WERKS."},
+        {"field": "purchase_group",    "aliases": ["Purchase_Group", "Purchase Group", "Purch. Group", "EKGRP"],   "type": "string",  "required": True,  "description": "Buyer group code. SAP EKKO.EKGRP."},
+        {"field": "vendor_id",         "aliases": ["Vendor_Number", "Vendor Number", "Vendor", "LIFNR"],           "type": "string",  "required": True,  "description": "Unique supplier master ID. SAP LFA1.LIFNR."},
+        {"field": "vendor_name",       "aliases": ["Vendor_Name", "Vendor Name", "NAME1", "Supplier Name"],        "type": "string",  "required": True,  "description": "Vendor name. SAP LFA1.NAME1."},
+        {"field": "material_group",    "aliases": ["Material_Group", "Material Group", "Mat.Group", "MATKL"],      "type": "string",  "required": True,  "description": "Material group code (primary classification key). SAP EKPO.MATKL."},
+        {"field": "material_group_desc", "aliases": ["Material_Group_Desc", "Material Group Description", "Mat.Group.1", "MG Description"], "type": "string", "required": False, "description": "Material group description (free text)."},
+        {"field": "net_value",         "aliases": ["Net_Value", "Net Value", "Net Order Value", "NETWR"],          "type": "number",  "required": True,  "description": "Net order value (Qty × Net Price). SAP EKPO.NETWR."},
+        {"field": "currency",          "aliases": ["Currency", "Curr", "WAERS"],                                    "type": "string",  "required": True,  "description": "Transaction currency (ISO 4217). SAP EKKO.WAERS."},
+        {"field": "delivery_date",     "aliases": ["Delivery_Date", "Delivery Date", "EINDT"],                     "type": "date",    "required": True,  "description": "Scheduled delivery date. SAP EKPO.EINDT. Used for OTD."},
+        {"field": "gr_date",           "aliases": ["GR_Date", "GR Date", "Goods Receipt Date"],                    "type": "date",    "required": True,  "description": "Actual goods-receipt date. SAP EKBE. Used for OTD, DPO."},
+        {"field": "pr_reference",      "aliases": ["PR_Reference", "PR Reference", "BANFN"],                       "type": "string",  "required": True,  "description": "Source PR number. Critical for PR-to-PO TAT."},
+        {"field": "contract_number",   "aliases": ["Contract_Number", "Contract Number", "Agreement Number", "KONNR"], "type": "string", "required": True, "description": "Linked rate contract / scheduling agreement."},
+        {"field": "material_number",   "aliases": ["Material_Number", "Material Number", "MATNR"],                  "type": "string",  "required": True,  "description": "Material master number. Used for price comparison."},
+        # Optional fields
+        {"field": "po_type",           "aliases": ["PO_Type", "PO Type", "BSART"],                                 "type": "string",  "required": False, "description": "PO document type (NB=standard, FO=framework, UB=transfer)."},
+        {"field": "net_price",         "aliases": ["Net_Price", "Net Price", "Net_Price_Per_Unit", "NETPR"],       "type": "number",  "required": False, "description": "Unit net price. Used for LPO savings analysis."},
+        {"field": "quantity",          "aliases": ["Quantity", "Qty", "MENGE"],                                     "type": "number",  "required": False, "description": "Order quantity. SAP EKPO.MENGE."},
+        {"field": "gr_quantity",       "aliases": ["GR_Quantity", "GR Quantity"],                                  "type": "number",  "required": False, "description": "Quantity received."},
+        {"field": "gr_value",          "aliases": ["GR_Value", "GR Value"],                                        "type": "number",  "required": False, "description": "Value of goods received."},
+        {"field": "invoice_date",      "aliases": ["Invoice_Date", "Invoice Date"],                                "type": "date",    "required": False, "description": "Invoice posting date. Used for DPO."},
+        {"field": "invoice_value",     "aliases": ["Invoice_Value", "Invoice Value"],                              "type": "number",  "required": False, "description": "Invoice value against this PO line."},
+        {"field": "outline_agreement", "aliases": ["Outline_Agreement", "Outline Agreement", "Framework Agreement"], "type": "string", "required": False, "description": "Framework agreement / blanket PO reference."},
+        {"field": "vendor_evaluation_score", "aliases": ["Vendor_Evaluation_Score", "ME6H"],                        "type": "number",  "required": False, "description": "Vendor performance score from ERP evaluation."},
+        # Additional fields useful for analyses (not in Client Pack but commonly available)
+        {"field": "short_text",        "aliases": ["Short_Text", "Short Text", "Item Description", "TXZ01"],       "type": "string",  "required": False, "description": "Free-text line description."},
+        {"field": "scheduling_agreement", "aliases": ["Scheduling_Agreement", "Scheduling Agreement"],             "type": "string",  "required": False, "description": "Scheduling agreement / catalogue item ref."},
+        {"field": "item_category",     "aliases": ["Item_Category", "Item Category", "Pstyp", "PSTYP"],            "type": "string",  "required": False, "description": "SAP PSTYP — A=Asset/CAPEX, D=Service."},
+        {"field": "material_type",     "aliases": ["Material_Type", "Material Type", "MTART"],                     "type": "string",  "required": False, "description": "SAP MTART — DIEN=Service, ANLZ=Asset, ERSA=Spare."},
+        {"field": "cost_center",       "aliases": ["Cost_Center", "Cost Center", "KOSTL"],                         "type": "string",  "required": False, "description": "Cost centre."},
+        {"field": "uom",               "aliases": ["UoM", "Unit", "MEINS"],                                         "type": "string",  "required": False, "description": "Unit of measure."},
+    ],
+}
+
+
+PR_SCHEMA = {
+    "file_type": "PR",
+    "label": "Purchase Requisition (PR) Dump",
+    "source_template": "Accenture Client Pack v10",
+    "fields": [
+        {"field": "pr_number",         "aliases": ["PR_Number", "PR Number", "BANFN"],                              "type": "string",  "required": True,  "description": "Unique PR document number. Join key to PO."},
+        {"field": "pr_item",           "aliases": ["PR_Item", "PR Item"],                                           "type": "integer", "required": True,  "description": "PR line item number."},
+        {"field": "pr_creation_date",  "aliases": ["PR_Creation_Date", "PR Creation Date"],                         "type": "date",    "required": True,  "description": "Date the PR was raised."},
+        {"field": "plant",             "aliases": ["Plant", "Plant Code"],                                          "type": "string",  "required": True,  "description": "Requesting plant."},
+        {"field": "purchase_group",    "aliases": ["Purchase_Group", "Purchase Group", "Purch. Group"],             "type": "string",  "required": True,  "description": "Assigned buyer group."},
+        {"field": "material_group",    "aliases": ["Material_Group", "Material Group", "MATKL"],                    "type": "string",  "required": True,  "description": "Material group code."},
+        {"field": "pr_release_date",   "aliases": ["PR_Release_Date", "PR Release Date"],                           "type": "date",    "required": True,  "description": "Date the PR was approved / released."},
+        # Optional fields
+        {"field": "pr_requisitioner",  "aliases": ["PR_Requisitioner_Name", "Requisitioner", "PR_Requestor"],       "type": "string",  "required": False, "description": "Person who raised the PR."},
+        {"field": "pr_total_value",    "aliases": ["PR_Total_Value", "PR Total Value"],                             "type": "number",  "required": False, "description": "Total estimated PR value."},
+        {"field": "delivery_date",     "aliases": ["Delivery_Date", "Required Date"],                                "type": "date",    "required": False, "description": "Required delivery date."},
+        {"field": "pr_approver",       "aliases": ["PR_Approver", "PR Approver", "Approver"],                       "type": "string",  "required": False, "description": "Final approver name/ID. Used for DoA compliance."},
     ],
 }
 
 
 SCHEMAS = {
     "PO": PO_SCHEMA,
+    "PR": PR_SCHEMA,
 }
 
 
@@ -180,17 +101,12 @@ def _normalise(s: str) -> str:
 
 
 def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
-    """For each raw column, suggest a canonical field.
+    """For each raw column, suggest a canonical field with 1:1 mapping.
 
     Returns:
       {
         "matches": [
-          {
-            "raw_column": str,
-            "suggested_field": str | None,
-            "confidence": "high" | "medium" | "low" | "none",
-            "match_reason": str,
-          },
+          {"raw_column", "suggested_field", "confidence", "match_reason"},
           ...
         ],
         "missing_required": [field_name, ...],
@@ -198,7 +114,7 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
       }
     """
     schema = get_schema(file_type)
-    canonical_index = {}   # normalised alias -> canonical field
+    canonical_index = {}   # normalised alias -> (canonical, confidence, reason)
     for f in schema["fields"]:
         canonical_index[_normalise(f["field"])] = (f["field"], "high", "canonical name match")
         for alias in f["aliases"]:
@@ -207,7 +123,7 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
     # Two passes:
     # Pass 1 — exact / alias matches (HIGH confidence). One winner per canonical.
     # Pass 2 — substring fallback (MEDIUM), only for canonical fields not yet matched.
-    matched_canonical = {}   # canonical_field -> (raw_column, confidence, reason)
+    matched_canonical: dict[str, tuple] = {}
     matches: list[dict] = []
     pending_substring = []
 
@@ -222,17 +138,12 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
                     "confidence": conf, "match_reason": reason,
                 })
                 continue
-        # Defer for substring pass
         pending_substring.append((col, norm))
 
-    # Fill in already-matched rows for the first pass (they're appended in order)
-    # Now do substring matching for the remaining columns
     for col, norm in pending_substring:
         suggested, confidence, reason = (None, "none", "no match")
         for k, (field_name, _, _) in canonical_index.items():
-            if not k:
-                continue
-            if field_name in matched_canonical:
+            if not k or field_name in matched_canonical:
                 continue
             if k in norm or (len(norm) >= 4 and norm in k):
                 suggested = field_name
@@ -245,7 +156,6 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
             "confidence": confidence, "match_reason": reason,
         })
 
-    # Reorder matches to follow raw_columns order
     by_col = {m["raw_column"]: m for m in matches}
     matches = [by_col[c] for c in raw_columns if c in by_col]
 
