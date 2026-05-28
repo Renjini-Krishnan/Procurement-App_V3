@@ -22,6 +22,7 @@ const FindingsDeck = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pillarTab, setPillarTab] = useState("all");
+  const [scopedPillars, setScopedPillars] = useState(null);
 
   useEffect(() => {
     if (!engagement) return;
@@ -29,13 +30,17 @@ const FindingsDeck = () => {
     (async () => {
       try {
         setLoading(true); setError(null);
-        const [fr, rr] = await Promise.all([
+        const [fr, rr, ov] = await Promise.all([
           api.listFindings(engagement.id),
           api.listPillarRuns(engagement.id),
+          api.listOverrides(engagement.id).catch(() => ({ overrides: [] })),
         ]);
         if (!cancelled) {
-          setFindings(fr.findings || []);
-          setRuns(rr.runs || []);
+          const scopePillars = (ov.overrides || []).find((o) => o.key === "scope.pillars")?.value;
+          const scope = Array.isArray(scopePillars) && scopePillars.length > 0 ? new Set(scopePillars) : null;
+          setScopedPillars(scope);
+          setFindings((fr.findings || []).filter((f) => !scope || scope.has(f.pillar)));
+          setRuns((rr.runs || []).filter((r) => !scope || scope.has(r.pillar)));
         }
       } catch (e) {
         if (!cancelled) setError(e.message || String(e));

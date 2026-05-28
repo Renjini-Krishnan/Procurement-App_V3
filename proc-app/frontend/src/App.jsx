@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Landing from "./screens/Landing.jsx";
 import NewEngagement from "./screens/NewEngagement.jsx";
 import KBEditor from "./screens/KBEditor.jsx";
@@ -53,10 +53,10 @@ const STAGE_SCREENS = {
 };
 
 const StageRouter = () => {
-  const path = window.location.pathname;
-  const slug = path.split("/").pop();
-  const ScreenComponent = STAGE_SCREENS[slug] || StagePlaceholder;
-  return <ScreenComponent />;
+  const { stageSlug } = useParams();
+  const ScreenComponent = STAGE_SCREENS[stageSlug] || StagePlaceholder;
+  // key forces a fresh mount per slug so state isn't carried across screens.
+  return <ScreenComponent key={stageSlug} />;
 };
 
 const App = () => (

@@ -40,6 +40,7 @@ const KPIDashboard = () => {
   const [sortBy, setSortBy] = useState("severity");
   const [view, setView] = useState("grid");
   const [selectedKpi, setSelectedKpi] = useState(null);
+  const [scopedPillars, setScopedPillars] = useState(null); // null = no scope filter
 
   useEffect(() => {
     if (!engagement) return;
@@ -52,6 +53,15 @@ const KPIDashboard = () => {
           setError("No PO data uploaded. Go to Stage 4 first.");
           setLoading(false); return;
         }
+        // Load scope filter (Stage 2 selection)
+        try {
+          const ov = await api.listOverrides(engagement.id);
+          const pillars = (ov.overrides || []).find((o) => o.key === "scope.pillars")?.value;
+          if (Array.isArray(pillars) && pillars.length > 0) {
+            if (!cancelled) setScopedPillars(new Set(pillars));
+          }
+        } catch { /* defaults: no scope filter */ }
+
         const latest = uploads[0];
         const result = await api.runKpiDashboard(engagement.id, latest.id, engagement.industry);
         if (!cancelled) setData(result);
@@ -67,6 +77,8 @@ const KPIDashboard = () => {
   const filtered = useMemo(() => {
     if (!data) return [];
     let list = data.kpis.slice();
+    // Apply Stage 2 scope filter (drops out-of-scope pillars entirely)
+    if (scopedPillars && scopedPillars.size > 0) list = list.filter((k) => scopedPillars.has(k.pillar));
     if (activePillar !== "all") list = list.filter((k) => k.pillar === activePillar);
     if (statusFilter !== "all") list = list.filter((k) => k.status === statusFilter);
     if (search.trim()) {
@@ -87,7 +99,7 @@ const KPIDashboard = () => {
       return 0;
     });
     return list;
-  }, [data, activePillar, statusFilter, search, sortBy]);
+  }, [data, activePillar, statusFilter, search, sortBy, scopedPillars]);
 
   if (engLoading || !engagement) return <div>Loading engagement...</div>;
   if (loading) {
