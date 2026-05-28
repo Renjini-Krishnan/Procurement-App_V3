@@ -11,15 +11,57 @@ OR from repo root:
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
+import time
+import uuid
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config, db, kb_loader
-from .api import engagement, exports, health, kb, kb_files, pillar, qre, upload
+from .api import engagement, exports, health, jobs, kb, kb_files, pillar, qre, upload
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+# ---------- Logging configuration ----------
+
+LOG_JSON = os.environ.get("PROCVAULT_LOG_JSON", "0") in ("1", "true", "yes")
+LOG_LEVEL = os.environ.get("PROCVAULT_LOG_LEVEL", "INFO").upper()
+
+
+class JsonFormatter(logging.Formatter):
+    """One JSON object per log line — production-friendly."""
+    def format(self, record):
+        payload = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(record.created)) + f".{int(record.msecs):03d}Z",
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exc"] = self.formatException(record.exc_info)
+        # Pull custom attrs
+        for k in ("request_id", "engagement_id", "duration_ms", "method", "path", "status"):
+            v = getattr(record, k, None)
+            if v is not None:
+                payload[k] = v
+        return json.dumps(payload, default=str)
+
+
+def _configure_logging():
+    handler = logging.StreamHandler()
+    if LOG_JSON:
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(LOG_LEVEL)
+
+
+_configure_logging()
 log = logging.getLogger("procvault")
 
 
@@ -38,6 +80,29 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def request_logger(request: Request, call_next):
+        rid = uuid.uuid4().hex[:8]
+        t0 = time.time()
+        response = await call_next(request)
+        dur_ms = int((time.time() - t0) * 1000)
+        # Extract engagement_id from path if present
+        eng_id = None
+        parts = request.url.path.split("/")
+        if "engagement" in parts:
+            try:
+                eng_id = parts[parts.index("engagement") + 1]
+                if eng_id in ("", "new"):
+                    eng_id = None
+            except (ValueError, IndexError):
+                pass
+        log.info("http",
+                  extra={"request_id": rid, "engagement_id": eng_id,
+                         "method": request.method, "path": request.url.path,
+                         "status": response.status_code, "duration_ms": dur_ms})
+        response.headers["X-Request-ID"] = rid
+        return response
+
     app.include_router(health.router)
     app.include_router(engagement.router)
     app.include_router(upload.router)
@@ -47,10 +112,13 @@ def create_app() -> FastAPI:
     app.include_router(kb.router)
     app.include_router(kb_files.router)
     app.include_router(exports.router)
+    app.include_router(jobs.router)
 
     @app.on_event("startup")
     def on_startup():
         db.init_db()
+        from .services import jobs as jobs_service
+        jobs_service.init_jobs_schema()
         log.info("SQLite initialised at %s", config.DB_PATH)
         try:
             summary = kb_loader.validate_all()

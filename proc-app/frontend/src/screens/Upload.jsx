@@ -19,10 +19,13 @@ const Upload = () => {
   const [schemas, setSchemas] = useState([]);
   const [selectedType, setSelectedType] = useState("PO");
 
+  const [seeds, setSeeds] = useState([]);
+
   useEffect(() => {
     if (engagement) {
       api.listUploads(engagement.id).then(setUploads).catch(() => {});
       api.listUploadSchemas().then((r) => setSchemas(r.schemas || [])).catch(() => {});
+      api.listSeeds().then((r) => setSeeds(r.seeds || [])).catch(() => {});
     }
   }, [engagement]);
 
@@ -30,10 +33,12 @@ const Upload = () => {
     return <div style={{ color: "var(--ink-500)" }}>Loading engagement...</div>;
   }
 
-  const handleSeedUpload = async () => {
+  const handleSeedUpload = async (fileType = "PO") => {
     setUploading(true); setError(null);
     try {
-      const result = await api.uploadSeed(engagement.id);
+      const result = await api.uploadSeed(engagement.id, fileType);
+      const refreshed = await api.listUploads(engagement.id);
+      setUploads(refreshed);
       navigate(`/engagement/${engagement.id}/user-validation?upload=${result.upload_id}`);
     } catch (e) {
       setError(e.message);
@@ -107,12 +112,15 @@ const Upload = () => {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
         <Card padding={28}>
           <Badge tone="gold">Demo</Badge>
-          <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>Use sample PO dataset</h2>
-          <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
-            ~9,200 PO lines · 6 plants · 55 vendors · 56 MGs (18-month window).
+          <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>Load sample {selectedType}</h2>
+          <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 12px 0", lineHeight: 1.5 }}>
+            {seedDescription(selectedType, seeds)}
           </p>
-          <Button size="md" onClick={handleSeedUpload} disabled={uploading} iconRight={<I.Arrow size={14} />}>
-            {uploading ? "Loading sample..." : "Load PO sample"}
+          <Button size="md" onClick={() => handleSeedUpload(selectedType)}
+                  disabled={uploading || !seedAvailable(selectedType, seeds)}
+                  iconRight={<I.Arrow size={14} />}>
+            {uploading ? "Loading..." :
+              seedAvailable(selectedType, seeds) ? `Load ${selectedType} sample` : "No seed available"}
           </Button>
         </Card>
 
@@ -197,6 +205,13 @@ const Upload = () => {
       )}
     </div>
   );
+};
+
+const seedAvailable = (type, seeds) => seeds.some((s) => s.file_type === type);
+const seedDescription = (type, seeds) => {
+  const s = seeds.find((x) => x.file_type === type);
+  if (!s) return `No seed dataset available for ${type}. Upload your own file.`;
+  return `${(s.row_count_estimate || 0).toLocaleString("en-IN")} rows · ${(s.size_bytes / 1024).toFixed(0)} KB · realistic Indian steel-mill synthetic data, consistent with PO universe.`;
 };
 
 const Label = ({ children }) => (

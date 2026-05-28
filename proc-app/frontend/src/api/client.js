@@ -65,7 +65,9 @@ export const api = {
     request(`/engagement/${id}/stages/${stageId}`, { method: "POST", body: JSON.stringify(payload) }),
 
   // Upload (Stage 4 / 5 / 6)
-  uploadSeed: (id) => request(`/engagement/${id}/upload-seed`, { method: "POST", body: "{}" }),
+  uploadSeed: (id, fileType = "PO") =>
+    request(`/engagement/${id}/upload-seed?file_type=${fileType}`, { method: "POST", body: "{}" }),
+  listSeeds: () => request("/seeds"),
   uploadFile: async (id, file, fileType = "PO") => {
     const form = new FormData();
     form.append("file", file);
@@ -148,6 +150,18 @@ export const api = {
   // Comparison
   getComparison: (id, pillar) =>
     request(`/engagement/${id}/comparison${pillar ? `?pillar=${pillar}` : ""}`),
+
+  // Jobs (background)
+  submitPillarJob: (id, pillar, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/jobs/run-pillar/${pillar}`, {
+      method: "POST", body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  submitKpiJob: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/jobs/run-kpi-dashboard`, {
+      method: "POST", body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  listJobs: (id) => request(`/engagement/${id}/jobs`),
+  getJob: (id, jobId) => request(`/engagement/${id}/jobs/${jobId}`),
 
   // KB file editor
   listKbFiles: () => request("/kb/files/tree"),

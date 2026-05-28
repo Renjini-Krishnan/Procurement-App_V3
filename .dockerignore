@@ -1,0 +1,23 @@
+# Build artefacts
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.venv
+**/venv
+
+# Local data + uploads
+proc-app/backend/data/uploads/
+proc-app/backend/data/*.db
+*.db
+
+# Editor / OS junk
+.git
+.github
+.idea
+.vscode
+.DS_Store
+
+# Tests not needed in image (optional — keep if you want pytest in container)
+# proc-app/backend/tests/

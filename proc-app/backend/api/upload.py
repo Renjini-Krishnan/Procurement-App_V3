@@ -62,19 +62,25 @@ async def upload_file(engagement_id: str, file: UploadFile = File(...), file_typ
 
 
 @router.post("/{engagement_id}/upload-seed")
-def upload_seed(engagement_id: str):
-    """Demo helper — populate engagement with the seed PO dataset."""
+def upload_seed(engagement_id: str, file_type: str = "PO"):
+    """Demo helper — populate engagement with the seed dataset for the
+    requested file_type (default PO)."""
     if not db.get_engagement(engagement_id):
         raise HTTPException(404, f"Engagement {engagement_id} not found")
     try:
-        result = upload_service.use_seed_dataset(engagement_id)
+        result = upload_service.use_seed_dataset(engagement_id, file_type=file_type)
     except FileNotFoundError as e:
-        raise HTTPException(500, str(e))
+        raise HTTPException(404, str(e))
     db.set_stage_status(engagement_id, 4, "done", {"upload_id": result["upload_id"]})
     db.set_stage_status(engagement_id, 5, "done", {"detected_columns": len(result["columns"])})
     db.set_stage_status(engagement_id, 6, "in_progress")
     db.update_engagement_stage(engagement_id, 6)
     return result
+
+
+@meta_router.get("/seeds")
+def list_seeds():
+    return {"seeds": upload_service.list_available_seeds()}
 
 
 @router.get("/{engagement_id}/uploads")

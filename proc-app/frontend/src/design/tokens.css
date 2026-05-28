@@ -248,3 +248,39 @@ em.serif {
   body { background: white !important; }
 }
 
+
+/* ============================ A11Y ============================ */
+/* Visible focus on every interactive element — fulfils WCAG 2.4.7. */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--r-md);
+}
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+/* Reduced-motion: kill all animations + transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip-link target — hidden visually until focused. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+.skip-link:focus {
+  position: fixed; top: 12px; left: 12px;
+  background: var(--surface-card); padding: 8px 14px;
+  border: 2px solid var(--brand-500); border-radius: var(--r-md);
+  z-index: 9999;
+  clip: auto; width: auto; height: auto;
+}

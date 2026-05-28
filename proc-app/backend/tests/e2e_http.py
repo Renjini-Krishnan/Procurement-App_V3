@@ -430,8 +430,62 @@ def run():
     else:
         r.fail("stage progress", f"{code}")
 
+    # --- Seeds + multi-type upload ---
+    print("\n[12] Seed datasets (all 8 types)")
+    code, seeds = GET("/api/seeds")
+    if code == 200 and len(seeds.get("seeds", [])) == 8:
+        r.ok("list seeds", f"{len(seeds['seeds'])} seed types available")
+    else:
+        r.fail("list seeds", f"{code} got {len(seeds.get('seeds', []))}")
+
+    # Upload a Vendor Master seed alongside the PO upload (new engagement)
+    code, eng2 = POST("/api/engagement", {
+        "client_name": "VM E2E", "industry": "steel",
+        "plants": ["A"], "annual_spend_inr_cr": 1000,
+    })
+    if code == 200:
+        for ft in ["VENDOR_MASTER", "MATERIAL_MASTER", "ORG_STRUCTURE",
+                    "CONTRACT_MASTER", "GRN", "INVOICE"]:
+            code2, up2 = POST(f"/api/engagement/{eng2['id']}/upload-seed?file_type={ft}")
+            if code2 == 200:
+                mapped = sum(1 for m in up2["suggested_mapping"] if m["suggested_field"])
+                total = len(up2["suggested_mapping"])
+                if mapped == total and len(up2["missing_required"]) == 0:
+                    r.ok(f"seed upload {ft}", f"{up2['row_count']} rows, {mapped}/{total} cols")
+                else:
+                    r.fail(f"seed upload {ft}", f"mapping {mapped}/{total}, missing {up2['missing_required']}")
+            else:
+                r.fail(f"seed upload {ft}", f"{code2} {up2}")
+
+    # --- Background jobs ---
+    print("\n[13] Background jobs")
+    code, jb = POST(f"/api/engagement/{eid}/jobs/run-pillar/buying-channel",
+                     {"upload_id": upid, "industry": "steel"})
+    if code == 200 and jb.get("job_id"):
+        jid = jb["job_id"]
+        # Poll up to 30s
+        final = None
+        for _ in range(60):
+            code, j = GET(f"/api/engagement/{eid}/jobs/{jid}")
+            if code == 200 and j["status"] in ("done", "failed"):
+                final = j
+                break
+            time.sleep(0.5)
+        if final and final["status"] == "done":
+            r.ok("pillar job lifecycle", f"jid={jid} progress={final['progress']}% summary='{final['result_summary']}'")
+        else:
+            r.fail("pillar job", f"final status={final['status'] if final else 'timeout'}")
+    else:
+        r.fail("submit pillar job", f"{code} {jb}")
+
+    code, jbs = GET(f"/api/engagement/{eid}/jobs")
+    if code == 200 and len(jbs.get("jobs", [])) > 0:
+        r.ok("list jobs", f"{len(jbs['jobs'])} jobs recorded")
+    else:
+        r.fail("list jobs", f"{code}")
+
     # --- Error paths ---
-    print("\n[12] Error paths")
+    print("\n[14] Error paths")
     code, _ = POST(f"/api/engagement/{eid}/run-pillar/op-model",
                     {"upload_id": "bogus-id", "industry": "steel"})
     if code == 404:

@@ -178,19 +178,46 @@ def read_upload_dataframe(upload_id: str) -> pd.DataFrame:
     return pd.read_excel(path)
 
 
-def get_seed_dataset_path() -> Path:
-    """Return the path to the demo PO seed dataset (generated at build time)."""
-    return Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_po_dump.csv"
+SEED_DIR = Path(__file__).resolve().parents[1] / "data" / "seed"
+
+SEED_FILES = {
+    "PO":              "demo_po_dump.csv",
+    "PR":              "demo_pr_dump.csv",
+    "VENDOR_MASTER":   "demo_vendor_master.csv",
+    "MATERIAL_MASTER": "demo_material_master.csv",
+    "ORG_STRUCTURE":   "demo_org_structure.csv",
+    "CONTRACT_MASTER": "demo_contract_master.csv",
+    "GRN":             "demo_grn.csv",
+    "INVOICE":         "demo_invoice.csv",
+}
 
 
-def use_seed_dataset(engagement_id: str) -> dict:
-    """Convenience for the demo flow — uses the committed seed CSV as if uploaded."""
-    seed_path = get_seed_dataset_path()
+def get_seed_dataset_path(file_type: str = "PO") -> Path:
+    name = SEED_FILES.get(file_type.upper())
+    if not name:
+        raise FileNotFoundError(f"No seed configured for {file_type}")
+    return SEED_DIR / name
+
+
+def list_available_seeds() -> list[dict]:
+    out = []
+    for ft, name in SEED_FILES.items():
+        p = SEED_DIR / name
+        if p.exists():
+            out.append({"file_type": ft, "filename": name,
+                         "size_bytes": p.stat().st_size,
+                         "row_count_estimate": sum(1 for _ in open(p, "r", encoding="utf-8")) - 1})
+    return out
+
+
+def use_seed_dataset(engagement_id: str, file_type: str = "PO") -> dict:
+    """Load the seed CSV for the requested file_type as if uploaded."""
+    seed_path = get_seed_dataset_path(file_type)
     if not seed_path.exists():
         raise FileNotFoundError(f"Seed dataset not found at {seed_path}")
     return save_upload(
         engagement_id=engagement_id,
-        file_type="PO",
-        original_filename="demo_po_dump.csv",
+        file_type=file_type.upper(),
+        original_filename=seed_path.name,
         file_bytes=seed_path.read_bytes(),
     )

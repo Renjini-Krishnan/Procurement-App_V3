@@ -33,6 +33,7 @@ const Rail = () => {
 
   return (
     <aside
+      aria-label="Engagement workflow"
       style={{
         width: 280,
         background: "var(--surface-card)",
@@ -185,8 +186,9 @@ const IndustrySwitcher = ({ engagement }) => {
 
 const WorkspaceShell = ({ children }) => (
   <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface-page)" }}>
+    <a href="#main" className="sr-only skip-link">Skip to main content</a>
     <Rail />
-    <main style={{ flex: 1, padding: "32px 40px" }}>{children}</main>
+    <main id="main" tabIndex={-1} style={{ flex: 1, padding: "32px 40px" }}>{children}</main>
   </div>
 );
 
