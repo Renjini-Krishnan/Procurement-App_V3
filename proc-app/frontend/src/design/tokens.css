@@ -1,0 +1,239 @@
+/* ============================================================
+   PROCVAULT — DESIGN TOKENS
+   Transcribed from /tmp/design_system/Procvault Design System.html
+   3 directions, switch via [data-direction] on <html>:
+     - violet (default)
+     - indigo (editorial — Procvault V1 default)
+     - enterprise (calm slate-teal)
+   Semantic layer is direction-agnostic.
+============================================================ */
+
+:root {
+  /* TYPE */
+  --font-sans:   "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif:  "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-mono:   "Geist Mono", ui-monospace, "JetBrains Mono", "SFMono-Regular", monospace;
+
+  /* TYPE SCALE — major-third (1.250) */
+  --fs-11: 0.6875rem;
+  --fs-12: 0.75rem;
+  --fs-13: 0.8125rem;
+  --fs-14: 0.875rem;
+  --fs-15: 0.9375rem;
+  --fs-16: 1rem;
+  --fs-18: 1.125rem;
+  --fs-20: 1.25rem;
+  --fs-24: 1.5rem;
+  --fs-30: 1.875rem;
+  --fs-36: 2.25rem;
+  --fs-48: 3rem;
+  --fs-60: 3.75rem;
+  --fs-72: 4.5rem;
+  --fs-96: 6rem;
+
+  /* SPACING — 4px base */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+  --sp-10: 2.5rem;
+  --sp-12: 3rem;
+  --sp-16: 4rem;
+  --sp-20: 5rem;
+  --sp-24: 6rem;
+  --sp-32: 8rem;
+
+  /* RADIUS */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --r-3xl: 28px;
+  --r-pill: 999px;
+
+  /* MOTION */
+  --ease-out-soft: cubic-bezier(.2, .8, .2, 1);
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
+  --dur-fast: 120ms;
+  --dur-med: 220ms;
+  --dur-slow: 360ms;
+
+  /* ELEVATION */
+  --shadow-1: 0 1px 2px rgba(20, 18, 34, 0.04), 0 1px 1px rgba(20, 18, 34, 0.03);
+  --shadow-2: 0 4px 14px -2px rgba(20, 18, 34, 0.06), 0 2px 4px -2px rgba(20, 18, 34, 0.04);
+  --shadow-3: 0 12px 40px -8px rgba(20, 18, 34, 0.10), 0 6px 16px -8px rgba(20, 18, 34, 0.06);
+  --shadow-pop: 0 24px 64px -16px rgba(20, 18, 34, 0.18), 0 8px 24px -8px rgba(20, 18, 34, 0.08);
+
+  /* SEMANTIC — direction-agnostic */
+  --success-50:  #ecf8ef;
+  --success-500: #2f9c4d;
+  --success-700: #1f6a35;
+  --warn-50:    #fef5e8;
+  --warn-500:   #c8842b;
+  --warn-700:   #8a5b1b;
+  --danger-50:  #fdecea;
+  --danger-500: #c5341b;
+  --danger-700: #8a2110;
+  --info-50:    #eaf2fc;
+  --info-500:   #2563c5;
+  --info-700:   #1a4791;
+  --gold-500:   #c89a3a;
+  --gold-50:    #fbf3e0;
+
+  /* MATURITY scale (1-5) */
+  --m1: #c5341b;
+  --m2: #d97706;
+  --m3: #c89a3a;
+  --m4: #6e8a3a;
+  --m5: #2f9c4d;
+
+  /* CHART palette (categorical) */
+  --c1: #5c2ee5;
+  --c2: #c89a3a;
+  --c3: #2f9c4d;
+  --c4: #2563c5;
+  --c5: #c5341b;
+  --c6: #1b3460;
+  --c7: #6b3fff;
+  --c8: #b87333;
+
+  /* DIRECTION A — VIOLET (default) */
+  --brand-50:  #f4f1ff;
+  --brand-100: #e9e3ff;
+  --brand-200: #d3c6ff;
+  --brand-300: #b39bff;
+  --brand-400: #8e69ff;
+  --brand-500: #6b3fff;
+  --brand-600: #5c2ee5;
+  --brand-700: #4a22be;
+  --brand-800: #3a1c95;
+  --brand-900: #2b146f;
+  --brand-950: #170a40;
+
+  --ink-50:  #faf9f7;
+  --ink-100: #f3f1ee;
+  --ink-200: #e6e2dc;
+  --ink-300: #c8c2b8;
+  --ink-400: #9a9388;
+  --ink-500: #6f685e;
+  --ink-600: #4e4842;
+  --ink-700: #36312c;
+  --ink-800: #1f1d1a;
+  --ink-900: #100f0d;
+
+  --surface-page:  #faf9f7;
+  --surface-card:  #ffffff;
+  --surface-sunk:  #f3f1ee;
+  --surface-hero:  var(--brand-600);
+  --surface-hero-deep: var(--brand-950);
+
+  --border-subtle: rgba(31, 29, 26, 0.07);
+  --border-default: rgba(31, 29, 26, 0.12);
+  --border-strong: rgba(31, 29, 26, 0.22);
+}
+
+/* DIRECTION B — EDITORIAL INDIGO (Procvault V1 default) */
+[data-direction="indigo"] {
+  --brand-50:  #eef1f8;
+  --brand-100: #d6deec;
+  --brand-200: #adbcd9;
+  --brand-300: #7e92bd;
+  --brand-400: #4d6aa0;
+  --brand-500: #2b4a82;
+  --brand-600: #1b3460;
+  --brand-700: #142848;
+  --brand-800: #0e1d35;
+  --brand-900: #0b1e3f;
+  --brand-950: #060f24;
+
+  --ink-50:  #faf6ee;
+  --ink-100: #f3ecdc;
+  --ink-200: #e6dcc4;
+  --ink-300: #c5b89a;
+  --ink-400: #8e8466;
+  --ink-500: #5f5947;
+  --ink-600: #423e33;
+  --ink-700: #2a2823;
+  --ink-800: #1a1916;
+  --ink-900: #0d0d0b;
+
+  --surface-page: #f6f2e9;
+  --surface-card: #fffdf8;
+  --surface-sunk: #ede6d4;
+  --surface-hero: var(--brand-900);
+  --surface-hero-deep: var(--brand-950);
+
+  --gold-500: #b87333;
+  --c1: #1b3460;
+  --c2: #b87333;
+  --c7: #4d6aa0;
+}
+
+/* DIRECTION C — CALM ENTERPRISE */
+[data-direction="enterprise"] {
+  --brand-50:  #eef4f4;
+  --brand-100: #d4e3e3;
+  --brand-200: #a8c6c8;
+  --brand-300: #7aa8ab;
+  --brand-400: #4d8a8e;
+  --brand-500: #2a6e72;
+  --brand-600: #1c5a5e;
+  --brand-700: #14474a;
+  --brand-800: #0d3437;
+  --brand-900: #0a2a2c;
+  --brand-950: #051618;
+
+  --ink-50:  #f7f8f9;
+  --ink-100: #eef0f2;
+  --ink-200: #dee2e6;
+  --ink-300: #bcc3cc;
+  --ink-400: #8a93a0;
+  --ink-500: #5b6470;
+  --ink-600: #3e4651;
+  --ink-700: #2a3038;
+  --ink-800: #181c22;
+  --ink-900: #0c0f13;
+
+  --surface-page: #f7f8f9;
+  --surface-card: #ffffff;
+  --surface-sunk: #eef0f2;
+  --surface-hero: var(--brand-700);
+  --surface-hero-deep: var(--brand-900);
+
+  --c1: #2a6e72;
+  --c2: #c89a3a;
+  --c7: #4d8a8e;
+}
+
+/* GLOBAL RESETS + BASE */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-15);
+  line-height: 1.5;
+  color: var(--ink-900);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+a { color: var(--brand-600); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+em.serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.mono { font-family: var(--font-mono); }
