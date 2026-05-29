@@ -4,6 +4,7 @@ import { I } from "../design/icons.jsx";
 import { MaturityGauge } from "../design/patterns.jsx";
 import { api, postDownload } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import SignoffWidget from "./SignoffWidget.jsx";
 
 /* Stage 29 — Exec Summary. Runs the KPI dashboard once and renders a
    narrative synthesis of pillar maturity + top findings + headline numbers. */
@@ -135,6 +136,10 @@ const ExecSummary = () => {
         <Button variant="outline" onClick={() => window.print()}>Print / Save as PDF</Button>
         <Button variant="outline" onClick={() => exportExec(data, engagement)}>Export JSON</Button>
       </div>
+
+      <SignoffWidget engagementId={engagement.id} scope="diagnostic" label="Diagnostic phase" expectedCadence="end-of-phase" />
+      <SignoffWidget engagementId={engagement.id} scope="analyze"    label="Analyze phase"    expectedCadence="end-of-phase" />
+      <SignoffWidget engagementId={engagement.id} scope="output"     label="Output phase"     expectedCadence="end-of-phase" />
     </div>
   );
 };

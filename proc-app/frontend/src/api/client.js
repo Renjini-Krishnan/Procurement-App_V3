@@ -174,6 +174,7 @@ export const api = {
     request("/llm/client-autofill", { method: "POST", body: JSON.stringify({ client_name }) }),
   industryCategories: (industry) =>
     request(`/kb/industries/${industry}/procurement-categories`),
+  getScopeConfig: () => request("/kb/scope-config"),
 
   // KB file editor
   listKbFiles: () => request("/kb/files/tree"),

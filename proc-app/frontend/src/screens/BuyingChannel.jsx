@@ -4,6 +4,7 @@ import { I } from "../design/icons.jsx";
 import { ScoreBadge, MaturityGauge, RCACard } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import SignoffWidget from "./SignoffWidget.jsx";
 
 /* Stage 16 — Buying Channel pillar (single theme, 13 components) */
 
@@ -114,6 +115,7 @@ const BuyingChannel = () => {
           </div>
         </div>
       )}
+      <SignoffWidget engagementId={engagement.id} scope="buying-channel" label="Buying Channel" expectedCadence="end-of-pillar" />
     </div>
   );
 };

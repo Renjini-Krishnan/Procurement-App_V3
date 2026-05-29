@@ -124,6 +124,20 @@ def get_pillar_md_endpoint(pillar: str, name: str):
 # Universal + function-level meta
 # --------------------------------------------------------------------------
 
+@router.get("/scope-config")
+def get_scope_config():
+    """Load proc-app/kb/functions/procurement/_meta/scope-config.yml."""
+    import yaml
+    from .. import config as _cfg
+    path = _cfg.PROC_KB_ROOT / "_meta" / "scope-config.yml"
+    if not path.exists():
+        raise HTTPException(404, "scope-config.yml not found in KB")
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception as e:
+        raise HTTPException(500, f"YAML parse error: {e}")
+
+
 @router.get("/standards/data-quality-universal")
 def get_data_quality_universal():
     return kb_loader.get_data_quality_universal()

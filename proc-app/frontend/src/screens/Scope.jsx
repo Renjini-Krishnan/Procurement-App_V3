@@ -4,41 +4,68 @@ import { I } from "../design/icons.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
-/* Stage 2 — Scope. Real selection now persisted to engagement_overrides.
-   Selected pillars filter the KPI Dashboard + Findings Deck. */
+/* Stage 2 — Scope. Real selection persisted to engagement_overrides.
+   Pillars / deliverables / cadences loaded from
+   kb/functions/procurement/_meta/scope-config.yml — edit there to add
+   pillars or deliverables without touching this file. */
 
-const V1_PILLARS = [
-  { id: "op-model",       label: "Operating Model",          themes: 4, components: 24, status: "available" },
-  { id: "org-structure",  label: "Organisation Structure",   themes: 4, components: 19, status: "available" },
-  { id: "buying-channel", label: "Buying Channel Strategy",  themes: 1, components: 13, status: "available" },
-  { id: "doa",            label: "Delegation of Authority",  themes: 5, components: 18, status: "available" },
-];
-
-const V2_PILLARS = [
-  { id: "material-master", label: "Material Master", note: "Master-data quality + dedup + creation TAT", status: "v2" },
-  { id: "pr-to-po",        label: "PR-to-PO",        note: "TAT, automation, RFQ, LPO savings",          status: "v2" },
-  { id: "post-po",         label: "Post-PO",         note: "OTD, defect rate, 3-way match, DPO",         status: "v2" },
-  { id: "supplier",        label: "Supplier",        note: "Onboarding TAT, performance scorecards",     status: "v2" },
-];
-
-const DELIVERABLES = [
-  { id: "findings-deck",  label: "Findings deck (PPT)" },
-  { id: "exec-summary",   label: "Executive summary (PPT)" },
-  { id: "kpi-dashboard",  label: "KPI dashboard (interactive)" },
-  { id: "kpi-excel",      label: "KPI export (Excel)" },
-];
+// Fallback if the KB file is missing — same shape, hardcoded
+const FALLBACK = {
+  v1_pillars: [
+    { id: "op-model",       label: "Operating Model",          themes: 4, components: 24 },
+    { id: "org-structure",  label: "Organisation Structure",   themes: 4, components: 19 },
+    { id: "buying-channel", label: "Buying Channel Strategy",  themes: 1, components: 13 },
+    { id: "doa",            label: "Delegation of Authority",  themes: 5, components: 18 },
+  ],
+  v2_pillars: [
+    { id: "material-master", label: "Material Master", note: "Master-data quality" },
+    { id: "pr-to-po",        label: "PR-to-PO",        note: "TAT, automation" },
+    { id: "post-po",         label: "Post-PO",         note: "OTD, defect rate" },
+    { id: "supplier",        label: "Supplier",        note: "Onboarding TAT" },
+  ],
+  deliverables: [
+    { id: "findings-deck",  label: "Findings deck (PPT)" },
+    { id: "exec-summary",   label: "Executive summary (PPT)" },
+    { id: "kpi-dashboard",  label: "KPI dashboard (interactive)" },
+    { id: "kpi-excel",      label: "KPI workbook (Excel)" },
+  ],
+  cadences: [
+    { id: "end-of-phase",  label: "End of each phase (default)" },
+    { id: "end-of-pillar", label: "After each pillar run" },
+    { id: "continuous",    label: "Continuous (no formal gates)" },
+  ],
+  lookback: { default_months: 12, min_months: 1, max_months: 36 },
+};
 
 const Scope = () => {
   const { engagement, loading: engLoading } = useEngagement();
-  const [selectedPillars, setSelectedPillars] = useState(new Set(["op-model", "org-structure", "buying-channel", "doa"]));
-  const [selectedDeliverables, setSelectedDeliverables] = useState(new Set(["findings-deck", "exec-summary", "kpi-dashboard", "kpi-excel"]));
-  const [lookbackMonths, setLookbackMonths] = useState(12);
+  const [scopeConfig, setScopeConfig] = useState(FALLBACK);
+  const [selectedPillars, setSelectedPillars] = useState(new Set(FALLBACK.v1_pillars.map(p => p.id)));
+  const [selectedDeliverables, setSelectedDeliverables] = useState(new Set(FALLBACK.deliverables.map(d => d.id)));
+  const [lookbackMonths, setLookbackMonths] = useState(FALLBACK.lookback.default_months);
   const [signOffCadence, setSignOffCadence] = useState("end-of-phase");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
-  // Load existing scope from overrides
+  // Load KB scope config + existing scope overrides
+  useEffect(() => {
+    api.getScopeConfig().then((cfg) => {
+      const merged = {
+        v1_pillars: cfg.v1_pillars || FALLBACK.v1_pillars,
+        v2_pillars: cfg.v2_pillars || FALLBACK.v2_pillars,
+        deliverables: cfg.deliverables || FALLBACK.deliverables,
+        cadences: cfg.cadences || FALLBACK.cadences,
+        lookback: cfg.lookback || FALLBACK.lookback,
+      };
+      setScopeConfig(merged);
+      // If no overrides yet, default to all-selected from KB
+      setSelectedPillars((s) => s.size > 0 ? s : new Set(merged.v1_pillars.map((p) => p.id)));
+      setSelectedDeliverables((s) => s.size > 0 ? s : new Set(merged.deliverables.map((d) => d.id)));
+      setLookbackMonths((v) => v || merged.lookback.default_months);
+    }).catch(() => { /* keep fallback */ });
+  }, []);
+
   useEffect(() => {
     if (!engagement) return;
     (async () => {
@@ -86,54 +113,43 @@ const Scope = () => {
       <Header />
 
       <Card padding={24} style={{ marginBottom: 16 }}>
-        <SectionHeader title="Pillars in scope" count={`${selectedPillars.size} of ${V1_PILLARS.length} V1 pillars selected`} />
+        <SectionHeader title="Pillars in scope" count={`${selectedPillars.size} of ${scopeConfig.v1_pillars.length} V1 pillars selected`} />
+        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 4 }}>
+          Source: <code style={{ fontFamily: "var(--font-mono)" }}>kb/functions/procurement/_meta/scope-config.yml</code>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginTop: 12 }}>
-          {V1_PILLARS.map((p) => {
-            const checked = selectedPillars.has(p.id);
-            return (
-              <PillarCheckbox
-                key={p.id}
-                checked={checked}
-                onChange={() => togglePillar(p.id)}
-                label={p.label}
-                sublabel={`${p.themes} themes · ${p.components} components`}
-              />
-            );
-          })}
+          {scopeConfig.v1_pillars.map((p) => (
+            <PillarCheckbox key={p.id}
+              checked={selectedPillars.has(p.id)}
+              onChange={() => togglePillar(p.id)}
+              label={p.label}
+              sublabel={p.sub_label || `${p.themes} themes · ${p.components} components`} />
+          ))}
         </div>
       </Card>
 
       <Card padding={24} style={{ marginBottom: 16 }}>
-        <SectionHeader title="Additional pillars (Build 2)" count="Engines pending — select to enable when shipped" />
+        <SectionHeader title="Additional pillars (Build 2)" count="Engines pending — schemas + seeds already loaded" />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginTop: 12 }}>
-          {V2_PILLARS.map((p) => (
-            <PillarCheckbox
-              key={p.id}
+          {scopeConfig.v2_pillars.map((p) => (
+            <PillarCheckbox key={p.id}
               checked={selectedPillars.has(p.id)}
               disabled
               onChange={() => {}}
-              label={p.label}
-              sublabel={p.note}
-              tag="v2"
-            />
+              label={p.label} sublabel={p.note} tag="v2" />
           ))}
-        </div>
-        <div style={{ marginTop: 10, fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
-          Schemas + seed data for these pillars are already loaded (see Stage 4 → file-type dropdown). Engines arrive in Build 2.
         </div>
       </Card>
 
       <Card padding={24} style={{ marginBottom: 16 }}>
-        <SectionHeader title="Deliverables" count={`${selectedDeliverables.size} selected`} />
+        <SectionHeader title="Deliverables" count={`${selectedDeliverables.size} selected · honoured by Export Centre`} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginTop: 12 }}>
-          {DELIVERABLES.map((d) => (
-            <PillarCheckbox
-              key={d.id}
+          {scopeConfig.deliverables.map((d) => (
+            <PillarCheckbox key={d.id}
               checked={selectedDeliverables.has(d.id)}
               onChange={() => toggleDeliverable(d.id)}
               label={d.label}
-              sublabel={null}
-            />
+              sublabel={d.description || null} />
           ))}
         </div>
       </Card>
@@ -143,18 +159,21 @@ const Scope = () => {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 12 }}>
           <div>
             <Sublabel>Lookback window (months)</Sublabel>
-            <Input type="number" min={1} max={36} value={lookbackMonths}
+            <Input type="number"
+                   min={scopeConfig.lookback.min_months}
+                   max={scopeConfig.lookback.max_months}
+                   value={lookbackMonths}
                    onChange={(e) => { setLookbackMonths(e.target.value); setMsg(null); }} />
             <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", marginTop: 4 }}>
-              Restricts PO/PR data window. Engines today read everything available; this becomes enforceable when re-runs are scoped.
+              Now enforced — Stage 7 Bronze drops rows older than today − N months (visible in the cleansing report as <code style={{ fontFamily: "var(--font-mono)" }}>scope.lookback_window</code>).
             </div>
           </div>
           <div>
             <Sublabel>Sign-off cadence</Sublabel>
             <Select value={signOffCadence} onChange={(e) => { setSignOffCadence(e.target.value); setMsg(null); }}>
-              <option value="end-of-phase">End of each phase (default)</option>
-              <option value="end-of-pillar">After each pillar run</option>
-              <option value="continuous">Continuous (no formal gates)</option>
+              {scopeConfig.cadences.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
             </Select>
           </div>
         </div>

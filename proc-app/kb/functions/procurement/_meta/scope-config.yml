@@ -1,0 +1,126 @@
+# =============================================================================
+# Engagement Scope Configuration
+# =============================================================================
+# Defines what the consultant can choose on Stage 2 (Scope):
+#   - which pillars are V1-available vs V2-deferred
+#   - which deliverables exist
+#   - which sign-off cadences are supported
+#   - lookback-window bounds
+#
+# Frontend loads this via GET /api/kb/scope-config. Adding a new pillar
+# only needs an entry here + the matching engine module — no Scope.jsx
+# code change.
+#
+# Engine code that honours these settings:
+#   - frontend/screens/Scope.jsx           (form options)
+#   - frontend/screens/ExportCenter.jsx    (deliverable filter)
+#   - frontend/screens/SignoffWidget.jsx   (cadence-driven sign-off UI)
+#   - backend/engine/gold_data.py          (lookback filter)
+#   - backend/engine/orchestrator.py       (reads scope from overrides)
+# =============================================================================
+
+metadata:
+  id: scope-config
+  layer: function
+  function: procurement
+  version: 1.0
+  last_updated: 2026-05-29
+
+# V1 pillars — available out of the box
+v1_pillars:
+  - id: op-model
+    label: Operating Model
+    themes: 4
+    components: 24
+    stage: 12
+    sub_label: "Centralisation · Shared Services · CoE · Tail Spend"
+  - id: org-structure
+    label: Organisation Structure
+    themes: 4
+    components: 19
+    stage: 13
+    sub_label: "Posture · FTE Sizing · Distribution · Hierarchy"
+  - id: buying-channel
+    label: Buying Channel Strategy
+    themes: 1
+    components: 13
+    stage: 16
+    sub_label: "13 IF-THEN channel-recommendation rules"
+  - id: doa
+    label: Delegation of Authority
+    themes: 5
+    components: 18
+    stage: 14
+    sub_label: "Document audit · Robustness · PO compliance · System · Bucket"
+
+# V2 pillars — schemas + seed data exist, engines pending
+v2_pillars:
+  - id: material-master
+    label: Material Master
+    note: "Master-data quality + dedup + code-creation TAT"
+    requires_uploads: [MATERIAL_MASTER]
+  - id: pr-to-po
+    label: PR-to-PO
+    note: "TAT, approval depth, automation, RFQ rigour, savings vs LPO"
+    requires_uploads: [PO, PR]
+  - id: post-po
+    label: Post-PO
+    note: "OTD, defect rate, GRN TAT, 3-way match, DPO variance"
+    requires_uploads: [PO, GRN, INVOICE]
+  - id: supplier
+    label: Supplier
+    note: "Onboarding TAT, vendor master quality, performance scorecards"
+    requires_uploads: [VENDOR_MASTER, GRN]
+
+# Deliverables — each maps to an export id in the Export Centre.
+# export_id: null means it's a UI artefact (not a downloadable file).
+deliverables:
+  - id: findings-deck
+    label: "Findings deck (PPT)"
+    export_id: findings-deck
+    description: "8-slide deck for client review"
+  - id: exec-summary
+    label: "Executive summary (PPT)"
+    export_id: exec-summary
+    description: "3-slide briefing for the steering committee"
+  - id: kpi-dashboard
+    label: "KPI dashboard (interactive)"
+    export_id: null
+    description: "In-app filterable dashboard — Stage 30"
+  - id: kpi-excel
+    label: "KPI workbook (Excel)"
+    export_id: kpis-xlsx
+    description: "3 sheets — KPIs, Pillar summary, Findings"
+  - id: bronze-data
+    label: "Bronze data (CSV)"
+    export_id: bronze-csv
+    description: "Cleansed PO data after type coercion + dedup"
+  - id: gold-data
+    label: "Gold data (CSV)"
+    export_id: gold-csv
+    description: "Enriched data with category archetype classification"
+
+# Sign-off cadences — drives where the Signoff widget appears
+cadences:
+  - id: end-of-phase
+    label: "End of each phase (default)"
+    description: "Sign-off prompt appears on the Executive Summary screen — once Diagnostic, Analyze, Output complete"
+    signoff_scopes: [diagnostic, analyze, output]
+    widget_appears_on: [exec-summary]
+  - id: end-of-pillar
+    label: "After each pillar run"
+    description: "Sign-off prompt appears on each pillar screen after the analysis runs"
+    signoff_scopes: [op-model, org-structure, buying-channel, doa]
+    widget_appears_on: [op-model, org-structure, buying-channel, doa]
+  - id: continuous
+    label: "Continuous (no formal gates)"
+    description: "No sign-off prompts — consultant works fluidly with the client"
+    signoff_scopes: []
+    widget_appears_on: []
+
+# Lookback window bounds — number-input validation
+lookback:
+  default_months: 12
+  min_months: 1
+  max_months: 36
+  note: "Restricts PO/PR data window applied at Stage 7 (Bronze). Engines downstream see only filtered data."

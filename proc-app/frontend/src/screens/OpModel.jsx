@@ -7,6 +7,7 @@ import {
 } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import SignoffWidget from "./SignoffWidget.jsx";
 
 /* Stage 12 — Op Model. Auto-runs the pillar on first visit if findings
    don't exist, then renders all 4 themes. */
@@ -97,11 +98,10 @@ const OpModel = () => {
 
       {/* RCA panel (always visible) */}
       <RCAPanel rca={data.rca_cards} themeFilter={activeTheme === "overview" ? null : activeTheme} />
+      <SignoffWidget engagementId={engagement.id} scope="op-model" label="Operating Model" expectedCadence="end-of-pillar" />
     </div>
   );
 };
-
-/* -------------------------------------------------------------------- */
 
 const Header = ({ phase, stage, title, subtitle }) => (
   <div style={{ marginBottom: 24 }}>

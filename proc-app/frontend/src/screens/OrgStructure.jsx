@@ -4,6 +4,7 @@ import { I } from "../design/icons.jsx";
 import { ScoreBadge, MaturityGauge, RCACard } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import SignoffWidget from "./SignoffWidget.jsx";
 
 /* Stage 13 — Org Structure pillar (4 themes, V1 QRE-driven). */
 
@@ -104,6 +105,7 @@ const OrgStructure = () => {
           </div>
         </div>
       )}
+      <SignoffWidget engagementId={engagement.id} scope="org-structure" label="Organisation Structure" expectedCadence="end-of-pillar" />
     </div>
   );
 };

@@ -27,6 +27,12 @@ const ExportCenter = () => {
   const [history, setHistory] = useState([]);
   const [busy, setBusy] = useState({});
   const [sourceDocs, setSourceDocs] = useState([]);
+  const [scopedDeliverables, setScopedDeliverables] = useState(null);  // null = no filter
+  const [scopeConfig, setScopeConfig] = useState(null);
+
+  useEffect(() => {
+    api.getScopeConfig().then(setScopeConfig).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (engagement) {
@@ -38,9 +44,26 @@ const ExportCenter = () => {
       api.listOverrides(engagement.id).then((r) => {
         const docs = (r.overrides || []).find((o) => o.key === "source_documents")?.value;
         setSourceDocs(Array.isArray(docs) ? docs : []);
+        const sd = (r.overrides || []).find((o) => o.key === "scope.deliverables")?.value;
+        if (Array.isArray(sd)) setScopedDeliverables(new Set(sd));
       }).catch(() => {});
     }
   }, [engagement]);
+
+  // Map deliverable_id -> export_id from scope-config
+  const deliverableToExport = React.useMemo(() => {
+    const m = {};
+    (scopeConfig?.deliverables || []).forEach((d) => { m[d.id] = d.export_id; });
+    return m;
+  }, [scopeConfig]);
+
+  const inScope = (exportId) => {
+    if (!scopedDeliverables) return true;  // no filter -> all in scope
+    // exportId is the EXPORTS[].id (e.g. 'bronze-csv'); find which deliverable maps to it
+    const deliverableId = Object.entries(deliverableToExport).find(([, eid]) => eid === exportId)?.[0];
+    if (!deliverableId) return true;  // exports that don't map to deliverables stay visible
+    return scopedDeliverables.has(deliverableId);
+  };
 
   if (engLoading || !engagement) return <div>Loading…</div>;
 
@@ -76,11 +99,18 @@ const ExportCenter = () => {
         </Callout>
       )}
 
+      {scopedDeliverables && (
+        <Callout tone="info" title="Scope filter active" icon={<I.Doc size={16} />}>
+          Showing only deliverables ticked on Stage 2 ({scopedDeliverables.size} of {(scopeConfig?.deliverables || []).length}). Out-of-scope items appear dimmed.
+        </Callout>
+      )}
+
       <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
         {EXPORTS.map((e) => {
           const tone = FORMAT_TONES[e.format] || FORMAT_TONES.JSON;
+          const visible = inScope(e.id);
           return (
-            <Card key={e.id} padding={20}>
+            <Card key={e.id} padding={20} style={{ opacity: visible ? 1 : 0.45 }}>
               <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
                 <span style={{ background: tone.bg, color: tone.fg, padding: "4px 10px",
                                 borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)",
@@ -89,10 +119,20 @@ const ExportCenter = () => {
                   {e.format}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "var(--fs-15)", fontWeight: 600, color: "var(--ink-900)" }}>{e.label}</div>
+                  <div style={{ fontSize: "var(--fs-15)", fontWeight: 600, color: "var(--ink-900)" }}>
+                    {e.label}
+                    {!visible && (
+                      <span style={{ marginLeft: 8, padding: "1px 8px", background: "var(--surface-sunk)",
+                                       color: "var(--ink-600)", borderRadius: "var(--r-pill)",
+                                       fontSize: "var(--fs-10)", textTransform: "uppercase",
+                                       letterSpacing: "0.08em", fontWeight: 600 }}>
+                        Out of scope
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-600)", marginTop: 2 }}>{e.desc}</div>
                 </div>
-                <Button onClick={() => download(e)} disabled={!!busy[e.id]} iconRight={<I.Arrow size={14} />}>
+                <Button onClick={() => download(e)} disabled={!!busy[e.id] || !visible} iconRight={<I.Arrow size={14} />}>
                   {busy[e.id] ? "Generating…" : "Download"}
                 </Button>
               </div>

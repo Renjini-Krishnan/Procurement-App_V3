@@ -36,14 +36,18 @@ FX_RATES_TO_INR = {
 }
 
 
-def build_gold_dataframe(upload_id: str) -> pd.DataFrame:
+def build_gold_dataframe(upload_id: str, lookback_months: Optional[int] = None) -> pd.DataFrame:
     """Backwards-compatible wrapper around build_gold_dataframe_with_report."""
-    df, _report = build_gold_dataframe_with_report(upload_id)
+    df, _report = build_gold_dataframe_with_report(upload_id, lookback_months=lookback_months)
     return df
 
 
-def build_gold_dataframe_with_report(upload_id: str):
+def build_gold_dataframe_with_report(upload_id: str, lookback_months: Optional[int] = None):
     """Apply canonical mapping + cleanse via the rule-tracking engine.
+
+    lookback_months: if set, drops rows where po_creation_date (or
+        pr_creation_date for PR uploads) is older than today - months.
+        Honours scope.lookback_months from Stage 2.
 
     Returns (gold_df, cleansing_report_dict).
     """
@@ -57,7 +61,6 @@ def build_gold_dataframe_with_report(upload_id: str):
     if not confirmed:
         raise ValueError(f"No column mapping confirmed for upload {upload_id}")
 
-    # raw_column -> canonical_field
     rename_map = {}
     for m in confirmed:
         raw = m.get("raw_column")
@@ -77,6 +80,26 @@ def build_gold_dataframe_with_report(upload_id: str):
     from . import cleansing_engine
     file_type = upload.get("file_type", "PO")
     df, report = cleansing_engine.apply_pipeline(df, file_type=file_type)
+
+    # Apply Stage-2 lookback filter AFTER cleansing (dates are coerced now)
+    if lookback_months and lookback_months > 0:
+        date_col = next((c for c in ("po_creation_date", "pr_creation_date", "posting_date")
+                           if c in df.columns), None)
+        if date_col:
+            from datetime import datetime, timedelta
+            cutoff = datetime.utcnow() - timedelta(days=int(lookback_months) * 30)
+            before = len(df)
+            dates = pd.to_datetime(df[date_col], errors="coerce")
+            df = df[dates >= cutoff].reset_index(drop=True)
+            dropped = before - len(df)
+            report.record(
+                rule_id="scope.lookback_window",
+                rule_name=f"Stage 2 lookback filter — keep last {lookback_months} months",
+                stage=7, severity="drop", rows_affected=dropped,
+                action=f"kept rows >= {cutoff.date().isoformat()} ({date_col})",
+                details={"lookback_months": lookback_months, "cutoff": cutoff.date().isoformat(),
+                         "date_column": date_col, "kept": len(df), "dropped": dropped},
+            )
 
     return df.reset_index(drop=True), {
         "entries": report.entries,

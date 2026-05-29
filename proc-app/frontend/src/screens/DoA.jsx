@@ -4,6 +4,7 @@ import { I } from "../design/icons.jsx";
 import { ScoreBadge, MaturityGauge, RCACard } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import SignoffWidget from "./SignoffWidget.jsx";
 
 /* Stage 14 — Delegation of Authority pillar */
 
@@ -99,6 +100,7 @@ const DoA = () => {
           </div>
         </div>
       )}
+      <SignoffWidget engagementId={engagement.id} scope="doa" label="Delegation of Authority" expectedCadence="end-of-pillar" />
     </div>
   );
 };

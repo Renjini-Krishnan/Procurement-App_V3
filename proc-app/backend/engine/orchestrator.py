@@ -33,7 +33,7 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     t0 = time.time()
 
     # Stage 8 — Gold Data
-    df_gold = gold_data.build_gold_dataframe(upload_id)
+    df_gold = gold_data.build_gold_dataframe(upload_id, lookback_months=_load_scope_lookback(engagement_id))
     gold_summary = gold_data.summarise(df_gold)
     timings["stage8_gold"] = round(time.time() - t0, 2)
 
@@ -108,7 +108,7 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     """Stage 8 + 9 + 10 only — pre-pillar gold/classify/portfolio view.
     Used by Stage 7 (Bronze report), 9 (Categorisation), 10 (KPIs), 11 (Primer)."""
     t0 = time.time()
-    df_gold, cleansing_report = gold_data.build_gold_dataframe_with_report(upload_id)
+    df_gold, cleansing_report = gold_data.build_gold_dataframe_with_report(upload_id, lookback_months=_load_scope_lookback(engagement_id))
     gold_summary = gold_data.summarise(df_gold)
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
     classify_summary = stage9_classify.summarise(df_classified)
@@ -164,6 +164,19 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     }
 
 
+def _load_scope_lookback(engagement_id: str) -> Optional[int]:
+    """Pull scope.lookback_months from engagement_overrides. None if unset."""
+    try:
+        for o in db.get_overrides(engagement_id):
+            if o.get("key") == "scope.lookback_months":
+                v = o.get("value")
+                if isinstance(v, (int, float)) and v > 0:
+                    return int(v)
+    except Exception:
+        pass
+    return None
+
+
 def _load_qre(engagement_id: str) -> dict:
     """Return QRE for engagement: DB-stored if any, else seed template."""
     stored = db.get_qre_responses(engagement_id)
@@ -217,7 +230,7 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     import time
     timings = {}
     t0 = time.time()
-    df_gold = gold_data.build_gold_dataframe(upload_id)
+    df_gold = gold_data.build_gold_dataframe(upload_id, lookback_months=_load_scope_lookback(engagement_id))
     timings["stage8_gold"] = round(time.time() - t0, 2)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
@@ -273,7 +286,7 @@ def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str 
     """Stage 16 — Buying Channel pillar."""
     timings = {}
     t0 = time.time()
-    df_gold = gold_data.build_gold_dataframe(upload_id)
+    df_gold = gold_data.build_gold_dataframe(upload_id, lookback_months=_load_scope_lookback(engagement_id))
     timings["stage8_gold"] = round(time.time() - t0, 2)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
@@ -303,7 +316,7 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     """Stage 13 — Org Structure pillar (V1 QRE-driven)."""
     timings = {}
     t0 = time.time()
-    df_gold = gold_data.build_gold_dataframe(upload_id)
+    df_gold = gold_data.build_gold_dataframe(upload_id, lookback_months=_load_scope_lookback(engagement_id))
     timings["stage8_gold"] = round(time.time() - t0, 2)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
@@ -342,7 +355,7 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     t0 = time.time()
 
     # Stage 8/9/10 once
-    df_gold = gold_data.build_gold_dataframe(upload_id)
+    df_gold = gold_data.build_gold_dataframe(upload_id, lookback_months=_load_scope_lookback(engagement_id))
     timings["stage8_gold"] = round(time.time() - t0, 2)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
