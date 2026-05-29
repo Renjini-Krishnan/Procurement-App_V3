@@ -4,8 +4,11 @@ import { I } from "../design/icons.jsx";
 import { useEngagement } from "../hooks/useEngagement.js";
 import { useIntel } from "../hooks/useIntel.js";
 
-/* Stage 10 — KPI Calculation (raw per-MG metrics).
-   Distinct from Stage 30 KPI Dashboard which is benchmark-cited. */
+/* Stage 10 — KPI Calculation.
+   Top: 8 methodology KPIs per kb/_meta/kpi-calculation-rules.yml — TAT, RC, Savings,
+        PAC, Tail Spend, Spend/FTE, OTD, Sourcing Tool Usage. Each carries its
+        source path + columns used + calc note.
+   Below: per-MG raw metrics drill-down (the building blocks). */
 
 const KPIs = () => {
   const { engagement, loading: engLoading } = useEngagement();
@@ -28,19 +31,21 @@ const KPIs = () => {
   }, [data, search, sortBy]);
 
   if (engLoading || !engagement) return <div>Loading…</div>;
-  if (loading) return <div><Header /><Card padding={32} style={{ marginTop: 24, textAlign: "center", color: "var(--ink-500)" }}>Running Stage 8 → 9 → 10…</Card></div>;
+  if (loading) return <div><Header /><Card padding={32} style={{ marginTop: 24, textAlign: "center", color: "var(--ink-500)" }}>Running Stage 8 → 9 → 10 + methodology KPIs…</Card></div>;
   if (error) return <div><Header /><Callout tone="danger" title="KPI calc failed" icon={<I.X size={16} />}>{error}</Callout></div>;
   if (!data) return null;
 
-  const cols = [
+  const kpis = data.methodology_kpis || [];
+  const available = kpis.filter((k) => k.available);
+  const unavailable = kpis.filter((k) => !k.available);
+
+  const perMgCols = [
     { key: "material_group", label: "MG", render: (r) => <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{r.material_group}</code> },
     { key: "material_group_desc", label: "Category" },
     { key: "archetype", label: "Type" },
     { key: "total_spend_inr_cr", label: "₹ Cr", align: "right" },
     { key: "po_count", label: "POs", align: "right" },
     { key: "po_count_6mo", label: "POs (6mo)", align: "right" },
-    { key: "distinct_months", label: "Months", align: "right" },
-    { key: "avg_po_value", label: "Avg PO ₹", align: "right", render: (r) => `${(r.avg_po_value/1000).toFixed(0)}k` },
     { key: "vendor_count", label: "Vendors", align: "right" },
     { key: "top_vendor_share_pct", label: "Top vend %", align: "right", render: (r) => `${Math.round(r.top_vendor_share_pct || 0)}%` },
     { key: "plant_count", label: "Plants", align: "right" },
@@ -54,15 +59,44 @@ const KPIs = () => {
     <div>
       <Header />
 
-      {/* Portfolio overview */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        <Stat title="Material Groups" value={port.mg_count} />
-        <Stat title="Total POs" value={port.total_po_count?.toLocaleString("en-IN")} />
-        <Stat title="Total spend" value={`₹${(port.total_spend_inr / 1e7).toFixed(1)} Cr`} />
-        <Stat title="Unclassified" value={`${data.classify_summary.unclassified_pct}%`} tone={data.classify_summary.unclassified_pct > 15 ? "warn" : "ok"} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+        <PortfolioStat title="Material Groups" value={port.mg_count} />
+        <PortfolioStat title="Total POs" value={port.total_po_count?.toLocaleString("en-IN")} />
+        <PortfolioStat title="Total spend" value={`₹${(port.total_spend_inr / 1e7).toFixed(1)} Cr`} />
+        <PortfolioStat title="Unclassified" value={`${data.classify_summary.unclassified_pct}%`} tone={data.classify_summary.unclassified_pct > 15 ? "warn" : "ok"} />
       </div>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 24, marginBottom: 12, alignItems: "center" }}>
+      <div style={{ marginBottom: 8 }}>
+        <SectionLabel title={`Methodology KPIs · ${available.length} computed`}
+                       sub="From kb/_meta/kpi-calculation-rules.yml — every value carries its source + columns used." />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12, marginBottom: 16 }}>
+        {available.map((k) => <KPICard key={k.id} kpi={k} />)}
+      </div>
+
+      {unavailable.length > 0 && (
+        <details style={{ marginBottom: 24 }}>
+          <summary style={{ cursor: "pointer", fontSize: "var(--fs-13)", color: "var(--ink-600)" }}>
+            {unavailable.length} KPI(s) unavailable — click to see why
+          </summary>
+          <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
+            {unavailable.map((k) => (
+              <Card key={k.id} padding={14} style={{ opacity: 0.85, borderLeft: "3px solid var(--ink-300)" }}>
+                <div style={{ fontSize: "var(--fs-13)", fontWeight: 600 }}>{k.label}</div>
+                <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-600)", marginTop: 4 }}>{k.notes}</div>
+                <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 4 }}>
+                  Source: <code style={{ fontFamily: "var(--font-mono)" }}>{k.source}</code>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </details>
+      )}
+
+      <SectionLabel title="Per-category breakdown"
+                     sub="Raw building blocks behind the methodology KPIs above — sortable + searchable." />
+      <div style={{ display: "flex", gap: 12, marginTop: 12, marginBottom: 12, alignItems: "center" }}>
         <div style={{ flex: 1 }}>
           <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} icon={<I.Search size={14} />} />
         </div>
@@ -77,21 +111,62 @@ const KPIs = () => {
           Top {data.per_mg_table.length} of {data.mg_count} MGs
         </span>
       </div>
-
       <Card padding={0}>
         <div style={{ padding: "12px 16px", overflowX: "auto" }}>
-          <DataTable columns={cols} rows={rows} />
+          <DataTable columns={perMgCols} rows={rows} />
         </div>
       </Card>
     </div>
   );
 };
 
-const Stat = ({ title, value, tone = "ok" }) => (
+const KPICard = ({ kpi }) => {
+  const tone = kpi.direction === "higher_is_better" ? "var(--success-500)"
+              : kpi.direction === "lower_is_better" ? "var(--warn-500)"
+              : "var(--brand-500)";
+  return (
+    <Card padding={18} style={{ borderTop: `3px solid ${tone}` }}>
+      <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        {kpi.label}
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+        <span style={{ fontSize: "var(--fs-30)", fontWeight: 600, color: "var(--ink-900)" }}>
+          {typeof kpi.value === "number" ? kpi.value.toLocaleString("en-IN", { maximumFractionDigits: 1 }) : kpi.value}
+        </span>
+        <span style={{ fontSize: "var(--fs-13)", color: "var(--ink-500)" }}>{kpi.unit}</span>
+      </div>
+      <div style={{ marginTop: 8, fontSize: "var(--fs-12)", color: "var(--ink-700)", lineHeight: 1.45 }}>
+        {kpi.notes}
+      </div>
+      <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px dashed var(--border-subtle)" }}>
+        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+          Columns used:&nbsp;
+          {(kpi.source_columns_used || []).map((c, i) => (
+            <code key={i} style={{ fontFamily: "var(--font-mono)", marginRight: 6 }}>{c}</code>
+          ))}
+        </div>
+        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 4 }}>
+          Source: <code style={{ fontFamily: "var(--font-mono)" }}>{kpi.source}</code>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const PortfolioStat = ({ title, value, tone = "ok" }) => (
   <Card padding={16}>
     <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{title}</div>
     <div style={{ fontSize: "var(--fs-24)", fontWeight: 600, marginTop: 4, color: tone === "warn" ? "var(--warn-700)" : "var(--ink-900)" }}>{value}</div>
   </Card>
+);
+
+const SectionLabel = ({ title, sub }) => (
+  <div>
+    <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)" }}>
+      {title}
+    </div>
+    {sub && <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", marginTop: 2 }}>{sub}</div>}
+  </div>
 );
 
 const Header = () => (
@@ -104,7 +179,7 @@ const Header = () => (
       KPI Calculation
     </h1>
     <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "6px 0 0 0" }}>
-      Per-MG raw metrics — feed all 4 pillar engines. Benchmark-cited dashboard is Stage 30.
+      8 methodology KPIs computed per kb/_meta/kpi-calculation-rules.yml · sources cited per KPI · per-category breakdown below.
     </p>
   </div>
 );

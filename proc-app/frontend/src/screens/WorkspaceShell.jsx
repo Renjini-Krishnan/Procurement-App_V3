@@ -6,6 +6,7 @@ import { I } from "../design/icons.jsx";
 import { STAGES, PHASE_ORDER } from "../data/stages.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import { api } from "../api/client.js";
+import StageNav from "./StageNav.jsx";
 
 const INDUSTRIES = ["steel", "cement"];
 
@@ -188,7 +189,10 @@ const WorkspaceShell = ({ children }) => (
   <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface-page)" }}>
     <a href="#main" className="sr-only skip-link">Skip to main content</a>
     <Rail />
-    <main id="main" tabIndex={-1} style={{ flex: 1, padding: "32px 40px" }}>{children}</main>
+    <main id="main" tabIndex={-1} style={{ flex: 1, padding: "32px 40px" }}>
+      {children}
+      <StageNav />
+    </main>
   </div>
 );
 

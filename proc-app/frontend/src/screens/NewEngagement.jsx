@@ -46,7 +46,7 @@ const NewEngagement = () => {
         fte_count: form.fte_count ? Number(form.fte_count) : null,
       };
       const eng = await api.createEngagement(payload);
-      nav(`/engagement/${eng.id}/upload`);
+      nav(`/engagement/${eng.id}/client`);
     } catch (e) {
       setError(e.body?.detail || e.message || String(e));
     } finally {
@@ -142,7 +142,7 @@ const NewEngagement = () => {
           <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <Button variant="outline" type="button" onClick={() => nav("/")}>Cancel</Button>
             <Button type="submit" disabled={submitting} iconRight={<I.Arrow size={14} />}>
-              {submitting ? "Creating…" : "Create + go to Upload"}
+              {submitting ? "Creating…" : "Create + go to Stage 1"}
             </Button>
           </div>
         </form>

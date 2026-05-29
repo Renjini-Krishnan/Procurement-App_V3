@@ -140,6 +140,48 @@ def export_kpis_xlsx(engagement_id: str, payload: ExportRequest):
 
 
 # ============================================================================
+# Bronze + Gold data downloads
+# ============================================================================
+
+@router.post("/{engagement_id}/export/bronze.csv")
+def export_bronze_csv(engagement_id: str, payload: ExportRequest):
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, "Engagement not found")
+    from ..engine import gold_data
+    try:
+        df, _report = gold_data.build_gold_dataframe_with_report(payload.upload_id)
+    except Exception as e:
+        raise HTTPException(500, f"Bronze build failed: {e}")
+    return _df_to_csv_response(df, eng, "bronze")
+
+
+@router.post("/{engagement_id}/export/gold.csv")
+def export_gold_csv(engagement_id: str, payload: ExportRequest):
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, "Engagement not found")
+    from ..engine import gold_data, stage9_classify
+    try:
+        df_gold, _report = gold_data.build_gold_dataframe_with_report(payload.upload_id)
+        df_classified = stage9_classify.classify_dataframe(df_gold, industry=payload.industry)
+    except Exception as e:
+        raise HTTPException(500, f"Gold build failed: {e}")
+    return _df_to_csv_response(df_classified, eng, "gold")
+
+
+def _df_to_csv_response(df, eng, stage):
+    buf = io.StringIO()
+    df.to_csv(buf, index=False)
+    name = f"procvault-{stage}-{_slug(eng['client_name'])}-{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        io.BytesIO(buf.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
+
+
+# ============================================================================
 # Comparison — current vs prior pillar run
 # ============================================================================
 

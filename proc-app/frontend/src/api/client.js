@@ -146,6 +146,11 @@ export const api = {
   exportFindingsDeckUrl: (id) => `/api/engagement/${id}/export/findings-deck.pptx`,
   exportExecSummaryUrl: (id) => `/api/engagement/${id}/export/exec-summary.pptx`,
   exportKpisXlsxUrl: (id) => `/api/engagement/${id}/export/kpis.xlsx`,
+  exportBronzeCsvPath: (id) => `/engagement/${id}/export/bronze.csv`,
+  exportGoldCsvPath: (id) => `/engagement/${id}/export/gold.csv`,
+  exportFindingsDeckPath: (id) => `/engagement/${id}/export/findings-deck.pptx`,
+  exportExecSummaryPath: (id) => `/engagement/${id}/export/exec-summary.pptx`,
+  exportKpisXlsxPath: (id) => `/engagement/${id}/export/kpis.xlsx`,
 
   // Comparison
   getComparison: (id, pillar) =>

@@ -138,6 +138,16 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     db.set_stage_status(engagement_id, 9, "done", {"unclassified_pct": classify_summary.get("unclassified_pct")})
     db.set_stage_status(engagement_id, 10, "done", {"mg_count": len(df_mg)})
 
+    # Methodology KPIs — TAT, RC%, Savings, PAC%, Tail%, Spend/FTE, OTD, Sourcing Tool
+    from . import methodology_kpis
+    eng = db.get_engagement(engagement_id) or {}
+    qre = _load_qre(engagement_id)
+    methodology = methodology_kpis.compute_all(
+        df_classified,
+        fte_count=eng.get("fte_count"),
+        qre_responses=qre,
+    )
+
     return {
         "engagement_id": engagement_id,
         "upload_id": upload_id,
@@ -149,6 +159,7 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         "per_mg_table": per_mg_table,
         "mg_count": len(df_mg),
         "cleansing_report": cleansing_report,
+        "methodology_kpis": methodology,
         "timings_seconds": {"total": round(time.time() - t0, 2)},
     }
 

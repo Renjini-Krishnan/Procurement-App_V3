@@ -406,7 +406,27 @@ const KPICard = ({ kpi, onClick }) => {
           {kpi.finding}
         </div>
       )}
+
+      <Citation b={kpi.benchmark} />
     </Card>
+  );
+};
+
+const Citation = ({ b }) => {
+  if (!b) return null;
+  const confTone = { high: "var(--success-700)", medium: "var(--warn-700)", low: "var(--danger-700)" }[b.confidence] || "var(--ink-500)";
+  return (
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px dashed var(--border-subtle)",
+                   fontSize: "var(--fs-11)", color: "var(--ink-500)",
+                   display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+      <span style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>Source</span>
+      <span style={{ color: "var(--ink-700)" }}>{b.source}{b.year ? ` · ${b.year}` : ""}</span>
+      {b.confidence && (
+        <span style={{ marginLeft: "auto", color: confTone, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {b.confidence} confidence
+        </span>
+      )}
+    </div>
   );
 };
 
@@ -415,7 +435,7 @@ const KPIList = ({ kpis, onSelect }) => (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
       <thead>
         <tr>
-          {["KPI", "Pillar / Theme", "Value", "Band", "Status", "Delta", ""].map((c) => (
+          {["KPI", "Pillar / Theme", "Value", "Band", "Status", "Delta", "Source", ""].map((c) => (
             <th key={c} style={{ textAlign: "left", padding: "10px 14px", color: "var(--ink-600)", fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid var(--border-default)" }}>{c}</th>
           ))}
         </tr>
@@ -437,6 +457,14 @@ const KPIList = ({ kpis, onSelect }) => (
               <StatusPill status={k.status} />
             </td>
             <td style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{k.delta}</td>
+            <td style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-subtle)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+              {k.benchmark?.source}{k.benchmark?.year ? ` · ${k.benchmark.year}` : ""}
+              {k.benchmark?.confidence && (
+                <span style={{ marginLeft: 6, fontWeight: 600, color: { high: "var(--success-700)", medium: "var(--warn-700)", low: "var(--danger-700)" }[k.benchmark.confidence] }}>
+                  · {k.benchmark.confidence}
+                </span>
+              )}
+            </td>
             <td style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-subtle)", color: "var(--brand-600)" }}>›</td>
           </tr>
         ))}

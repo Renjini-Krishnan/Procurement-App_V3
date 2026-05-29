@@ -194,6 +194,12 @@ const FindingCard = ({ f }) => {
           <div style={{ fontSize: "var(--fs-15)", color: "var(--ink-900)", lineHeight: 1.5, fontWeight: 500 }}>
             {f.headline}
           </div>
+          <div style={{ marginTop: 8, fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+            Source: KB · <code style={{ fontFamily: "var(--font-mono)" }}>kb/functions/procurement/{f.pillar}/rca-rules.yml</code>
+            {" · "}
+            <code style={{ fontFamily: "var(--font-mono)" }}>_meta/kpi-rca-library.yml</code>
+            {" · benchmarks resolved via cascade (function default → industry overlay)"}
+          </div>
           {f.metrics && Object.keys(f.metrics).length > 0 && (
             <details style={{ marginTop: 10 }}>
               <summary style={{ cursor: "pointer", fontSize: "var(--fs-12)", color: "var(--brand-700)" }}>
