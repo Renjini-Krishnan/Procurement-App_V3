@@ -1,0 +1,24 @@
+# Build / runtime caches
+.vite/
+**/.vite/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Local data + uploads (host-specific)
+proc-app/backend/data/uploads/
+proc-app/backend/data/*.db
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Tests scratch
+/tmp/procvault_*.db
