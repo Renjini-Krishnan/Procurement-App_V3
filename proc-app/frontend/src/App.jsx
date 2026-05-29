@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { useViewMode, CLIENT_VIEW_ALLOWED_STAGES } from "./hooks/useViewMode.js";
 import Landing from "./screens/Landing.jsx";
 import NewEngagement from "./screens/NewEngagement.jsx";
 import KBEditor from "./screens/KBEditor.jsx";
@@ -55,7 +56,17 @@ const STAGE_SCREENS = {
 };
 
 const StageRouter = () => {
-  const { stageSlug } = useParams();
+  const { engagementId, stageSlug } = useParams();
+  const viewMode = useViewMode();
+
+  // Wait for view mode to resolve before deciding to redirect (avoids flash)
+  if (viewMode === null) return null;
+
+  // Client view: redirect anything outside the allowed set to Findings Deck
+  if (viewMode === "client" && !CLIENT_VIEW_ALLOWED_STAGES.has(stageSlug)) {
+    return <Navigate to={`/engagement/${engagementId}/findings-deck`} replace />;
+  }
+
   const ScreenComponent = STAGE_SCREENS[stageSlug] || StagePlaceholder;
   // key forces a fresh mount per slug so state isn't carried across screens.
   return <ScreenComponent key={stageSlug} />;

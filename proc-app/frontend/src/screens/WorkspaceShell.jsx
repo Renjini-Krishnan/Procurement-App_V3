@@ -5,6 +5,7 @@ import { Badge } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { STAGES, PHASE_ORDER } from "../data/stages.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { useViewMode, CLIENT_VIEW_ALLOWED_STAGES } from "../hooks/useViewMode.js";
 import { api } from "../api/client.js";
 import StageNav from "./StageNav.jsx";
 
@@ -31,6 +32,8 @@ const Rail = () => {
   const { engagementId } = useParams();
   const activeSlug = loc.pathname.split("/").pop();
   const { engagement } = useEngagement();
+  const viewMode = useViewMode();
+  const isClient = viewMode === "client";
 
   return (
     <aside
@@ -69,12 +72,30 @@ const Rail = () => {
         <div style={{ fontSize: "var(--fs-14)", fontWeight: 600, color: "var(--ink-900)" }}>
           {engagement?.client_name || "Loading…"}
         </div>
-        {engagement && <IndustrySwitcher engagement={engagement} />}
+        {isClient && (
+          <div style={{ marginTop: 6 }}>
+            <span style={{ display: "inline-block", padding: "3px 10px",
+                            background: "var(--brand-600)", color: "white",
+                            borderRadius: "var(--r-pill)",
+                            fontSize: "var(--fs-10)", fontWeight: 700,
+                            letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              Client view
+            </span>
+            <Link to={`/engagement/${engagementId}/guidelines`}
+                  style={{ marginLeft: 8, fontSize: "var(--fs-11)", color: "var(--brand-600)" }}>
+              switch ↔
+            </Link>
+          </div>
+        )}
+        {engagement && !isClient && <IndustrySwitcher engagement={engagement} />}
       </div>
 
       {/* phases + stages */}
       {PHASE_ORDER.map((phase) => {
-        const stages = STAGES.filter((s) => s.phase === phase);
+        const stages = STAGES
+          .filter((s) => s.phase === phase)
+          .filter((s) => !isClient || CLIENT_VIEW_ALLOWED_STAGES.has(s.slug));
+        if (stages.length === 0) return null;
         return (
           <div key={phase} style={{ padding: "16px 20px 4px" }}>
             <div
