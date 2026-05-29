@@ -3,6 +3,7 @@ import { Card, Badge, Button, Callout, Input } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { Logo } from "../design/Logo.jsx";
 import { api } from "../api/client.js";
+import { pickStructuredView } from "./kbStructuredEditors.jsx";
 
 /* KB Editor — in-app browser + editor for YAML + Markdown files.
    Left pane: file tree (grouped by root: function / standards / references / industries).
@@ -28,6 +29,7 @@ const KBEditor = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [saveMsg, setSaveMsg] = useState(null);
+  const [viewMode, setViewMode] = useState("structured");  // 'structured' | 'raw'
 
   useEffect(() => {
     (async () => {
@@ -39,6 +41,15 @@ const KBEditor = () => {
       }
     })();
   }, []);
+
+  // Default to structured view if a renderer is available for this file
+  useEffect(() => {
+    if (selected) {
+      setViewMode(pickStructuredView(selected.rel_path) ? "structured" : "raw");
+    }
+  }, [selected?.rel_path]);
+
+  const StructuredView = selected ? pickStructuredView(selected.rel_path) : null;
 
   const openFile = async (root, rel_path) => {
     setLoadingFile(true); setSaveError(null); setSaveMsg(null);
@@ -153,6 +164,20 @@ const KBEditor = () => {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {StructuredView && (
+                  <div style={{ display: "flex", border: "1px solid var(--border-default)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
+                    <button onClick={() => setViewMode("structured")}
+                            style={{ padding: "6px 12px", fontSize: "var(--fs-12)", fontWeight: 600,
+                                     background: viewMode === "structured" ? "var(--brand-600)" : "var(--surface-card)",
+                                     color: viewMode === "structured" ? "white" : "var(--ink-700)",
+                                     border: "none", cursor: "pointer" }}>Structured</button>
+                    <button onClick={() => setViewMode("raw")}
+                            style={{ padding: "6px 12px", fontSize: "var(--fs-12)", fontWeight: 600,
+                                     background: viewMode === "raw" ? "var(--brand-600)" : "var(--surface-card)",
+                                     color: viewMode === "raw" ? "white" : "var(--ink-700)",
+                                     border: "none", cursor: "pointer" }}>Raw YAML</button>
+                  </div>
+                )}
                 {dirty && <Badge tone="warn">unsaved</Badge>}
                 <Button variant="outline" disabled={!dirty || saving} onClick={reset}>Reset</Button>
                 <Button disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button>
@@ -162,23 +187,29 @@ const KBEditor = () => {
             {saveError && <div style={{ marginBottom: 12 }}><Callout tone="danger" title="Save failed" icon={<I.X size={14} />}>{saveError}</Callout></div>}
             {saveMsg && <div style={{ marginBottom: 12 }}><Callout tone="success" title={saveMsg} icon={<I.Check size={14} />} /></div>}
 
-            <Card padding={0} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 480 }}>
-              <div style={{ padding: "8px 14px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
-                <span>{loadingFile ? "Loading…" : `${content.split("\n").length} lines · ${content.length} chars`}</span>
-                <span>{selected.rel_path.endsWith(".md") ? "Markdown" : "YAML"}</span>
+            {viewMode === "structured" && StructuredView ? (
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                <StructuredView yamlText={content} onChange={setContent} />
               </div>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                spellCheck={false}
-                style={{
-                  flex: 1, width: "100%", border: "none", resize: "none",
-                  padding: 14, fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)",
-                  lineHeight: 1.55, color: "var(--ink-900)", background: "var(--surface-card)",
-                  outline: "none", minHeight: 480,
-                }}
-              />
-            </Card>
+            ) : (
+              <Card padding={0} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 480 }}>
+                <div style={{ padding: "8px 14px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+                  <span>{loadingFile ? "Loading…" : `${content.split("\n").length} lines · ${content.length} chars`}</span>
+                  <span>{selected.rel_path.endsWith(".md") ? "Markdown" : "YAML"}</span>
+                </div>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  spellCheck={false}
+                  style={{
+                    flex: 1, width: "100%", border: "none", resize: "none",
+                    padding: 14, fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)",
+                    lineHeight: 1.55, color: "var(--ink-900)", background: "var(--surface-card)",
+                    outline: "none", minHeight: 480,
+                  }}
+                />
+              </Card>
+            )}
           </>
         )}
       </main>
