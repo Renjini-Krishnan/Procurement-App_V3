@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS uploads (
     stored_path TEXT NOT NULL,
     row_count INTEGER,
     column_mapping TEXT,               -- JSON: raw_column -> canonical_field
+    content_hash TEXT,                 -- SHA256 hex of file bytes (dedup detection)
+    size_bytes INTEGER,
+    auto_classified INTEGER DEFAULT 0, -- 1 if file_type was auto-detected via batch upload
     uploaded_at TEXT NOT NULL,
     FOREIGN KEY (engagement_id) REFERENCES engagements(id)
 );

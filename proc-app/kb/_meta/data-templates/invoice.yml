@@ -1,103 +1,145 @@
 file_type: INVOICE
 label: Invoice Register / Accounts Payable
 source_template: Accenture Client Pack v10 / SAP RBKP + RSEG + BSIK
-description: |
-  Vendor invoice records. Used for invoice TAT, DPO (days payable outstanding),
+description: 'Vendor invoice records. Used for invoice TAT, DPO (days payable outstanding),
+
   invoice-vs-PO/GRN 3-way match, payment-block aging, MSME compliance (45-day rule).
 
+  '
 fields:
-  - field: invoice_doc_number
-    aliases: [Invoice_Number, Invoice Doc Number, BELNR, AP Doc Number]
-    type: string
-    required: true
-    description: Invoice document number. SAP RBKP.BELNR.
-
-  - field: po_number
-    aliases: [PO_Number, EBELN]
-    type: string
-    required: true
-    description: Reference PO. Join key. Critical for 3-way match.
-
-  - field: po_item
-    aliases: [PO_Item, EBELP]
-    type: integer
-    required: false
-    description: Reference PO line item.
-
-  - field: vendor_id
-    aliases: [Vendor_Number, Vendor, LIFNR]
-    type: string
-    required: true
-    description: Invoicing vendor.
-
-  - field: vendor_name
-    aliases: [Vendor_Name, NAME1]
-    type: string
-    required: false
-    description: Vendor name.
-
-  - field: invoice_date
-    aliases: [Invoice_Date, BLDAT, Document Date]
-    type: date
-    required: true
-    description: Date on the vendor invoice.
-
-  - field: posting_date
-    aliases: [Posting_Date, BUDAT, Entry Date]
-    type: date
-    required: true
-    description: AP posting date. Used for invoice TAT (posting - invoice).
-
-  - field: due_date
-    aliases: [Due_Date, Payment Due, ZFBDT]
-    type: date
-    required: false
-    description: Payment due date.
-
-  - field: payment_date
-    aliases: [Payment_Date, AUGDT, Clearing Date]
-    type: date
-    required: false
-    description: Actual payment date. Used for DPO and overdue analysis.
-
-  - field: gross_amount
-    aliases: [Gross_Amount, Invoice Amount, WRBTR]
-    type: number
-    required: true
-    description: Gross invoice amount.
-
-  - field: tax_amount
-    aliases: [Tax_Amount, GST, WMWST]
-    type: number
-    required: false
-    description: Tax / GST amount.
-
-  - field: currency
-    aliases: [Currency, WAERS]
-    type: string
-    required: false
-    description: Invoice currency.
-
-  - field: payment_terms
-    aliases: [Payment_Terms, ZTERM]
-    type: string
-    required: false
-    description: Payment terms applied.
-
-  - field: payment_block
-    aliases: [Payment_Block, ZLSPR, Block Code]
-    type: string
-    required: false
-    description: Payment block code (if any). Used for aging analysis.
-
-  - field: msme_flag
-    aliases: [MSME, MSME Vendor]
-    type: string
-    required: false
-    description: MSME vendor flag (denormalised). 45-day compliance rule.
-
-  - field: invoice_status
-    aliases: [Status, Invoice Status]
-    type: string
-    required: false
-    description: Pending / Posted / Paid / Cancelled.
+- field: invoice_doc_number
+  aliases:
+  - Invoice_Number
+  - Invoice Doc Number
+  - BELNR
+  - AP Doc Number
+  type: string
+  required: true
+  description: Invoice document number. SAP RBKP.BELNR.
+- field: po_number
+  aliases:
+  - PO_Number
+  - EBELN
+  type: string
+  required: true
+  description: Reference PO. Join key. Critical for 3-way match.
+- field: po_item
+  aliases:
+  - PO_Item
+  - EBELP
+  type: integer
+  required: false
+  description: Reference PO line item.
+- field: vendor_id
+  aliases:
+  - Vendor_Number
+  - Vendor
+  - LIFNR
+  type: string
+  required: true
+  description: Invoicing vendor.
+- field: vendor_name
+  aliases:
+  - Vendor_Name
+  - NAME1
+  type: string
+  required: false
+  description: Vendor name.
+- field: invoice_date
+  aliases:
+  - Invoice_Date
+  - BLDAT
+  - Document Date
+  type: date
+  required: true
+  description: Date on the vendor invoice.
+- field: posting_date
+  aliases:
+  - Posting_Date
+  - BUDAT
+  - Entry Date
+  type: date
+  required: true
+  description: AP posting date. Used for invoice TAT (posting - invoice).
+- field: due_date
+  aliases:
+  - Due_Date
+  - Payment Due
+  - ZFBDT
+  type: date
+  required: false
+  description: Payment due date.
+- field: payment_date
+  aliases:
+  - Payment_Date
+  - AUGDT
+  - Clearing Date
+  type: date
+  required: false
+  description: Actual payment date. Used for DPO and overdue analysis.
+- field: gross_amount
+  aliases:
+  - Gross_Amount
+  - Invoice Amount
+  - WRBTR
+  type: number
+  required: true
+  description: Gross invoice amount.
+- field: tax_amount
+  aliases:
+  - Tax_Amount
+  - GST
+  - WMWST
+  type: number
+  required: false
+  description: Tax / GST amount.
+- field: currency
+  aliases:
+  - Currency
+  - WAERS
+  type: string
+  required: false
+  description: Invoice currency.
+- field: payment_terms
+  aliases:
+  - Payment_Terms
+  - ZTERM
+  type: string
+  required: false
+  description: Payment terms applied.
+- field: payment_block
+  aliases:
+  - Payment_Block
+  - ZLSPR
+  - Block Code
+  type: string
+  required: false
+  description: Payment block code (if any). Used for aging analysis.
+- field: msme_flag
+  aliases:
+  - MSME
+  - MSME Vendor
+  type: string
+  required: false
+  description: MSME vendor flag (denormalised). 45-day compliance rule.
+- field: invoice_status
+  aliases:
+  - Status
+  - Invoice Status
+  type: string
+  required: false
+  description: Pending / Posted / Paid / Cancelled.
+guidelines:
+  lookback_months_recommended: 18
+  minimum_months_required: 12
+  date_format_expected: dd-mm-yyyy
+  encoding_expected: UTF-8
+  accepted_formats:
+  - csv
+  - xlsx
+  row_granularity: one row per invoice document line item (linked to PO)
+  notes_for_client:
+  - Posting_Date vs Invoice_Date enables invoice-TAT analysis
+  - "Payment_Date populated only for paid invoices \u2014 used for DPO + overdue analysis"
+  - MSME flag drives 45-day compliance reporting under MSMED Act
+  - "Payment_Block code indicates held invoices \u2014 used for aging analysis"

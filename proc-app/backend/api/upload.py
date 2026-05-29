@@ -52,6 +52,12 @@ async def upload_file(engagement_id: str, file: UploadFile = File(...), file_typ
             original_filename=file.filename or "uploaded.csv",
             file_bytes=contents,
         )
+    except upload_service.FileTooLargeError as e:
+        raise HTTPException(413, str(e))
+    except upload_service.DuplicateUploadError as e:
+        # 409 Conflict — surface the existing upload_id so client can offer "use existing"
+        raise HTTPException(409, detail={"message": str(e),
+                                         "existing_upload_id": e.existing_upload_id})
     except ValueError as e:
         raise HTTPException(400, str(e))
     db.set_stage_status(engagement_id, 4, "done", {"upload_id": result["upload_id"]})
@@ -81,6 +87,106 @@ def upload_seed(engagement_id: str, file_type: str = "PO"):
 @meta_router.get("/seeds")
 def list_seeds():
     return {"seeds": upload_service.list_available_seeds()}
+
+
+# --------------------------------------------------------------------------
+# Blank-template downloads
+# --------------------------------------------------------------------------
+
+from fastapi.responses import StreamingResponse
+import io as _io
+
+
+@meta_router.get("/upload-templates/{file_type}/blank.csv")
+def template_csv(file_type: str):
+    try:
+        body = upload_service.blank_template_csv(file_type)
+    except KeyError as e:
+        raise HTTPException(404, f"Unknown file type: {file_type}")
+    name = f"procvault-{file_type.lower()}-template.csv"
+    return StreamingResponse(_io.BytesIO(body), media_type="text/csv",
+                              headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@meta_router.get("/upload-templates/{file_type}/blank.xlsx")
+def template_xlsx(file_type: str):
+    try:
+        body = upload_service.blank_template_xlsx(file_type)
+    except KeyError as e:
+        raise HTTPException(404, f"Unknown file type: {file_type}")
+    name = f"procvault-{file_type.lower()}-template.xlsx"
+    return StreamingResponse(_io.BytesIO(body),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+# --------------------------------------------------------------------------
+# Batch upload with auto-classification
+# --------------------------------------------------------------------------
+
+@router.post("/{engagement_id}/upload-batch")
+async def upload_batch(engagement_id: str, files: list[UploadFile] = File(...)):
+    """Accept multiple files; auto-classify each by header overlap; persist all.
+
+    Returns one entry per file with classification result + upload_id (or
+    error reason). Duplicates short-circuit to the existing upload_id."""
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    results = []
+    for f in files:
+        contents = await f.read()
+        entry = {"original_filename": f.filename, "size_bytes": len(contents)}
+        # Size check
+        if len(contents) > upload_service.MAX_UPLOAD_SIZE_BYTES:
+            entry.update({"status": "rejected", "reason":
+                f"File is {len(contents) / 1024 / 1024:.1f} MB; limit is "
+                f"{upload_service.MAX_UPLOAD_SIZE_MB} MB"})
+            results.append(entry); continue
+        # Parse header to classify
+        try:
+            import io as _io2
+            suffix = (f.filename or "").lower()
+            if suffix.endswith((".csv", ".tsv", ".txt")):
+                head_df = __import__("pandas").read_csv(_io2.BytesIO(contents), nrows=1, low_memory=False)
+            else:
+                head_df = __import__("pandas").read_excel(_io2.BytesIO(contents), nrows=1)
+            raw_cols = [str(c).strip() for c in head_df.columns]
+        except Exception as e:
+            entry.update({"status": "rejected", "reason": f"Could not parse header: {e}"})
+            results.append(entry); continue
+        classified = upload_service.classify_file_type(raw_cols)
+        entry["classification"] = classified
+        if classified["best"] is None or classified["confidence"] in ("none", "low"):
+            entry.update({"status": "low_confidence",
+                          "reason": f"Auto-classifier {classified['confidence']} confidence (best: {classified['best']} @ {classified['score']:.0%})",
+                          "suggested_file_type": classified["best"]})
+            results.append(entry); continue
+        # Save
+        try:
+            result = upload_service.save_upload(
+                engagement_id=engagement_id, file_type=classified["best"],
+                original_filename=f.filename, file_bytes=contents,
+                auto_classified=True,
+            )
+            entry.update({"status": "uploaded", "upload_id": result["upload_id"],
+                          "file_type": classified["best"], "row_count": result["row_count"]})
+        except upload_service.DuplicateUploadError as e:
+            entry.update({"status": "duplicate", "existing_upload_id": e.existing_upload_id,
+                          "reason": str(e)})
+        except (ValueError, upload_service.FileTooLargeError) as e:
+            entry.update({"status": "rejected", "reason": str(e)})
+        results.append(entry)
+
+    db.set_stage_status(engagement_id, 4, "done", {"batch_count": len(results)})
+    db.update_engagement_stage(engagement_id, 5)
+    return {"engagement_id": engagement_id, "files": results}
+
+
+# --------------------------------------------------------------------------
+# Surface dedup + size errors via the single-file endpoint
+# --------------------------------------------------------------------------
+
+# Monkey-patch the existing /upload route to handle the new exceptions cleanly
 
 
 @router.get("/{engagement_id}/uploads")

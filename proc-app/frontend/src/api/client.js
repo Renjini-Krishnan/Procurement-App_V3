@@ -141,6 +141,17 @@ export const api = {
   // Upload schemas (all file types)
   listUploadSchemas: () => request("/upload-schemas"),
   getUploadSchema: (file_type) => request(`/upload-schemas/${file_type}`),
+  templateCsvUrl: (file_type) => `/api/upload-templates/${file_type}/blank.csv`,
+  templateXlsxUrl: (file_type) => `/api/upload-templates/${file_type}/blank.xlsx`,
+  uploadBatch: async (id, files) => {
+    const form = new FormData();
+    for (const f of files) form.append("files", f);
+    const res = await fetch(`/api/engagement/${id}/upload-batch`, {
+      method: "POST", body: form,
+    });
+    if (!res.ok) throw new Error(`Batch upload failed: ${res.status}`);
+    return res.json();
+  },
 
   // Exports
   exportFindingsDeckUrl: (id) => `/api/engagement/${id}/export/findings-deck.pptx`,

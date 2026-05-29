@@ -84,3 +84,16 @@ fields:
   type: string
   required: false
   description: Final approver name/ID. Used for DoA compliance.
+guidelines:
+  lookback_months_recommended: 18
+  minimum_months_required: 12
+  date_format_expected: dd-mm-yyyy
+  encoding_expected: UTF-8
+  accepted_formats:
+  - csv
+  - xlsx
+  row_granularity: one row per PR line item
+  notes_for_client:
+  - Join key to PO dump is PR_Number = PR_Reference; ensure consistent format (no leading zeros mismatch)
+  - "PR_Release_Date drives TAT calculation \u2014 must be populated, not the creation date"
+  - Closed / cancelled PRs should be included to track the conversion ratio

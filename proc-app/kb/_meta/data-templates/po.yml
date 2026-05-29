@@ -266,3 +266,18 @@ fields:
   type: string
   required: false
   description: Unit of measure.
+guidelines:
+  lookback_months_recommended: 18
+  minimum_months_required: 12
+  date_format_expected: dd-mm-yyyy
+  encoding_expected: UTF-8
+  accepted_formats:
+  - csv
+  - xlsx
+  row_granularity: one row per PO line item (not aggregated)
+  currency_handling: Native currency per row; INR conversion applied automatically using shared-kb/references/master-data/currencies.yml
+  notes_for_client:
+  - "Include cancelled and reversed POs \u2014 the engine tags them separately rather than dropping"
+  - "Material Group code (MATKL) is the primary classification key \u2014 ensure populated for all rows"
+  - "Contract Number column distinguishes RC-backed POs from spot \u2014 leave blank for true spot buys"
+  - PR_Reference enables PR-to-PO TAT analysis; without it that KPI is unavailable
