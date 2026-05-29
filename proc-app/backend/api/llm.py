@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from .. import db
 from ..engine import orchestrator
-from ..services import llm, llm_prompts
+from ..services import llm, llm_prompts, client_autofill
 
 
 router = APIRouter(prefix="/api", tags=["llm"])
@@ -16,6 +16,21 @@ router = APIRouter(prefix="/api", tags=["llm"])
 def llm_status():
     """Tells the frontend whether AI is live or in deterministic fallback mode."""
     return llm.status()
+
+
+class ClientAutofillRequest(BaseModel):
+    client_name: str
+
+
+@router.post("/llm/client-autofill")
+def client_autofill_endpoint(payload: ClientAutofillRequest):
+    """Suggest engagement-profile fields + primer for a client name."""
+    return client_autofill.autofill(payload.client_name)
+
+
+@router.get("/kb/industries/{industry}/procurement-categories")
+def industry_procurement_categories(industry: str):
+    return client_autofill.load_categories(industry)
 
 
 class ExecNarrativeRequest(BaseModel):

@@ -1,0 +1,177 @@
+# =============================================================================
+# Steel Industry — Typical Procurement Categories
+# =============================================================================
+# Used by Stage 1 (Client primer) to show the consultant which major procurement
+# categories the client likely deals with, before any PO data is uploaded.
+#
+# Source of category list: ACN procurement benchmark database + industry
+# practitioner inputs. Edit via /kb -> root "industries" -> steel/.
+# =============================================================================
+
+metadata:
+  id: steel-typical-procurement-categories
+  industry: steel
+  version: 1.0
+  source: "ACN Procurement Benchmark — Steel"
+  source_year: 2024
+  confidence: high
+  last_updated: 2026-05-29
+
+categories:
+  - id: iron_ore
+    name: Iron Ore
+    archetype: BULK
+    typical_spend_share_pct: [18, 28]
+    notes: "Largest single category. Long-term contracts with state-owned + private miners. Pricing typically linked to international indices."
+    typical_kpis: [rc_adoption, savings_over_lpo, otd]
+
+  - id: coking_coal
+    name: Coking Coal
+    archetype: BULK
+    typical_spend_share_pct: [12, 20]
+    notes: "Imported or domestic; quality grades critical. Hedged via long-term offtakes + spot."
+    typical_kpis: [rc_adoption, savings_over_lpo]
+
+  - id: limestone_dolomite
+    name: Limestone, Dolomite, Flux
+    archetype: BULK
+    typical_spend_share_pct: [2, 5]
+    notes: "Local sourcing typical. Logistics-sensitive."
+    typical_kpis: [otd, rc_adoption]
+
+  - id: ferro_alloys
+    name: Ferro-Alloys (FeMn, FeSi, FeCr, FeNi)
+    archetype: DIRECT
+    typical_spend_share_pct: [4, 8]
+    notes: "Quality-sensitive (low P, low C grades for special steel). Few qualified vendors per alloy."
+    typical_kpis: [pac_single_vendor, savings_over_lpo, supplier_defect_rate]
+
+  - id: refractories
+    name: Refractories
+    archetype: DIRECT
+    typical_spend_share_pct: [3, 6]
+    notes: "Mix of bricks, gunning mass, ladle slide gates. Multi-plant centralisation prize is high (often flagged in Op Model)."
+    typical_kpis: [tat_pr_to_po, rc_adoption, pac_single_vendor]
+
+  - id: scrap_steel
+    name: Steel Scrap
+    archetype: BULK
+    typical_spend_share_pct: [3, 8]
+    notes: "Applicable to EAF / mini-mills. Spot-heavy; quality (Cu, Sn impurities) governs price."
+    typical_kpis: [savings_over_lpo, supplier_defect_rate]
+
+  - id: plant_spares
+    name: Plant Spares & Consumables
+    archetype: INDIRECT
+    typical_spend_share_pct: [4, 8]
+    notes: "Highest transaction volume by PO count. RC/catalogue opportunity is large; tail spend is concentrated here."
+    typical_kpis: [tail_spend, rc_adoption, tat_pr_to_po]
+
+  - id: mechanical_equipment
+    name: Mechanical Equipment & Components
+    archetype: DIRECT
+    typical_spend_share_pct: [3, 6]
+    notes: "Bearings, valves, pumps, motors. Standard items good for ASL + catalogue; engineered items via RFQ."
+    typical_kpis: [rc_adoption, savings_over_lpo]
+
+  - id: electrical_equipment
+    name: Electrical Equipment
+    archetype: DIRECT
+    typical_spend_share_pct: [2, 5]
+    notes: "Transformers, drives, switchgear. Long lead times; PAC risk for OEM-only spares."
+    typical_kpis: [pac_single_vendor, otd]
+
+  - id: instrumentation
+    name: Instrumentation & Automation
+    archetype: DIRECT
+    typical_spend_share_pct: [1, 3]
+    notes: "PLCs, sensors, control systems. High OEM concentration."
+    typical_kpis: [pac_single_vendor]
+
+  - id: lubricants_chemicals
+    name: Lubricants, Greases, Process Chemicals
+    archetype: INDIRECT
+    typical_spend_share_pct: [1, 3]
+    notes: "RC programmes typical; consumption tracking critical."
+    typical_kpis: [rc_adoption]
+
+  - id: power_utilities_procured
+    name: Power, Gas, Utilities (Procured)
+    archetype: SERVICE
+    typical_spend_share_pct: [3, 8]
+    notes: "Open access power purchase agreements + industrial gas contracts."
+    typical_kpis: [rc_adoption]
+
+  - id: logistics_transport
+    name: Logistics & Transportation
+    archetype: SERVICE
+    typical_spend_share_pct: [3, 6]
+    notes: "Inbound raw material + outbound finished steel. Rake / road / pipeline split. Fragmented vendor base."
+    typical_kpis: [savings_over_lpo, otd]
+
+  - id: capex_services
+    name: Capex / Project Services
+    archetype: CAPEX
+    typical_spend_share_pct: [5, 15]
+    notes: "Highly variable by year. RFQ-based; PAC over-use is a common diagnostic finding."
+    typical_kpis: [pac_single_vendor]
+
+  - id: amc_maintenance
+    name: AMC / Annual Maintenance Contracts
+    archetype: SERVICE
+    typical_spend_share_pct: [2, 4]
+    notes: "Recurring service contracts. OLA / RC opportunity if not consolidated."
+    typical_kpis: [rc_adoption]
+
+  - id: manpower_contracts
+    name: Manpower Contracts
+    archetype: SERVICE
+    typical_spend_share_pct: [3, 6]
+    notes: "Contract labour for housekeeping, security, operations support. Compliance + audit risks."
+    typical_kpis: [rc_adoption]
+
+  - id: it_services
+    name: IT Hardware & Services
+    archetype: SERVICE
+    typical_spend_share_pct: [1, 3]
+    notes: "Centralisation prize (multi-plant). Catalogue programmes for laptops / standard SW."
+    typical_kpis: [tail_spend, rc_adoption]
+
+  - id: professional_services
+    name: Professional Services (Consulting, Audit, Legal)
+    archetype: SERVICE
+    typical_spend_share_pct: [1, 3]
+    notes: "PAC-heavy. Buyer panels + benchmarking are the levers."
+    typical_kpis: [pac_single_vendor]
+
+  - id: indirect_misc
+    name: Indirect / Misc / Tail
+    archetype: INDIRECT
+    typical_spend_share_pct: [3, 8]
+    notes: "Stationery, housekeeping consumables, small services. Catalogue + P-card programme territory."
+    typical_kpis: [tail_spend]
+
+
+# Tail-spend principle for this industry
+tail_spend_principle: |
+  Steel mills typically run 30-45% of PO lines below INR 1 Lakh,
+  driven by Plant Spares + Indirect Misc + IT consumables. Setting a
+  catalogue programme for the top 50 recurring SKUs cuts this share
+  by 20-30% within 6 months.
+
+# Multi-plant centralisation candidates (used by Op Model pillar)
+typical_centralisation_candidates:
+  - refractories
+  - lubricants_chemicals
+  - plant_spares
+  - it_services
+  - manpower_contracts
+  - amc_maintenance
+
+# PAC-prone categories (used by Buying Channel + DoA pillars)
+typical_pac_concentration_categories:
+  - electrical_equipment
+  - instrumentation
+  - ferro_alloys
+  - professional_services
+  - capex_services

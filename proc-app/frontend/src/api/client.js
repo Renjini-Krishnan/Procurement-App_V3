@@ -168,6 +168,13 @@ export const api = {
   listJobs: (id) => request(`/engagement/${id}/jobs`),
   getJob: (id, jobId) => request(`/engagement/${id}/jobs/${jobId}`),
 
+  // LLM
+  llmStatus: () => request("/llm/status"),
+  clientAutofill: (client_name) =>
+    request("/llm/client-autofill", { method: "POST", body: JSON.stringify({ client_name }) }),
+  industryCategories: (industry) =>
+    request(`/kb/industries/${industry}/procurement-categories`),
+
   // KB file editor
   listKbFiles: () => request("/kb/files/tree"),
   readKbFile: (root, path) =>

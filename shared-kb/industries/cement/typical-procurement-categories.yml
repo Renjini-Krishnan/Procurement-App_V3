@@ -1,0 +1,142 @@
+# =============================================================================
+# Cement Industry — Typical Procurement Categories
+# =============================================================================
+# Used by Stage 1 (Client primer) to show the consultant which major procurement
+# categories the client likely deals with, before any PO data is uploaded.
+#
+# Source of category list: ACN procurement benchmark database + industry
+# practitioner inputs. Edit via /kb -> root "industries" -> cement/.
+# =============================================================================
+
+metadata:
+  id: cement-typical-procurement-categories
+  industry: cement
+  version: 1.0
+  source: "ACN Procurement Benchmark — Cement"
+  source_year: 2024
+  confidence: high
+  last_updated: 2026-05-29
+
+categories:
+  - id: limestone
+    name: Limestone
+    archetype: BULK
+    typical_spend_share_pct: [8, 14]
+    notes: "Largest raw material by volume; captive mining vs sourced. Logistics-sensitive."
+    typical_kpis: [rc_adoption, otd]
+
+  - id: coal_petcoke
+    name: Coal, Pet Coke
+    archetype: BULK
+    typical_spend_share_pct: [18, 28]
+    notes: "Primary fuel. Imported (pet coke) + domestic coal. Highly price-volatile; hedging + LTC essential."
+    typical_kpis: [rc_adoption, savings_over_lpo]
+
+  - id: gypsum_flyash
+    name: Gypsum, Fly Ash, Slag
+    archetype: BULK
+    typical_spend_share_pct: [3, 6]
+    notes: "Additives. Local logistics from power plants / fertiliser units."
+    typical_kpis: [rc_adoption, otd]
+
+  - id: clinker
+    name: Clinker (where bought, not produced)
+    archetype: BULK
+    typical_spend_share_pct: [5, 15]
+    notes: "Applicable to grinding units only."
+    typical_kpis: [savings_over_lpo, rc_adoption]
+
+  - id: packaging
+    name: Packaging (PP/HDPE Bags)
+    archetype: DIRECT
+    typical_spend_share_pct: [4, 7]
+    notes: "Standardised commodity; e-auctions effective. Tier-1 oligopoly."
+    typical_kpis: [savings_over_lpo, rc_adoption]
+
+  - id: refractories
+    name: Refractories (Kiln Lining)
+    archetype: DIRECT
+    typical_spend_share_pct: [1, 3]
+    notes: "Few qualified vendors; quality matters more than price."
+    typical_kpis: [pac_single_vendor, supplier_defect_rate]
+
+  - id: grinding_media
+    name: Grinding Media (Balls, Plates)
+    archetype: DIRECT
+    typical_spend_share_pct: [2, 4]
+    notes: "Quality-sensitive wear parts. Limited qualified vendors."
+    typical_kpis: [pac_single_vendor, savings_over_lpo]
+
+  - id: power_utilities_procured
+    name: Power, Diesel, Utilities (Procured)
+    archetype: SERVICE
+    typical_spend_share_pct: [8, 15]
+    notes: "Major cost driver; PPA + open access strategy."
+    typical_kpis: [rc_adoption]
+
+  - id: logistics_transport
+    name: Logistics & Transportation (In + Out)
+    archetype: SERVICE
+    typical_spend_share_pct: [10, 18]
+    notes: "Massive component for cement. Rail rake + road tankers; geographic optimisation."
+    typical_kpis: [savings_over_lpo, otd]
+
+  - id: plant_spares
+    name: Plant Spares & Consumables
+    archetype: INDIRECT
+    typical_spend_share_pct: [3, 6]
+    notes: "Same tail-spend dynamics as steel."
+    typical_kpis: [tail_spend, rc_adoption]
+
+  - id: mechanical_equipment
+    name: Mechanical Equipment & Components
+    archetype: DIRECT
+    typical_spend_share_pct: [2, 4]
+    notes: ""
+    typical_kpis: [rc_adoption]
+
+  - id: electrical_equipment
+    name: Electrical Equipment
+    archetype: DIRECT
+    typical_spend_share_pct: [1, 3]
+    notes: ""
+    typical_kpis: [pac_single_vendor]
+
+  - id: capex_services
+    name: Capex / Project Services
+    archetype: CAPEX
+    typical_spend_share_pct: [3, 10]
+    notes: "Greenfield / debottlenecking projects; year-dependent."
+    typical_kpis: [pac_single_vendor]
+
+  - id: amc_maintenance
+    name: AMC / Annual Maintenance Contracts
+    archetype: SERVICE
+    typical_spend_share_pct: [1, 3]
+    notes: ""
+    typical_kpis: [rc_adoption]
+
+  - id: indirect_misc
+    name: Indirect / Misc / Tail
+    archetype: INDIRECT
+    typical_spend_share_pct: [2, 5]
+    notes: ""
+    typical_kpis: [tail_spend]
+
+
+tail_spend_principle: |
+  Cement procurement is bulk-dominated; tail-spend share is typically
+  lower than steel (20-30% of PO lines below INR 1 Lakh). Logistics
+  fragmentation is the bigger lever.
+
+typical_centralisation_candidates:
+  - packaging
+  - plant_spares
+  - amc_maintenance
+  - it_services
+
+typical_pac_concentration_categories:
+  - refractories
+  - grinding_media
+  - electrical_equipment
+  - capex_services

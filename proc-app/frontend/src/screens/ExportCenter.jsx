@@ -26,6 +26,7 @@ const ExportCenter = () => {
   const [uploads, setUploads] = useState([]);
   const [history, setHistory] = useState([]);
   const [busy, setBusy] = useState({});
+  const [sourceDocs, setSourceDocs] = useState([]);
 
   useEffect(() => {
     if (engagement) {
@@ -34,6 +35,10 @@ const ExportCenter = () => {
         const h = JSON.parse(localStorage.getItem(`procvault.exports.${engagement.id}`) || "[]");
         setHistory(h);
       } catch { /* ignore */ }
+      api.listOverrides(engagement.id).then((r) => {
+        const docs = (r.overrides || []).find((o) => o.key === "source_documents")?.value;
+        setSourceDocs(Array.isArray(docs) ? docs : []);
+      }).catch(() => {});
     }
   }, [engagement]);
 
@@ -95,6 +100,40 @@ const ExportCenter = () => {
           );
         })}
       </div>
+
+      {sourceDocs.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <SectionHeader title="Source documents — cited from Stage 1 primer" count={`${sourceDocs.length}`} />
+          <Card padding={0} style={{ marginTop: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+              <thead>
+                <tr>
+                  {["Document", "Type", "Cited at", ""].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "10px 16px",
+                                          fontSize: "var(--fs-11)", color: "var(--ink-500)",
+                                          textTransform: "uppercase", letterSpacing: "0.08em",
+                                          borderBottom: "1px solid var(--border-default)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sourceDocs.map((d, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-subtle)", fontWeight: 500 }}>{d.label || d.url}</td>
+                    <td style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{d.type || "Reference"}</td>
+                    <td style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>
+                      {d.retrieved_at ? new Date(d.retrieved_at).toLocaleDateString() : "—"}
+                    </td>
+                    <td style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-subtle)" }}>
+                      {d.url && <a href={d.url} target="_blank" rel="noreferrer" style={{ color: "var(--brand-600)" }}>Open ↗</a>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
 
       <div style={{ marginTop: 32 }}>
         <SectionHeader title="Recent downloads (last 25)" count={`${history.length}`} />
