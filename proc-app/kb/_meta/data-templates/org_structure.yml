@@ -100,14 +100,6 @@ fields:
   type: number
   required: false
   description: Annual CTC in INR Lakhs. Used for cost-per-buyer benchmark (sensitive).
-- field: fte_factor
-  aliases:
-  - FTE
-  - FTE Factor
-  - Allocation
-  type: number
-  required: false
-  description: FTE allocation (1.0 = full-time; <1.0 if part-time / shared).
 - field: employment_type
   aliases:
   - Employment_Type
@@ -146,3 +138,5 @@ guidelines:
   - "Reports_To column drives span-of-control + hierarchy depth \u2014 critical for Org Structure pillar"
   - "Include contractors and consultants \u2014 they count toward total procurement bandwidth"
   - "CTC is sensitive but enables cost-per-buyer benchmarking \u2014 share masked bands if preferred"
+  v1_status: captured_for_v2
+  v1_status_note: "V1 Org Structure pillar runs QRE-only. Uploading this unlocks the full quantitative analysis in Build 2 \u2014 span-of-control, role composition, real Spend/FTE."

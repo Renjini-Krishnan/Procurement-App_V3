@@ -281,3 +281,5 @@ guidelines:
   - "Material Group code (MATKL) is the primary classification key \u2014 ensure populated for all rows"
   - "Contract Number column distinguishes RC-backed POs from spot \u2014 leave blank for true spot buys"
   - PR_Reference enables PR-to-PO TAT analysis; without it that KPI is unavailable
+  v1_status: consumed_in_v1
+  v1_status_note: Required for every V1 pillar + KPI. Source of truth for category, vendor, plant, spend, dates.

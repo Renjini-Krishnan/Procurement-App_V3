@@ -143,3 +143,5 @@ guidelines:
   - "Payment_Date populated only for paid invoices \u2014 used for DPO + overdue analysis"
   - MSME flag drives 45-day compliance reporting under MSMED Act
   - "Payment_Block code indicates held invoices \u2014 used for aging analysis"
+  v1_status: captured_for_v2
+  v1_status_note: Not consumed by V1. Build 2 Post-PO pillar uses this for invoice TAT, DPO, MSME 45-day compliance.

@@ -139,12 +139,15 @@ def list_schema_types() -> list[dict]:
         if path.exists():
             try:
                 data = yaml.safe_load(path.read_text(encoding="utf-8"))
+                guidelines = data.get("guidelines") or {}
                 out.append({
                     "file_type": key,
                     "label": data.get("label", key),
                     "yaml_path": f"_meta/data-templates/{yml_name}",
                     "field_count": len(data.get("fields", [])),
                     "required_count": sum(1 for f in data.get("fields", []) if f.get("required")),
+                    "v1_status": guidelines.get("v1_status", "unknown"),
+                    "v1_status_note": guidelines.get("v1_status_note", ""),
                 })
             except Exception:
                 pass

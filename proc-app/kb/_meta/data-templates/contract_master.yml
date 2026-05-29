@@ -139,3 +139,5 @@ guidelines:
   - "Include expired contracts within the last 12 months \u2014 useful for historical RC coverage analysis"
   - Contract_Type (BSART) distinguishes Quantity (MK) vs Value (WK) vs Scheduling (LP) agreements
   - Target_Value vs Released_Value reveals contract utilisation gaps
+  v1_status: captured_for_v2
+  v1_status_note: Not consumed by V1. Build 2 will sharpen Buying Channel RC adoption metric using real contract validity periods instead of inferring from PO contract_number field.

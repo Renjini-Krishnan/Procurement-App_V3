@@ -128,3 +128,5 @@ guidelines:
   - Posting_Date vs PO Delivery_Date drives OTD analysis (Post-PO pillar)
   - Quality_Inspection_Status enables defect-rate KPI
   - "Include all movement types \u2014 the engine handles filtering"
+  v1_status: captured_for_v2
+  v1_status_note: Not consumed by V1. Build 2 Post-PO pillar uses this for OTD, defect rate, GRN TAT. V1 OTD KPI works if PO dump has delivery_date + gr_date populated.

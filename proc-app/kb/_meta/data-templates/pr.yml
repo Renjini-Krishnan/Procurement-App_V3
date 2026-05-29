@@ -97,3 +97,5 @@ guidelines:
   - Join key to PO dump is PR_Number = PR_Reference; ensure consistent format (no leading zeros mismatch)
   - "PR_Release_Date drives TAT calculation \u2014 must be populated, not the creation date"
   - Closed / cancelled PRs should be included to track the conversion ratio
+  v1_status: consumed_in_v1
+  v1_status_note: Drives the TAT KPI (Stage 10) via join on PR_Number=PR_Reference. Buying Channel slow-TAT diagnosis.

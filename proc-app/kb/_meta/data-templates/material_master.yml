@@ -137,3 +137,6 @@ guidelines:
   - Created_Date drives code-creation TAT analysis (Material Master pillar in Build 2)
   - "Material_Type (MTART) classifies raw/semi/finished/spare/service \u2014 required for archetype validation"
   - Deletion flag rows still useful for historical PO-to-material join analysis
+  v1_status: captured_for_v2
+  v1_status_note: Not consumed by V1. Build 2 Material Master pillar uses this for code-creation TAT, dedup, classification quality. V1 category analysis runs on PO dump fields (material_group + material_group_desc
+    + material_type).

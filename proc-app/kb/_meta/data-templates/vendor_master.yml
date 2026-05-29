@@ -146,3 +146,5 @@ guidelines:
   - "Include all vendor records \u2014 blocked + marked-for-deletion are needed for vendor base health analysis"
   - PAN + GSTIN are sensitive but enable MSME compliance + duplicate-vendor detection across legal entities
   - Parent_Vendor column lets us deduplicate vendor groups for spend consolidation analysis
+  v1_status: captured_for_v2
+  v1_status_note: Not consumed by any V1 engine. Build 2 Supplier pillar uses this for onboarding TAT, MSME compliance, PAN-based dedup.

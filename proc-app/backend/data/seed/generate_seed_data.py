@@ -210,8 +210,7 @@ def gen_org_structure(universe: dict, n: int = 80) -> pd.DataFrame:
         "Role_Title": "Chief Procurement Officer", "Role_Grade": "L9",
         "Reports_To": "", "Function": "Procurement", "Sub_Function": "Strategy",
         "Plant": "HQ", "Hire_Date": _format_date(date(2017, 4, 1)),
-        "CTC_INR_Lakhs": 280, "FTE_Factor": 1.0,
-        "Employment_Type": "Permanent", "Status": "Active",
+        "CTC_INR_Lakhs": 280, "Employment_Type": "Permanent", "Status": "Active",
         "Skill_Specialisation": "Strategy",
     })
     heads = []
@@ -224,8 +223,7 @@ def gen_org_structure(universe: dict, n: int = 80) -> pd.DataFrame:
             "Reports_To": cpo_id, "Function": "Procurement",
             "Sub_Function": sub_functions[i],
             "Plant": "HQ", "Hire_Date": _format_date(date(2018+i, 6, 1)),
-            "CTC_INR_Lakhs": random.randint(120, 180), "FTE_Factor": 1.0,
-            "Employment_Type": "Permanent", "Status": "Active",
+            "CTC_INR_Lakhs": random.randint(120, 180), "Employment_Type": "Permanent", "Status": "Active",
             "Skill_Specialisation": sub_functions[i],
         })
     # Sr Cat Managers reporting to heads
@@ -240,8 +238,7 @@ def gen_org_structure(universe: dict, n: int = 80) -> pd.DataFrame:
             "Function": "Procurement", "Sub_Function": random.choice(sub_functions),
             "Plant": random.choice(plants + ["HQ", "HQ"]),
             "Hire_Date": _format_date(date(2019 + i % 3, random.randint(1, 12), 1)),
-            "CTC_INR_Lakhs": random.randint(60, 90), "FTE_Factor": 1.0,
-            "Employment_Type": "Permanent", "Status": "Active",
+            "CTC_INR_Lakhs": random.randint(60, 90), "Employment_Type": "Permanent", "Status": "Active",
             "Skill_Specialisation": random.choice(["Steel", "Coal", "Spares", "Services", "Logistics"]),
         })
     # Category Managers reporting to Sr managers
@@ -256,8 +253,7 @@ def gen_org_structure(universe: dict, n: int = 80) -> pd.DataFrame:
             "Function": "Procurement", "Sub_Function": random.choice(sub_functions),
             "Plant": random.choice(plants + ["HQ"]),
             "Hire_Date": _format_date(date(2020, random.randint(1, 12), 1)),
-            "CTC_INR_Lakhs": random.randint(35, 55), "FTE_Factor": 1.0,
-            "Employment_Type": "Permanent", "Status": "Active",
+            "CTC_INR_Lakhs": random.randint(35, 55), "Employment_Type": "Permanent", "Status": "Active",
             "Skill_Specialisation": random.choice(["MRO", "Capex", "Services", "Logistics", "Spares"]),
         })
     # Remaining buyers / analysts
@@ -271,7 +267,7 @@ def gen_org_structure(universe: dict, n: int = 80) -> pd.DataFrame:
             "Function": "Procurement", "Sub_Function": random.choice(sub_functions),
             "Plant": random.choice(plants),
             "Hire_Date": _format_date(date(random.randint(2018, 2024), random.randint(1, 12), 1)),
-            "CTC_INR_Lakhs": random.randint(8, 30), "FTE_Factor": random.choices([1.0, 0.5], weights=[0.9, 0.1], k=1)[0],
+            "CTC_INR_Lakhs": random.randint(8, 30),
             "Employment_Type": random.choices(["Permanent", "Contract"], weights=[0.85, 0.15], k=1)[0],
             "Status": random.choices(["Active", "On-leave", "Resigned"], weights=[0.92, 0.05, 0.03], k=1)[0],
             "Skill_Specialisation": random.choice(["MRO", "Capex", "Services", "Logistics", "Spares", "Commodities"]),

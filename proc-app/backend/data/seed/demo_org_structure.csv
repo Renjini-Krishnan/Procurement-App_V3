@@ -1,81 +1,81 @@
-Employee_ID,Employee_Name,Role_Title,Role_Grade,Reports_To,Function,Sub_Function,Plant,Hire_Date,CTC_INR_Lakhs,FTE_Factor,Employment_Type,Status,Skill_Specialisation
-EMP00001,A. Sharma,Chief Procurement Officer,L9,,Procurement,Strategy,HQ,01-04-2017,280,1.0,Permanent,Active,Strategy
-EMP00002,Head 1,Head Direct Procurement,L8,EMP00001,Procurement,Direct,HQ,01-06-2018,156,1.0,Permanent,Active,Direct
-EMP00003,Head 2,Head Indirect Procurement,L8,EMP00001,Procurement,Indirect,HQ,01-06-2019,120,1.0,Permanent,Active,Indirect
-EMP00004,Head 3,Head CoE,L8,EMP00001,Procurement,Services,HQ,01-06-2020,176,1.0,Permanent,Active,Services
-EMP00005,Head 4,Head Procurement Ops,L8,EMP00001,Procurement,CoE,HQ,01-06-2021,141,1.0,Permanent,Active,CoE
-EMP00006,Sr Mgr 1,Sr. Category Manager — Services,L7,EMP00002,Procurement,CoE,HQ,01-01-2019,90,1.0,Permanent,Active,Spares
-EMP00007,Sr Mgr 2,Sr. Category Manager — Steel,L7,EMP00002,Procurement,Direct,ANG,01-10-2020,77,1.0,Permanent,Active,Coal
-EMP00008,Sr Mgr 3,Sr. Category Manager — Indirect,L7,EMP00003,Procurement,Operations,JSR,01-08-2021,71,1.0,Permanent,Active,Coal
-EMP00009,Sr Mgr 4,Sr. Category Manager — Coal,L7,EMP00005,Procurement,Direct,HQ,01-11-2019,87,1.0,Permanent,Active,Logistics
-EMP00010,Sr Mgr 5,Sr. Category Manager — Services,L7,EMP00004,Procurement,Compliance,BPS,01-04-2020,84,1.0,Permanent,Active,Steel
-EMP00011,Sr Mgr 6,Sr. Category Manager — Steel,L7,EMP00003,Procurement,Operations,HQ,01-07-2021,70,1.0,Permanent,Active,Steel
-EMP00012,Sr Mgr 7,Sr. Category Manager — Steel,L7,EMP00002,Procurement,CoE,ANG,01-05-2019,60,1.0,Permanent,Active,Coal
-EMP00013,Sr Mgr 8,Sr. Category Manager — Coal,L7,EMP00002,Procurement,Direct,DOL,01-12-2020,72,1.0,Permanent,Active,Coal
-EMP00014,CM 1,Category Manager,L6,EMP00010,Procurement,Strategy,DOL,01-08-2020,41,1.0,Permanent,Active,Spares
-EMP00015,CM 2,Category Manager,L6,EMP00006,Procurement,Strategy,KLN,01-07-2020,48,1.0,Permanent,Active,Capex
-EMP00016,CM 3,Category Manager,L6,EMP00012,Procurement,Indirect,KLN,01-02-2020,41,1.0,Permanent,Active,Spares
-EMP00017,CM 4,Category Manager,L6,EMP00010,Procurement,Services,DOL,01-06-2020,49,1.0,Permanent,Active,Services
-EMP00018,CM 5,Category Manager,L6,EMP00010,Procurement,Direct,HQ,01-02-2020,43,1.0,Permanent,Active,Logistics
-EMP00019,CM 6,Category Manager,L6,EMP00012,Procurement,Services,BPS,01-12-2020,54,1.0,Permanent,Active,Logistics
-EMP00020,CM 7,Category Manager,L6,EMP00011,Procurement,Direct,BPS,01-05-2020,41,1.0,Permanent,Active,Capex
-EMP00021,CM 8,Category Manager,L6,EMP00013,Procurement,Operations,HQ,01-01-2020,40,1.0,Permanent,Active,Spares
-EMP00022,CM 9,Category Manager,L6,EMP00010,Procurement,Strategy,BPS,01-07-2020,49,1.0,Permanent,Active,Capex
-EMP00023,CM 10,Category Manager,L6,EMP00010,Procurement,Services,HQ,01-09-2020,40,1.0,Permanent,Active,Logistics
-EMP00024,CM 11,Category Manager,L6,EMP00009,Procurement,Strategy,ANG,01-03-2020,45,1.0,Permanent,Active,Services
-EMP00025,CM 12,Category Manager,L6,EMP00011,Procurement,CoE,KLN,01-09-2020,35,1.0,Permanent,Active,Services
-EMP00026,CM 13,Category Manager,L6,EMP00010,Procurement,Indirect,DOL,01-02-2020,53,1.0,Permanent,Active,Logistics
-EMP00027,CM 14,Category Manager,L6,EMP00006,Procurement,Operations,VSP,01-09-2020,37,1.0,Permanent,Active,Services
-EMP00028,CM 15,Category Manager,L6,EMP00013,Procurement,Compliance,ANG,01-01-2020,45,1.0,Permanent,Active,Logistics
-EMP00029,Buyer 28,Buyer,L4,EMP00014,Procurement,CoE,ANG,01-12-2022,24,1.0,Permanent,Active,Services
-EMP00030,Buyer 29,Sourcing Analyst,L2,EMP00023,Procurement,Compliance,JSR,01-10-2020,9,1.0,Permanent,Active,MRO
-EMP00031,Buyer 30,Buyer,L3,EMP00019,Procurement,Operations,VSP,01-03-2024,22,1.0,Permanent,On-leave,Logistics
-EMP00032,Buyer 31,Junior Analyst,L2,EMP00020,Procurement,Operations,JSR,01-09-2023,14,1.0,Contract,Active,Spares
-EMP00033,Buyer 32,Junior Analyst,L2,EMP00026,Procurement,Strategy,ANG,01-04-2020,23,1.0,Permanent,Active,Spares
-EMP00034,Buyer 33,Buyer,L4,EMP00021,Procurement,Direct,JSR,01-04-2021,28,1.0,Permanent,Active,Logistics
-EMP00035,Buyer 34,Buyer,L4,EMP00026,Procurement,Operations,JSR,01-02-2023,11,1.0,Permanent,Active,Services
-EMP00036,Buyer 35,Analyst,L3,EMP00020,Procurement,Indirect,ANG,01-02-2022,28,1.0,Permanent,Active,MRO
-EMP00037,Buyer 36,Buyer,L3,EMP00018,Procurement,Operations,ANG,01-07-2020,14,1.0,Contract,Active,Logistics
-EMP00038,Buyer 37,Analyst,L3,EMP00025,Procurement,Strategy,BPS,01-03-2024,25,1.0,Contract,Active,Capex
-EMP00039,Buyer 38,Buyer,L4,EMP00023,Procurement,Direct,ANG,01-07-2019,11,1.0,Permanent,Active,Services
-EMP00040,Buyer 39,Buyer,L3,EMP00027,Procurement,Direct,ANG,01-05-2018,17,1.0,Permanent,Active,Capex
-EMP00041,Buyer 40,Buyer,L3,EMP00023,Procurement,Strategy,ANG,01-04-2024,22,1.0,Permanent,Active,Capex
-EMP00042,Buyer 41,Analyst,L3,EMP00021,Procurement,Direct,DOL,01-02-2020,17,1.0,Permanent,Active,Spares
-EMP00043,Buyer 42,Buyer,L3,EMP00027,Procurement,Operations,BPS,01-07-2022,24,1.0,Contract,Active,Spares
-EMP00044,Buyer 43,Sourcing Analyst,L2,EMP00014,Procurement,Operations,KLN,01-12-2020,8,0.5,Permanent,Active,Logistics
-EMP00045,Buyer 44,Buyer,L4,EMP00026,Procurement,Compliance,KLN,01-06-2020,30,1.0,Permanent,Active,Services
-EMP00046,Buyer 45,Buyer,L3,EMP00017,Procurement,Compliance,ANG,01-02-2022,25,1.0,Permanent,Active,Spares
-EMP00047,Buyer 46,Buyer,L4,EMP00023,Procurement,Indirect,BPS,01-04-2019,15,1.0,Permanent,Active,MRO
-EMP00048,Buyer 47,Buyer,L4,EMP00023,Procurement,Direct,KLN,01-02-2019,19,1.0,Permanent,Active,Services
-EMP00049,Buyer 48,Buyer,L4,EMP00022,Procurement,Operations,JSR,01-03-2022,22,1.0,Permanent,Active,Capex
-EMP00050,Buyer 49,Buyer,L4,EMP00017,Procurement,Services,ANG,01-11-2018,28,0.5,Contract,Active,Services
-EMP00051,Buyer 50,Sr. Buyer,L5,EMP00017,Procurement,Direct,ANG,01-03-2024,22,1.0,Permanent,Active,MRO
-EMP00052,Buyer 51,Analyst,L3,EMP00014,Procurement,Operations,BPS,01-02-2018,15,1.0,Permanent,Active,Logistics
-EMP00053,Buyer 52,Junior Analyst,L2,EMP00017,Procurement,Services,JSR,01-01-2021,15,0.5,Permanent,Active,MRO
-EMP00054,Buyer 53,Buyer,L4,EMP00014,Procurement,Compliance,BPS,01-12-2024,20,0.5,Permanent,Active,Capex
-EMP00055,Buyer 54,Junior Analyst,L2,EMP00021,Procurement,CoE,VSP,01-12-2023,15,1.0,Permanent,On-leave,Logistics
-EMP00056,Buyer 55,Junior Analyst,L2,EMP00023,Procurement,Compliance,ANG,01-06-2022,28,1.0,Permanent,Active,Commodities
-EMP00057,Buyer 56,Sr. Buyer,L5,EMP00018,Procurement,Strategy,ANG,01-10-2018,16,1.0,Permanent,Active,Services
-EMP00058,Buyer 57,Buyer,L4,EMP00014,Procurement,Services,KLN,01-03-2018,8,1.0,Contract,Active,Logistics
-EMP00059,Buyer 58,Buyer,L4,EMP00027,Procurement,CoE,VSP,01-04-2018,27,1.0,Permanent,Active,Commodities
-EMP00060,Buyer 59,Buyer,L4,EMP00018,Procurement,Operations,JSR,01-10-2021,29,0.5,Permanent,Active,Capex
-EMP00061,Buyer 60,Sr. Buyer,L5,EMP00015,Procurement,CoE,VSP,01-04-2022,17,1.0,Contract,Resigned,Logistics
-EMP00062,Buyer 61,Buyer,L4,EMP00026,Procurement,CoE,ANG,01-02-2019,25,1.0,Contract,Active,Spares
-EMP00063,Buyer 62,Buyer,L3,EMP00017,Procurement,Services,JSR,01-02-2019,28,1.0,Permanent,Active,MRO
-EMP00064,Buyer 63,Junior Analyst,L2,EMP00015,Procurement,Compliance,KLN,01-03-2020,23,1.0,Permanent,Active,Services
-EMP00065,Buyer 64,Buyer,L3,EMP00018,Procurement,Compliance,DOL,01-05-2022,10,1.0,Permanent,Active,Commodities
-EMP00066,Buyer 65,Buyer,L4,EMP00022,Procurement,Services,VSP,01-07-2023,26,1.0,Permanent,Active,Services
-EMP00067,Buyer 66,Buyer,L4,EMP00018,Procurement,Compliance,BPS,01-03-2020,16,1.0,Permanent,Active,Capex
-EMP00068,Buyer 67,Sr. Buyer,L5,EMP00018,Procurement,Compliance,KLN,01-09-2021,13,1.0,Permanent,On-leave,Commodities
-EMP00069,Buyer 68,Sourcing Analyst,L2,EMP00018,Procurement,Services,ANG,01-09-2024,25,1.0,Permanent,Active,Spares
-EMP00070,Buyer 69,Buyer,L4,EMP00019,Procurement,Operations,DOL,01-03-2024,21,1.0,Contract,Active,Capex
-EMP00071,Buyer 70,Sr. Buyer,L5,EMP00025,Procurement,Strategy,KLN,01-10-2022,9,1.0,Permanent,Active,Commodities
-EMP00072,Buyer 71,Sr. Buyer,L5,EMP00018,Procurement,Operations,VSP,01-08-2021,26,1.0,Permanent,Active,Capex
-EMP00073,Buyer 72,Sr. Buyer,L5,EMP00025,Procurement,Compliance,BPS,01-08-2019,16,1.0,Permanent,Active,MRO
-EMP00074,Buyer 73,Buyer,L3,EMP00025,Procurement,Strategy,ANG,01-10-2020,10,1.0,Permanent,Active,Spares
-EMP00075,Buyer 74,Buyer,L4,EMP00021,Procurement,CoE,VSP,01-07-2019,20,1.0,Permanent,Active,MRO
-EMP00076,Buyer 75,Analyst,L3,EMP00016,Procurement,Compliance,JSR,01-10-2020,11,1.0,Permanent,Active,Capex
-EMP00077,Buyer 76,Sourcing Analyst,L2,EMP00018,Procurement,Strategy,BPS,01-01-2018,28,1.0,Permanent,Active,Capex
-EMP00078,Buyer 77,Buyer,L4,EMP00017,Procurement,Services,VSP,01-01-2020,15,1.0,Permanent,Active,MRO
-EMP00079,Buyer 78,Sourcing Analyst,L2,EMP00028,Procurement,Direct,KLN,01-09-2021,15,1.0,Permanent,Active,Spares
-EMP00080,Buyer 79,Buyer,L3,EMP00017,Procurement,Compliance,KLN,01-08-2022,22,1.0,Permanent,Active,Spares
+Employee_ID,Employee_Name,Role_Title,Role_Grade,Reports_To,Function,Sub_Function,Plant,Hire_Date,CTC_INR_Lakhs,Employment_Type,Status,Skill_Specialisation
+EMP00001,A. Sharma,Chief Procurement Officer,L9,,Procurement,Strategy,HQ,01-04-2017,280,Permanent,Active,Strategy
+EMP00002,Head 1,Head Direct Procurement,L8,EMP00001,Procurement,Direct,HQ,01-06-2018,156,Permanent,Active,Direct
+EMP00003,Head 2,Head Indirect Procurement,L8,EMP00001,Procurement,Indirect,HQ,01-06-2019,120,Permanent,Active,Indirect
+EMP00004,Head 3,Head CoE,L8,EMP00001,Procurement,Services,HQ,01-06-2020,176,Permanent,Active,Services
+EMP00005,Head 4,Head Procurement Ops,L8,EMP00001,Procurement,CoE,HQ,01-06-2021,141,Permanent,Active,CoE
+EMP00006,Sr Mgr 1,Sr. Category Manager — Services,L7,EMP00002,Procurement,CoE,HQ,01-01-2019,90,Permanent,Active,Spares
+EMP00007,Sr Mgr 2,Sr. Category Manager — Steel,L7,EMP00002,Procurement,Direct,ANG,01-10-2020,77,Permanent,Active,Coal
+EMP00008,Sr Mgr 3,Sr. Category Manager — Indirect,L7,EMP00003,Procurement,Operations,JSR,01-08-2021,71,Permanent,Active,Coal
+EMP00009,Sr Mgr 4,Sr. Category Manager — Coal,L7,EMP00005,Procurement,Direct,HQ,01-11-2019,87,Permanent,Active,Logistics
+EMP00010,Sr Mgr 5,Sr. Category Manager — Services,L7,EMP00004,Procurement,Compliance,BPS,01-04-2020,84,Permanent,Active,Steel
+EMP00011,Sr Mgr 6,Sr. Category Manager — Steel,L7,EMP00003,Procurement,Operations,HQ,01-07-2021,70,Permanent,Active,Steel
+EMP00012,Sr Mgr 7,Sr. Category Manager — Steel,L7,EMP00002,Procurement,CoE,ANG,01-05-2019,60,Permanent,Active,Coal
+EMP00013,Sr Mgr 8,Sr. Category Manager — Coal,L7,EMP00002,Procurement,Direct,DOL,01-12-2020,72,Permanent,Active,Coal
+EMP00014,CM 1,Category Manager,L6,EMP00010,Procurement,Strategy,DOL,01-08-2020,41,Permanent,Active,Spares
+EMP00015,CM 2,Category Manager,L6,EMP00006,Procurement,Strategy,KLN,01-07-2020,48,Permanent,Active,Capex
+EMP00016,CM 3,Category Manager,L6,EMP00012,Procurement,Indirect,KLN,01-02-2020,41,Permanent,Active,Spares
+EMP00017,CM 4,Category Manager,L6,EMP00010,Procurement,Services,DOL,01-06-2020,49,Permanent,Active,Services
+EMP00018,CM 5,Category Manager,L6,EMP00010,Procurement,Direct,HQ,01-02-2020,43,Permanent,Active,Logistics
+EMP00019,CM 6,Category Manager,L6,EMP00012,Procurement,Services,BPS,01-12-2020,54,Permanent,Active,Logistics
+EMP00020,CM 7,Category Manager,L6,EMP00011,Procurement,Direct,BPS,01-05-2020,41,Permanent,Active,Capex
+EMP00021,CM 8,Category Manager,L6,EMP00013,Procurement,Operations,HQ,01-01-2020,40,Permanent,Active,Spares
+EMP00022,CM 9,Category Manager,L6,EMP00010,Procurement,Strategy,BPS,01-07-2020,49,Permanent,Active,Capex
+EMP00023,CM 10,Category Manager,L6,EMP00010,Procurement,Services,HQ,01-09-2020,40,Permanent,Active,Logistics
+EMP00024,CM 11,Category Manager,L6,EMP00009,Procurement,Strategy,ANG,01-03-2020,45,Permanent,Active,Services
+EMP00025,CM 12,Category Manager,L6,EMP00011,Procurement,CoE,KLN,01-09-2020,35,Permanent,Active,Services
+EMP00026,CM 13,Category Manager,L6,EMP00010,Procurement,Indirect,DOL,01-02-2020,53,Permanent,Active,Logistics
+EMP00027,CM 14,Category Manager,L6,EMP00006,Procurement,Operations,VSP,01-09-2020,37,Permanent,Active,Services
+EMP00028,CM 15,Category Manager,L6,EMP00013,Procurement,Compliance,ANG,01-01-2020,45,Permanent,Active,Logistics
+EMP00029,Buyer 28,Buyer,L4,EMP00014,Procurement,CoE,ANG,01-12-2022,24,Permanent,Active,Spares
+EMP00030,Buyer 29,Buyer,L3,EMP00016,Procurement,Operations,JSR,01-10-2020,9,Permanent,Active,Services
+EMP00031,Buyer 30,Sourcing Analyst,L2,EMP00022,Procurement,Compliance,BPS,01-10-2020,29,Permanent,Active,Commodities
+EMP00032,Buyer 31,Sr. Buyer,L5,EMP00021,Procurement,CoE,DOL,01-10-2021,21,Permanent,Active,Services
+EMP00033,Buyer 32,Sourcing Analyst,L2,EMP00026,Procurement,Operations,JSR,01-11-2024,9,Permanent,Active,Logistics
+EMP00034,Buyer 33,Analyst,L3,EMP00020,Procurement,Indirect,KLN,01-12-2020,24,Permanent,Active,Logistics
+EMP00035,Buyer 34,Sr. Buyer,L5,EMP00017,Procurement,Strategy,KLN,01-11-2019,16,Permanent,Active,MRO
+EMP00036,Buyer 35,Buyer,L4,EMP00024,Procurement,Direct,ANG,01-12-2022,9,Permanent,Active,Commodities
+EMP00037,Buyer 36,Buyer,L4,EMP00016,Procurement,Direct,KLN,01-11-2018,16,Permanent,Active,Services
+EMP00038,Buyer 37,Sr. Buyer,L5,EMP00027,Procurement,Strategy,ANG,01-10-2020,8,Permanent,Active,MRO
+EMP00039,Buyer 38,Sourcing Analyst,L2,EMP00021,Procurement,Strategy,DOL,01-11-2023,13,Permanent,Active,Commodities
+EMP00040,Buyer 39,Sourcing Analyst,L2,EMP00016,Procurement,CoE,DOL,01-04-2022,26,Permanent,Active,Logistics
+EMP00041,Buyer 40,Sr. Buyer,L5,EMP00018,Procurement,CoE,DOL,01-09-2023,10,Permanent,Active,Services
+EMP00042,Buyer 41,Buyer,L4,EMP00015,Procurement,Direct,BPS,01-04-2020,25,Permanent,Active,Commodities
+EMP00043,Buyer 42,Sr. Buyer,L5,EMP00028,Procurement,CoE,VSP,01-10-2024,9,Permanent,Active,MRO
+EMP00044,Buyer 43,Buyer,L4,EMP00019,Procurement,Services,ANG,01-08-2020,30,Permanent,Active,Spares
+EMP00045,Buyer 44,Sr. Buyer,L5,EMP00023,Procurement,CoE,KLN,01-03-2024,27,Permanent,Active,Spares
+EMP00046,Buyer 45,Buyer,L4,EMP00025,Procurement,Direct,VSP,01-02-2018,27,Contract,Active,MRO
+EMP00047,Buyer 46,Analyst,L3,EMP00019,Procurement,Strategy,JSR,01-01-2020,20,Permanent,Active,Capex
+EMP00048,Buyer 47,Sr. Buyer,L5,EMP00023,Procurement,Compliance,ANG,01-04-2022,23,Permanent,Active,Spares
+EMP00049,Buyer 48,Buyer,L4,EMP00023,Procurement,Indirect,BPS,01-04-2019,15,Permanent,Active,Commodities
+EMP00050,Buyer 49,Analyst,L3,EMP00019,Procurement,Indirect,KLN,01-10-2018,13,Permanent,Active,Commodities
+EMP00051,Buyer 50,Buyer,L4,EMP00021,Procurement,Operations,JSR,01-10-2022,21,Permanent,Active,Capex
+EMP00052,Buyer 51,Sr. Buyer,L5,EMP00016,Procurement,Services,DOL,01-04-2018,17,Permanent,Active,Commodities
+EMP00053,Buyer 52,Analyst,L3,EMP00025,Procurement,Services,VSP,01-01-2020,25,Permanent,Active,Capex
+EMP00054,Buyer 53,Junior Analyst,L2,EMP00022,Procurement,Strategy,BPS,01-02-2024,27,Contract,Active,Capex
+EMP00055,Buyer 54,Sr. Buyer,L5,EMP00017,Procurement,Services,VSP,01-01-2018,21,Contract,Active,Services
+EMP00056,Buyer 55,Junior Analyst,L2,EMP00014,Procurement,Indirect,BPS,01-09-2022,26,Permanent,Active,MRO
+EMP00057,Buyer 56,Buyer,L3,EMP00026,Procurement,Compliance,VSP,01-08-2021,28,Permanent,Active,Capex
+EMP00058,Buyer 57,Analyst,L3,EMP00020,Procurement,Strategy,VSP,01-12-2024,15,Permanent,Active,Spares
+EMP00059,Buyer 58,Junior Analyst,L2,EMP00023,Procurement,Compliance,ANG,01-06-2022,28,Permanent,Active,Capex
+EMP00060,Buyer 59,Sr. Buyer,L5,EMP00014,Procurement,Strategy,KLN,01-05-2019,28,Permanent,Active,Capex
+EMP00061,Buyer 60,Buyer,L4,EMP00019,Procurement,Strategy,DOL,01-07-2021,17,Permanent,Active,MRO
+EMP00062,Buyer 61,Buyer,L4,EMP00022,Procurement,CoE,JSR,01-02-2019,24,Permanent,Active,MRO
+EMP00063,Buyer 62,Buyer,L4,EMP00028,Procurement,Strategy,ANG,01-03-2023,21,Contract,Active,Spares
+EMP00064,Buyer 63,Buyer,L4,EMP00023,Procurement,Strategy,BPS,01-03-2022,11,Permanent,On-leave,Spares
+EMP00065,Buyer 64,Junior Analyst,L2,EMP00015,Procurement,CoE,VSP,01-04-2022,17,Contract,Active,Logistics
+EMP00066,Buyer 65,Buyer,L4,EMP00026,Procurement,CoE,ANG,01-02-2019,25,Permanent,On-leave,Logistics
+EMP00067,Buyer 66,Sr. Buyer,L5,EMP00017,Procurement,Services,JSR,01-02-2019,28,Permanent,Active,Capex
+EMP00068,Buyer 67,Buyer,L3,EMP00028,Procurement,Strategy,VSP,01-06-2024,10,Permanent,Active,Logistics
+EMP00069,Buyer 68,Buyer,L3,EMP00019,Procurement,Indirect,DOL,01-09-2023,11,Permanent,Active,Spares
+EMP00070,Buyer 69,Buyer,L4,EMP00016,Procurement,Strategy,KLN,01-12-2019,20,Permanent,Active,Logistics
+EMP00071,Buyer 70,Analyst,L3,EMP00023,Procurement,Services,VSP,01-11-2023,18,Permanent,Active,Capex
+EMP00072,Buyer 71,Buyer,L4,EMP00022,Procurement,Compliance,KLN,01-06-2019,12,Permanent,Active,Spares
+EMP00073,Buyer 72,Sourcing Analyst,L2,EMP00025,Procurement,Operations,VSP,01-02-2018,16,Permanent,Active,Spares
+EMP00074,Buyer 73,Analyst,L3,EMP00021,Procurement,Operations,DOL,01-05-2018,18,Contract,Resigned,Capex
+EMP00075,Buyer 74,Buyer,L4,EMP00028,Procurement,Direct,DOL,01-04-2019,12,Permanent,Active,Commodities
+EMP00076,Buyer 75,Buyer,L3,EMP00018,Procurement,Operations,JSR,01-11-2019,12,Permanent,Active,Services
+EMP00077,Buyer 76,Analyst,L3,EMP00021,Procurement,Compliance,KLN,01-04-2023,28,Permanent,Active,MRO
+EMP00078,Buyer 77,Sourcing Analyst,L2,EMP00016,Procurement,CoE,DOL,01-09-2021,15,Permanent,Active,Services
+EMP00079,Buyer 78,Buyer,L3,EMP00018,Procurement,Operations,ANG,01-05-2024,19,Permanent,Active,Capex
+EMP00080,Buyer 79,Buyer,L3,EMP00021,Procurement,CoE,VSP,01-07-2019,20,Permanent,Active,Logistics

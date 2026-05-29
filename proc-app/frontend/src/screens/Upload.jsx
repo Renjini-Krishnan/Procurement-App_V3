@@ -265,7 +265,15 @@ const Upload = () => {
               <tr key={s.file_type} style={{ background: s.file_type === selectedType ? "var(--brand-50)" : "transparent", cursor: "pointer" }}
                   onClick={() => setSelectedType(s.file_type)}>
                 <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{s.file_type}</td>
-                <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)" }}>{s.label}</td>
+                <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)" }}>
+                  {s.label}
+                  {s.v1_status === "consumed_in_v1" && (
+                    <span style={{ marginLeft: 8, padding: "1px 8px", background: "var(--success-50)", color: "var(--success-700)", borderRadius: "var(--r-pill)", fontSize: "var(--fs-10)", fontWeight: 700, letterSpacing: "0.08em" }} title={s.v1_status_note}>V1</span>
+                  )}
+                  {s.v1_status === "captured_for_v2" && (
+                    <span style={{ marginLeft: 8, padding: "1px 8px", background: "var(--warn-50)", color: "var(--warn-700)", borderRadius: "var(--r-pill)", fontSize: "var(--fs-10)", fontWeight: 700, letterSpacing: "0.08em" }} title={s.v1_status_note}>V2</span>
+                  )}
+                </td>
                 <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", textAlign: "right" }}>{s.field_count}</td>
                 <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", textAlign: "right" }}>{s.required_count}</td>
                 <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)" }}>

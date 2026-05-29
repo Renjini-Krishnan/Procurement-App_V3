@@ -1,0 +1,253 @@
+# =============================================================================
+# KPI Data-Source Traceability Matrix
+# =============================================================================
+# For every KPI in the methodology library (kpi-calculation-rules.yml +
+# kpi-rca-library.yml), this file declares EXACTLY which data inputs are
+# required, where each column comes from (PO dump / PR dump / QRE / engagement
+# profile), and what the engine does if the input is missing.
+#
+# Audit purpose: at Stage 4 Upload, the consultant can read this file to know
+# which file types they MUST collect from the client to make a given KPI work.
+#
+# Source: backend/engine/methodology_kpis.py extractors.
+# =============================================================================
+
+metadata:
+  id: kpi-data-sources
+  layer: function
+  function: procurement
+  version: 1.0
+  last_updated: 2026-05-29
+
+kpis:
+
+  tat_pr_to_po:
+    label: "TAT (PR-to-PO, days)"
+    primary_source: PO + PR
+    required_columns:
+      - source: PO
+        columns: [po_number, po_creation_date]
+      - source: PR
+        columns: [pr_number, pr_release_date]
+    optional_columns:
+      - source: PO
+        columns: [pr_reference]
+        note: "If absent, joins via PR.pr_number = PO.pr_reference instead."
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "KPI marked available=false. Note shown: 'TAT requires po_number + po_creation_date + a PR-release-date column.'"
+    calculation_rule_ref: "kpi-calculation-rules.yml#tat"
+
+  savings_over_lpo:
+    label: "Savings over LPO %"
+    primary_source: PO
+    required_columns:
+      - source: PO
+        columns: [net_price, po_creation_date]
+    optional_columns:
+      - source: PO
+        columns: [lpo_price]
+        note: "If present, used directly as the LPO; else most-recent prior purchase of same material within 2 years"
+      - source: PO
+        columns: [material_number]
+        note: "Needed for the prior-purchase lookup fallback"
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "Returns available=false if no price column or fewer than 2 months of data."
+    calculation_rule_ref: "kpi-calculation-rules.yml#savings_over_lpo"
+
+  rc_adoption:
+    label: "RC Adoption %"
+    primary_source: PO
+    required_columns:
+      - source: PO
+        columns: [contract_number]
+        note: "OR outline_agreement OR scheduling_agreement — any of the three triggers RC counting"
+    optional_columns:
+      - source: PO
+        columns: [outline_agreement, scheduling_agreement]
+      - source: PO
+        columns: [po_type]
+        note: "Fallback method when no agreement column populated — uses SAP code mapping (LP/LPA/WK/MK/KA = RC)"
+      - source: CONTRACT_MASTER
+        columns: [contract_number, contract_start_date, contract_end_date]
+        note: "Build 2 sharpener — validates active contracts vs PO date"
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "Returns available=false if no agreement column exists. Uses 12-value exclusion list (non arc / no / spot / open po / etc.) to filter junk values."
+    calculation_rule_ref: "kpi-calculation-rules.yml#rc_adoption"
+
+  pac_single_vendor:
+    label: "PAC / Single-Vendor PRs %"
+    primary_source: PO
+    required_columns:
+      - source: PO
+        columns: [po_number]
+    optional_columns:
+      - source: PO
+        columns: [pac_flag, pac_pr, pac, single_source_flag]
+        note: "Any binary flag column — checked in priority order"
+      - source: PO
+        columns: [short_text, pr_text, remarks, reason]
+        note: "Text-scan fallback for keywords: PAC, PROPRIETARY, OEM ONLY, SOLE SOURCE, SINGLE SOURCE"
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "If neither flag nor text column found, KPI returns 0% (silent — no PAC instances detected)."
+    calculation_rule_ref: "kpi-calculation-rules.yml#pac"
+
+  tail_spend:
+    label: "Tail Spend %"
+    primary_source: PO
+    required_columns:
+      - source: PO
+        columns: [net_value]
+        note: "OR net_value_inr if already converted upstream"
+    optional_columns: []
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "Returns available=false if no value column."
+    calculation_rule_ref: "kpi-calculation-rules.yml#tail_spend"
+    fixed_threshold: "INR 1,00,000 per PO line"
+
+  spend_per_fte:
+    label: "Spend per FTE (INR Cr/FTE)"
+    primary_source: PO + Engagement profile
+    required_columns:
+      - source: PO
+        columns: [net_value]
+        note: "Total spend numerator"
+      - source: ENGAGEMENT_PROFILE
+        columns: [fte_count]
+        note: "Stage 1 input; KPI unavailable without it"
+    optional_columns:
+      - source: ORG_STRUCTURE
+        columns: [employee_id, status, fte_factor]
+        note: "Build 2 — replaces manual fte_count with derived count of active employees"
+    qre_inputs: []
+    engagement_profile_inputs: [fte_count]
+    fallback_when_missing: "Without engagement.fte_count, KPI marked available=false with note pointing to Stage 1 (Client profile) for the FTE input."
+    calculation_rule_ref: "kpi-calculation-rules.yml#spend_unit_detection"
+
+  otd:
+    label: "On-Time Delivery %"
+    primary_source: PO (V1) / GRN (Build 2 sharper)
+    required_columns:
+      - source: PO
+        columns: [delivery_date, gr_date]
+        note: "Both must be populated in PO dump for V1. If client's PO export lacks gr_date, OTD is unavailable in V1."
+    optional_columns:
+      - source: GRN
+        columns: [posting_date, po_number, po_item, movement_type, quantity]
+        note: "Build 2 — uses GRN file directly; allows filtering by movement_type (101 receipt, exclude 102 reversal)"
+      - source: PO
+        columns: [quantity, gr_quantity]
+        note: "Enables partial-delivery strictness (gr_quantity must equal quantity to count as on-time)"
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "available=false with note 'OTD requires both delivery_date + gr_date (Post-PO pillar territory).'"
+    calculation_rule_ref: "kpi-calculation-rules.yml#otd"
+
+  supplier_defect_rate:
+    label: "Supplier Defect Rate %"
+    primary_source: GRN (Build 2 only — no V1 fallback)
+    required_columns:
+      - source: GRN
+        columns: [quality_inspection_status, rejected_quantity, quantity]
+    optional_columns:
+      - source: VENDOR_MASTER
+        columns: [vendor_id, classification_tier]
+        note: "Build 2 — segment defect rate by tier"
+    qre_inputs: []
+    engagement_profile_inputs: []
+    fallback_when_missing: "Not computable in V1. KPI surfaces as unavailable until Post-PO + Supplier pillars ship in Build 2."
+    calculation_rule_ref: null
+
+  sourcing_tool_usage:
+    label: "Sourcing Tool Usage %"
+    primary_source: QRE (V1) / ERP data (Build 2)
+    required_columns: []
+    optional_columns: []
+    qre_inputs:
+      - id: D12.1
+        question: "Digital sourcing maturity"
+        scoring: "1→10%, 2→35%, 3→65%, 4→90%"
+    engagement_profile_inputs: []
+    fallback_when_missing: "Returns available=false if D12.1 unanswered. With ERP / e-sourcing platform integration in Build 2, becomes an actual % of RFQs routed digitally."
+    calculation_rule_ref: "kpi-rca-library.yml#sourcing_tool_usage"
+
+
+# =============================================================================
+# Pillar-level required uploads (for the audit at Stage 4)
+# =============================================================================
+
+pillars:
+
+  op-model:
+    required_uploads: [PO]
+    optional_uploads: [PR]
+    qre_inputs: [D1.x, D2.x, D3.x, D5.x]
+    blocking_columns:
+      PO: [po_number, plant, material_group, net_value, vendor_id]
+    note: "Centralisation / Shared Services / CoE / Tail Spend themes all derive from PO per-MG aggregations."
+
+  org-structure:
+    required_uploads: []     # V1 is QRE-only
+    optional_uploads: [PO, ORG_STRUCTURE]
+    qre_inputs: [D2.1, D2.4, D2.2, D11.1, D11.4, D2.3, D2.5, D10.1, D10.2]
+    blocking_columns: {}
+    note: "V1 runs QRE-only. PO adds plant distribution. ORG_STRUCTURE upload unlocks full quantitative (Build 2)."
+
+  buying-channel:
+    required_uploads: [PO]
+    optional_uploads: [PR, CONTRACT_MASTER]
+    qre_inputs: []
+    blocking_columns:
+      PO: [po_number, material_group, net_value, vendor_id, contract_number]
+    note: "13 IF-THEN rules apply per-MG from PO. CONTRACT_MASTER sharpens current-state in Build 2."
+
+  doa:
+    required_uploads: [PO]
+    optional_uploads: [PR]
+    qre_inputs: [D7.x, D8.x, D10.1, D10.2]
+    blocking_columns:
+      PO: [po_number, purchase_group, net_value]
+    note: "5 themes: Document Audit (QRE) · Robustness (PO + reference template) · PO Compliance (PO threshold breaches) · System Enforcement (QRE) · Bucket Optimisation."
+
+  material-master:
+    v1_status: deferred
+    required_uploads: [MATERIAL_MASTER]
+    optional_uploads: [PO]
+    qre_inputs: []
+    blocking_columns:
+      MATERIAL_MASTER: [material_number, material_description, material_group, material_type, created_date]
+    note: "Build 2 pillar. Master data quality + dedup + code-creation TAT."
+
+  pr-to-po:
+    v1_status: deferred
+    required_uploads: [PO, PR]
+    optional_uploads: []
+    qre_inputs: [D7.x]
+    blocking_columns:
+      PO: [po_number, po_creation_date]
+      PR: [pr_number, pr_creation_date, pr_release_date]
+    note: "Build 2 pillar. TAT depth, approval routing, RFQ rigour."
+
+  post-po:
+    v1_status: deferred
+    required_uploads: [PO, GRN, INVOICE]
+    optional_uploads: []
+    qre_inputs: []
+    blocking_columns:
+      PO: [po_number, delivery_date]
+      GRN: [grn_number, po_number, posting_date, movement_type, quantity]
+      INVOICE: [invoice_doc_number, po_number, invoice_date, posting_date, payment_date]
+    note: "Build 2 pillar. OTD, defect rate, 3-way match, DPO, MSME compliance."
+
+  supplier:
+    v1_status: deferred
+    required_uploads: [VENDOR_MASTER]
+    optional_uploads: [PO, GRN]
+    qre_inputs: [D6.x]
+    blocking_columns:
+      VENDOR_MASTER: [vendor_id, vendor_name, vendor_status, vendor_type, created_date, country]
+    note: "Build 2 pillar. Vendor onboarding TAT, performance scorecards, base health."
