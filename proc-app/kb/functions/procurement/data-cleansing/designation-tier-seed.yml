@@ -1,0 +1,78 @@
+# =============================================================================
+# Designation → Tier Seed Mapping
+# =============================================================================
+# Purpose: V1 Gold-layer enrichment. Maps PO.po_approver_designation to a
+# canonical org tier (1-5) using regex patterns. Used by DoA pillar for
+# breach attribution from gold PO rows directly (no Org Structure file
+# required in V1).
+#
+# Per KB-PART-5 org-structure-cleansing-spec: spec also describes a
+# per-engagement dictionary built at Stage 6. This file is the V1 seed
+# fallback used when no per-engagement dictionary exists.
+#
+# Engine: backend/engine/gold_enrichment.py reads this file.
+# =============================================================================
+
+metadata:
+  id: designation-tier-seed
+  layer: function
+  function: procurement
+  domain: data-cleansing
+  version: 1.0
+  last_updated: 2026-05-30
+  owner: kb-admin
+  status: active
+  scope: v1
+  source_columns: ["po_approver_designation"]
+
+# Tier ladder. Tier 5 = CEO/Board; Tier 1 = Executive/Officer.
+# Authority caps are typical Indian large-enterprise ranges; the DoA
+# pillar overrides these with engagement-specific DoA documents.
+tier_definitions:
+  1: { name: "Officer / Executive / Buyer", typical_authority_inr_cap: 100000,    typical_authority_label: "up to ₹1 L" }
+  2: { name: "Manager",                     typical_authority_inr_cap: 500000,    typical_authority_label: "up to ₹5 L" }
+  3: { name: "Sr Manager / AGM",            typical_authority_inr_cap: 2500000,   typical_authority_label: "up to ₹25 L" }
+  4: { name: "GM / VP / Director",          typical_authority_inr_cap: 100000000, typical_authority_label: "up to ₹10 Cr" }
+  5: { name: "SVP / CXO / CPO / Board",     typical_authority_inr_cap: null,       typical_authority_label: "Board (unlimited)" }
+
+# Designation regex patterns (case-insensitive). ORDER MATTERS:
+# more specific patterns first. First match wins.
+# Patterns are Python regex; use \b for word boundaries.
+designation_patterns:
+  # ---- Tier 5: Leadership ----
+  - { pattern: 'chief procurement officer|\bcpo\b|chief.*officer|\bcfo\b|\bceo\b|\bcoo\b|\bcxo\b|managing director|\bmd\b|chairman|board member|vice chairman|president|head of procurement|head procurement', tier: 5, example: "CPO / Head Procurement" }
+
+  # ---- Tier 4: GM / VP / Director ----
+  - { pattern: '\bsvp\b|senior vice president|senior vp|\bvp\b|vice president|executive vice president|\bevp\b', tier: 4, example: "VP / SVP" }
+  - { pattern: 'general manager|\bgm\b|deputy general manager|\bdgm\b|chief general manager|\bcgm\b', tier: 4, example: "GM / DGM / CGM" }
+  - { pattern: '\bdirector\b|joint director|executive director', tier: 4, example: "Director" }
+
+  # ---- Tier 3: Sr Manager / AGM ----
+  - { pattern: 'assistant general manager|asst general manager|asst\.?\s*gm|\bagm\b', tier: 3, example: "AGM" }
+  - { pattern: 'senior manager|sr\.?\s*manager|sr\.?\s*mgr|chief manager|principal manager', tier: 3, example: "Sr Manager" }
+  - { pattern: 'deputy manager|\bdm\s+procurement|\bdmgr\b', tier: 3, example: "Deputy Manager" }
+
+  # ---- Tier 2: Manager ----
+  - { pattern: '\bmanager\b|\bmgr\b', tier: 2, example: "Manager" }
+  - { pattern: 'assistant manager|asst\.?\s*manager|asst\.?\s*mgr|\bam\b\s+procurement', tier: 2, example: "Asst Manager" }
+  - { pattern: 'team lead|lead procurement|category lead', tier: 2, example: "Team Lead" }
+
+  # ---- Tier 1: Officer / Executive / Buyer ----
+  - { pattern: 'sourcing executive|sourcing exec|procurement executive|procurement exec', tier: 1, example: "Procurement Executive" }
+  - { pattern: '\bofficer\b|\bexecutive\b|\bexec\b', tier: 1, example: "Officer / Executive" }
+  - { pattern: '\bbuyer\b|assistant buyer|asst\.?\s*buyer|junior buyer|jr\.?\s*buyer', tier: 1, example: "Buyer" }
+  - { pattern: '\banalyst\b|\bspecialist\b|\bassociate\b|\btrainee\b|junior|\bjr\b', tier: 1, example: "Analyst / Specialist" }
+
+# Special-case overrides (matched FIRST, before any regex above).
+# Use for canonical equivalents that the regex might mis-tier.
+canonical_overrides:
+  "head - procurement": 5
+  "head, procurement": 5
+  "chief procurement officer": 5
+  "vp - procurement": 4
+  "vp procurement": 4
+
+# Editable configuration
+# Adding a pattern: MEDIUM (peer)
+# Re-tiering an existing pattern: HIGH (partner; affects DoA breach attribution)
+# Adding a new tier definition: HIGH

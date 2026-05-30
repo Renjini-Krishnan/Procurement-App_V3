@@ -81,6 +81,21 @@ def build_gold_dataframe_with_report(upload_id: str, lookback_months: Optional[i
     file_type = upload.get("file_type", "PO")
     df, report = cleansing_engine.apply_pipeline(df, file_type=file_type)
 
+    # Stage 8 Gold enrichment — adds derived columns (po_type_inferred,
+    # is_capex, is_pac, is_emergency, approver_tier). Bronze = cleansed;
+    # Gold = cleansed + enriched. Skipped for non-PO file_types.
+    from . import gold_enrichment
+    df, enrichment_report = gold_enrichment.apply_enrichment(df, file_type=file_type)
+    for e in enrichment_report.entries:
+        rows_affected = sum(v for v in e.get("counts", {}).values() if isinstance(v, int))
+        action = (f"added column: {e['column_added']}" if e.get("column_added")
+                   else "skipped (see details.reason)")
+        report.record(rule_id=e["rule_id"], rule_name=e["rule_name"],
+                       stage=8, severity=e["severity"],
+                       rows_affected=rows_affected, action=action,
+                       details={**e.get("details", {}), "counts": e["counts"],
+                                 "column_added": e.get("column_added")})
+
     # Apply Stage-2 lookback filter AFTER cleansing (dates are coerced now)
     if lookback_months and lookback_months > 0:
         date_col = next((c for c in ("po_creation_date", "pr_creation_date", "posting_date")
@@ -238,4 +253,18 @@ def summarise(df: pd.DataFrame) -> dict:
             out["months_span"] = int(((valid.max() - valid.min()).days // 30) + 1)
     if "po_status_inferred" in df.columns:
         out["cancellation_count"] = int((df["po_status_inferred"] == "cancellation_or_return").sum())
+    # Gold-enrichment surfacing
+    if "po_type_inferred" in df.columns:
+        out["po_type_breakdown"] = {
+            str(k): int(v) for k, v in df["po_type_inferred"].value_counts().items()
+        }
+    if "is_capex" in df.columns:
+        out["capex_po_count"] = int(df["is_capex"].sum())
+    if "is_pac" in df.columns:
+        out["pac_po_count"] = int(df["is_pac"].sum())
+    if "is_emergency" in df.columns:
+        out["emergency_po_count"] = int(df["is_emergency"].sum())
+    if "approver_tier" in df.columns:
+        tier_counts = df["approver_tier"].value_counts(dropna=True).to_dict()
+        out["approver_tier_breakdown"] = {str(int(k)): int(v) for k, v in tier_counts.items()}
     return out

@@ -226,6 +226,29 @@ fields:
   type: string
   required: false
   description: Free-text line description.
+- field: po_approver_designation
+  aliases:
+  - PO_Approver_Designation
+  - Approver_Designation
+  - Approver Designation
+  - PO Approver Designation
+  - Released By Designation
+  - Approver Title
+  - Released_By_Designation
+  type: string
+  required: false
+  description: "Designation of the user who approved the PO (e.g. 'Sr Manager', 'AGM Procurement', 'GM'). Used by Gold enrichment to derive approver_tier (1-5) for DoA compliance analysis. Optional in V1."
+- field: po_approver_id
+  aliases:
+  - PO_Approver_ID
+  - PO Approver ID
+  - Approver_ID
+  - Approver ID
+  - Released By
+  - Released_By
+  type: string
+  required: false
+  description: "Employee ID of the PO approver. Optional in V1 (used by DoA pillar for individual-level breach attribution when present)."
 - field: scheduling_agreement
   aliases:
   - Scheduling_Agreement

@@ -13,7 +13,7 @@ export const Bronze = () => <DataPreview stage={7} title="Bronze Data" phase="Di
   blurb="Cleansing pipeline applied per upload + cross-file recon. Click any rule to expand details." />;
 
 export const Gold = () => <DataPreview stage={8} title="Gold Data" phase="Diagnostic"
-  blurb="Final validated dataset — vendor dedup, currency normalised to INR, archetype-ready." />;
+  blurb="Bronze + V1 enrichments: derived po_type, capex/PAC/emergency flags, approver_tier. Analysis-ready." />;
 
 const DataPreview = ({ stage, title, phase, blurb }) => {
   const { engagement, loading: engLoading } = useEngagement();
@@ -48,9 +48,13 @@ const DataPreview = ({ stage, title, phase, blurb }) => {
             <PerUploadReportsCard reports={data.per_upload_reports} engagementId={engagement.id} />
           )}
 
-          {/* Fallback for Gold (single-file view) */}
+          {/* Stage 8 Gold-specific: enrichment + breakdown */}
+          {stage === 8 && data.per_upload_reports && (
+            <GoldEnrichmentsCard reports={data.per_upload_reports} summary={data.gold_summary} />
+          )}
+
           {stage === 8 && data.cleansing_report && (
-            <CleansingReport report={data.cleansing_report} title="Cleansing report · primary upload" />
+            <CleansingReport report={data.cleansing_report} title="Underlying Bronze cleansing report · primary upload" />
           )}
 
           {stage === 7 && <RuleAuditCard />}
@@ -246,6 +250,154 @@ const PillarFeasibilityCard = ({ feasibility }) => (
         })}
       </div>
     </Card>
+  </div>
+);
+
+// ─── Gold Enrichments card (Stage 8 honesty UX) ───────────────────────────
+
+const GoldEnrichmentsCard = ({ reports, summary }) => {
+  // Find PO upload + filter enrichment entries
+  const po = (reports || []).find((u) => u.file_type === "PO");
+  if (!po) return null;
+  const entries = (po.cleansing_report?.entries || [])
+    .filter((e) => e.severity === "enrichment" || e.severity === "enrichment_skipped");
+  if (entries.length === 0) return null;
+
+  const applied = entries.filter((e) => e.severity === "enrichment");
+  const skipped = entries.filter((e) => e.severity === "enrichment_skipped");
+  const columnsAdded = applied.map((e) => e.details?.column_added).filter(Boolean);
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <Card padding={20}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)" }}>
+              Gold enrichments applied · what's different from Bronze
+            </div>
+            <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-600)", marginTop: 4 }}>
+              {applied.length} enrichment{applied.length === 1 ? "" : "s"} applied · {columnsAdded.length} new column{columnsAdded.length === 1 ? "" : "s"} added
+              {skipped.length > 0 && ` · ${skipped.length} skipped (see why below)`}
+            </div>
+          </div>
+          {columnsAdded.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxWidth: "55%", justifyContent: "flex-end" }}>
+              {columnsAdded.map((c) => (
+                <span key={c} style={{
+                  background: "var(--success-50)", color: "var(--success-700)",
+                  padding: "3px 10px", borderRadius: "var(--r-pill)",
+                  fontSize: "var(--fs-12)", fontWeight: 600, fontFamily: "var(--font-mono)",
+                }}>+ {c}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Breakdown tiles */}
+        {(summary?.po_type_breakdown || summary?.approver_tier_breakdown) && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
+            {summary.po_type_breakdown && (
+              <BreakdownTile
+                title="PO type breakdown"
+                items={Object.entries(summary.po_type_breakdown).map(([k, v]) => ({ label: k, value: v }))}
+              />
+            )}
+            {summary.capex_po_count !== undefined && (
+              <KVTile title="Capex POs" value={summary.capex_po_count.toLocaleString("en-IN")}
+                       hint={summary.po_count ? `${(100 * summary.capex_po_count / summary.po_count).toFixed(1)}% of POs` : null} />
+            )}
+            {summary.pac_po_count !== undefined && (
+              <KVTile title="PAC POs" value={summary.pac_po_count.toLocaleString("en-IN")}
+                       hint={summary.po_count ? `${(100 * summary.pac_po_count / summary.po_count).toFixed(1)}% of POs` : null} />
+            )}
+            {summary.emergency_po_count !== undefined && (
+              <KVTile title="Emergency POs" value={summary.emergency_po_count.toLocaleString("en-IN")}
+                       hint={summary.po_count ? `${(100 * summary.emergency_po_count / summary.po_count).toFixed(1)}% of POs` : null} />
+            )}
+            {summary.approver_tier_breakdown && (
+              <BreakdownTile
+                title="Approver tier breakdown"
+                items={Object.entries(summary.approver_tier_breakdown)
+                        .sort(([a], [b]) => Number(a) - Number(b))
+                        .map(([k, v]) => ({ label: `Tier ${k}`, value: v }))}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Per-rule table */}
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+          <thead>
+            <tr>
+              {["Status", "Rule", "Column added", "Counts"].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e, i) => {
+              const isApplied = e.severity === "enrichment";
+              const tone = isApplied
+                ? { bg: "var(--success-50)", fg: "var(--success-700)" }
+                : { bg: "var(--surface-sunk)", fg: "var(--ink-500)" };
+              const col = e.details?.column_added;
+              const counts = e.details?.counts || {};
+              return (
+                <tr key={i}>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <span style={{ background: tone.bg, color: tone.fg, padding: "2px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>
+                      {isApplied ? "applied" : "skipped"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <div style={{ fontWeight: 500 }}>{e.rule_name}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{e.rule_id}</div>
+                  </td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>
+                    {col ? <span style={{ color: "var(--success-700)" }}>+ {col}</span> : <span style={{ color: "var(--ink-500)" }}>—</span>}
+                  </td>
+                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-700)", fontSize: "var(--fs-12)" }}>
+                    {!isApplied
+                      ? <span style={{ color: "var(--ink-500)", fontStyle: "italic" }}>{e.details?.reason || "skipped"}</span>
+                      : <span>
+                          {Object.entries(counts)
+                            .filter(([k, v]) => typeof v === "number" && v > 0)
+                            .map(([k, v]) => `${k}: ${v.toLocaleString("en-IN")}`)
+                            .join(" · ") || "—"}
+                        </span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div style={{ marginTop: 14, fontSize: "var(--fs-11)", color: "var(--ink-500)", fontStyle: "italic" }}>
+          KB sources: <code>kb/functions/procurement/data-cleansing/po-type-derivation-rules.yml</code> ·{" "}
+          <code>kb/functions/procurement/data-cleansing/designation-tier-seed.yml</code>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const BreakdownTile = ({ title, items }) => (
+  <div style={{ background: "var(--surface-sunk)", padding: 12, borderRadius: "var(--r-md)", border: "1px solid var(--border-subtle)" }}>
+    <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{title}</div>
+    {items.map((it) => (
+      <div key={it.label} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "var(--fs-13)" }}>
+        <span style={{ color: "var(--ink-700)" }}>{it.label}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--ink-900)" }}>{Number(it.value).toLocaleString("en-IN")}</span>
+      </div>
+    ))}
+  </div>
+);
+
+const KVTile = ({ title, value, hint }) => (
+  <div style={{ background: "var(--surface-sunk)", padding: 12, borderRadius: "var(--r-md)", border: "1px solid var(--border-subtle)" }}>
+    <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{title}</div>
+    <div style={{ fontSize: "var(--fs-20)", fontWeight: 600, marginTop: 4, color: "var(--ink-900)" }}>{value}</div>
+    {hint && <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 2 }}>{hint}</div>}
   </div>
 );
 

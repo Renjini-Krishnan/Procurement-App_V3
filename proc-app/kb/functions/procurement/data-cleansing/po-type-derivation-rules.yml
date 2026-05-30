@@ -1,0 +1,150 @@
+# =============================================================================
+# PO Type Derivation Rules (capex / opex / services + PAC + emergency)
+# =============================================================================
+# Purpose: V1 Gold-layer enrichment. Derives po_type_inferred + is_emergency
+# + is_pac + is_capex columns onto the gold PO DataFrame using PO's OWN
+# columns only (no Vendor/Material/Contract Master needed — those are V2).
+#
+# Engine: backend/engine/gold_enrichment.py reads this file.
+# Cache: cleared by Restart App or by POSTing to /api/kb/invalidate-cache.
+# =============================================================================
+
+metadata:
+  id: po-type-derivation-rules
+  layer: function
+  function: procurement
+  domain: data-cleansing
+  version: 1.0
+  last_updated: 2026-05-30
+  owner: kb-admin
+  status: active
+  scope: v1
+  source_columns: ["material_group_desc", "material_group", "short_text", "net_value", "po_type"]
+
+# Use explicit po_type column when present + recognised
+override_with_explicit_field: true
+recognised_explicit_values: ["capex", "opex", "services", "pac", "emergency"]
+
+# Fallback when no rule matches and no explicit field
+default_po_type: opex
+
+# Value-assist for capex: if material_group_desc keyword match yields
+# opex/services but the PO value exceeds this threshold, bump to capex.
+# (Per KB-PART-5 indian-context-rules.yml: capex_threshold_default ₹50k;
+# we use a higher ₹50L threshold for single-PO capex bump to reduce
+# false positives.)
+capex_min_value_inr: 5000000   # ₹50 lakh
+
+# Keyword matching on material_group_desc (case-insensitive substring).
+# Order: capex evaluated first, then services, then opex.
+# A row's first matching bucket wins.
+type_keywords:
+  capex:
+    - plant expansion
+    - new equipment
+    - capital equipment
+    - capital project
+    - building
+    - civil works
+    - construction
+    - vehicle
+    - infrastructure
+    - turbine
+    - mill upgrade
+    - kiln
+    - dri plant
+    - rolling mill
+    - power plant
+    - blast furnace
+    - converter
+    - caster
+    - crusher
+    - conveyor
+    - it infrastructure
+    - server
+    - data centre
+    - asset acquisition
+
+  services:
+    - consulting
+    - consultancy
+    - professional service
+    - professional fees
+    - amc
+    - annual maintenance contract
+    - contract labour
+    - manpower
+    - housekeeping
+    - security service
+    - audit
+    - legal
+    - training
+    - it services
+    - software license
+    - software subscription
+    - cloud service
+    - support service
+    - facility management
+    - transportation service
+    - logistics service
+    - inspection service
+    - testing service
+    - certification
+
+  opex:
+    - mro
+    - consumable
+    - spare
+    - lubricant
+    - chemical
+    - office supplies
+    - stationery
+    - thermal coal
+    - iron ore
+    - coking coal
+    - raw material
+    - ferro alloy
+    - refractory
+    - electrode
+    - bearing
+    - gasket
+    - fastener
+    - paint
+    - oxygen
+    - nitrogen
+    - argon
+    - limestone
+    - dolomite
+    - flux
+
+# Emergency PO detection — substring scan on short_text (case-insensitive).
+# Mirrors KB-PART-5 gold-cleansing-rules.yml → emergency_detection.
+emergency_keywords:
+  - emergency
+  - urgent
+  - breakdown
+  - critical breakdown
+  - immediate
+  - rush order
+  - asap
+  - line stoppage
+  - production halt
+  - shutdown
+  - fire fighting
+  - safety critical
+
+# PAC (Proprietary Article Certificate) detection — already wired in
+# cleansing_engine as procurement.short_text_pac_detection; gold layer
+# materialises it as a boolean column.
+pac_keywords:
+  - pac
+  - proprietary
+  - single source
+  - sole source
+  - oem only
+
+# Editable configuration
+# Adding a new keyword: LOW risk (peer)
+# Adding a new type bucket: HIGH risk (partner)
+# Changing capex_min_value_inr: MEDIUM
+# Changing default_po_type: HIGH (changes every fallback row)
