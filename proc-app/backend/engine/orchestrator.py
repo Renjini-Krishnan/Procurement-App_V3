@@ -148,6 +148,9 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         qre_responses=qre,
     )
 
+    # Multi-upload cleansing + cross-file recon (V2)
+    per_upload_reports, cross_file_report = _run_multi_upload_bronze(engagement_id, lookback_months=_load_scope_lookback(engagement_id))
+
     return {
         "engagement_id": engagement_id,
         "upload_id": upload_id,
@@ -159,9 +162,50 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         "per_mg_table": per_mg_table,
         "mg_count": len(df_mg),
         "cleansing_report": cleansing_report,
+        "per_upload_reports": per_upload_reports,
+        "cross_file_recon": cross_file_report,
         "methodology_kpis": methodology,
         "timings_seconds": {"total": round(time.time() - t0, 2)},
     }
+
+
+def _run_multi_upload_bronze(engagement_id: str, lookback_months: Optional[int] = None) -> tuple[list[dict], dict]:
+    """Run the cleansing pipeline on EVERY upload (PO + PR + GRN + Invoice +
+    masters), then run cross-file recon. Returns (per_upload_reports, cross_file_report).
+    Never raises — failures degrade to an entry with _error set."""
+    from ..services import upload_service
+    from . import cleansing_engine
+
+    per_upload: list[dict] = []
+    cleaned_dfs: dict[str, "pd.DataFrame"] = {}
+
+    uploads = upload_service.list_uploads(engagement_id)
+    for u in uploads:
+        ft = u.get("file_type")
+        entry = {
+            "upload_id": u["id"],
+            "file_type": ft,
+            "original_filename": u.get("original_filename"),
+            "row_count_raw": u.get("row_count"),
+        }
+        try:
+            df, report = gold_data.build_gold_dataframe_with_report(
+                u["id"], lookback_months=lookback_months
+            )
+            entry["row_count_cleaned"] = int(len(df))
+            entry["cleansing_report"] = report
+            cleaned_dfs[ft] = df
+        except Exception as e:
+            entry["_error"] = str(e)
+        per_upload.append(entry)
+
+    cross_report = cleansing_engine.apply_cross_file_recon(cleaned_dfs)
+    cross_file_report = {
+        "entries": cross_report.entries,
+        "summary": cross_report.summary(),
+        "available_file_types": sorted(list(cleaned_dfs.keys())),
+    }
+    return per_upload, cross_file_report
 
 
 def _load_scope_lookback(engagement_id: str) -> Optional[int]:

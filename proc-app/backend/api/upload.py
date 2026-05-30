@@ -22,6 +22,13 @@ def list_upload_schemas():
     return {"schemas": canonical_schema.list_schema_types()}
 
 
+@meta_router.get("/cleansing/audit")
+def cleansing_audit():
+    """KB-vs-engine implementation audit map. Surfaced at Stage 7."""
+    from ..engine import cleansing_engine
+    return cleansing_engine.get_rule_audit()
+
+
 @meta_router.get("/upload-schemas/{file_type}")
 def get_upload_schema(file_type: str):
     from ..services import canonical_schema

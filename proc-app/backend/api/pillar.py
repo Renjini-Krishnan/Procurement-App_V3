@@ -130,6 +130,55 @@ def run_intel(engagement_id: str, payload: RunPillarRequest):
         raise HTTPException(500, f"Intel run failed: {e}")
 
 
+@router.get("/{engagement_id}/cleansing-report.csv")
+def cleansing_report_csv(engagement_id: str, scope: str = "all"):
+    """Download the Stage 7 cleansing report as CSV.
+
+    scope=all (default): all uploads + cross-file recon
+    scope=cross_only:    only cross-file recon
+    scope=<upload_id>:   only that upload's report
+    """
+    from fastapi.responses import Response
+    import csv, io
+
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    uploads = upload_service.list_uploads(engagement_id)
+    if not uploads:
+        raise HTTPException(404, "No uploads found")
+    po_upload = next((u for u in uploads if u.get("file_type") == "PO"), uploads[0])
+    try:
+        intel = orchestrator.run_intel(engagement_id, po_upload["id"], industry=eng.get("industry") or "steel")
+    except Exception as e:
+        raise HTTPException(500, f"Cleansing run failed: {e}")
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["scope", "file_type", "upload_id", "rule_id", "rule_name",
+                 "severity", "rows_affected", "action", "details_json"])
+    import json as _json
+    if scope in ("all", "cross_only"):
+        for e in (intel.get("cross_file_recon") or {}).get("entries", []):
+            w.writerow(["cross_file", "", "", e["rule_id"], e["rule_name"],
+                         e["severity"], e["rows_affected"], e["action"],
+                         _json.dumps(e.get("details") or {})])
+    if scope == "all" or (scope not in ("cross_only", "all")):
+        for u in intel.get("per_upload_reports", []):
+            if scope not in ("all",) and u["upload_id"] != scope:
+                continue
+            rep = u.get("cleansing_report") or {}
+            for e in rep.get("entries", []):
+                w.writerow(["per_upload", u.get("file_type"), u["upload_id"],
+                             e["rule_id"], e["rule_name"], e["severity"],
+                             e["rows_affected"], e["action"],
+                             _json.dumps(e.get("details") or {})])
+    csv_text = buf.getvalue()
+    filename = f"cleansing-report-{engagement_id}-{scope}.csv"
+    return Response(content=csv_text, media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
 @router.get("/{engagement_id}/findings")
 def list_findings(engagement_id: str, pillar: str = None):
     if not db.get_engagement(engagement_id):

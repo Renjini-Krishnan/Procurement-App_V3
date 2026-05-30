@@ -1,16 +1,16 @@
-import React from "react";
-import { Card, Badge, Callout } from "../design/components.jsx";
+import React, { useState } from "react";
+import { Card, Badge, Callout, Button } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
+import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import { useIntel } from "../hooks/useIntel.js";
 
 /* Stage 7 (Bronze) / Stage 8 (Gold) — data preview.
    Bronze = cleansed; Gold = enriched (vendor dedup, currency normalised, joins).
-   In V1 backend, bronze and gold are the same dataframe — we render both
-   from useIntel and label appropriately. */
+   Bronze now iterates every upload + runs cross-file recon. */
 
 export const Bronze = () => <DataPreview stage={7} title="Bronze Data" phase="Diagnostic"
-  blurb="Cleansed PO data after universal data-quality rules pass — type coercion, date parsing, currency tagging." />;
+  blurb="Cleansing pipeline applied per upload + cross-file recon. Click any rule to expand details." />;
 
 export const Gold = () => <DataPreview stage={8} title="Gold Data" phase="Diagnostic"
   blurb="Final validated dataset — vendor dedup, currency normalised to INR, archetype-ready." />;
@@ -32,9 +32,20 @@ const DataPreview = ({ stage, title, phase, blurb }) => {
         <>
           <SummaryGrid summary={data.gold_summary} />
 
-          {data.cleansing_report && (
-            <CleansingReport report={data.cleansing_report} />
+          {stage === 7 && data.cross_file_recon && (
+            <CrossFileReconCard recon={data.cross_file_recon} engagementId={engagement.id} />
           )}
+
+          {stage === 7 && data.per_upload_reports && data.per_upload_reports.length > 0 && (
+            <PerUploadReportsCard reports={data.per_upload_reports} engagementId={engagement.id} />
+          )}
+
+          {/* Fallback for Gold (single-file view) */}
+          {stage === 8 && data.cleansing_report && (
+            <CleansingReport report={data.cleansing_report} title="Cleansing report · primary upload" />
+          )}
+
+          {stage === 7 && <RuleAuditCard />}
 
           <div style={{ marginTop: 24 }}>
             <Card padding={20}>
@@ -80,14 +91,189 @@ const SEVERITY_TONES = {
   info: { bg: "var(--surface-sunk)", fg: "var(--ink-600)", border: "var(--ink-300)" },
 };
 
-const CleansingReport = ({ report }) => {
+// ─── Cross-file recon card ────────────────────────────────────────────────
+
+const CrossFileReconCard = ({ recon, engagementId }) => {
+  if (!recon || !recon.entries || recon.entries.length === 0) {
+    return (
+      <div style={{ marginTop: 24 }}>
+        <Callout tone="info" title="Cross-file recon" icon={<I.Doc size={16} />}>
+          No cross-file rules fired — upload more file types (PO + PR + GRN + Invoice + Vendor Master + Contract Master + Material Master) to see linkage checks.
+        </Callout>
+      </div>
+    );
+  }
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)" }}>
+          Cross-file recon · {recon.entries.length} rules fired
+        </div>
+        <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
+          Files joined: {(recon.available_file_types || []).join(" · ")}
+        </div>
+      </div>
+      <Card padding={20}>
+        <RuleTable entries={recon.entries} />
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+          <a href={api.cleansingReportCsvUrl(engagementId, "cross_only")} download
+             style={{ fontSize: "var(--fs-12)", color: "var(--brand-700)", textDecoration: "underline" }}>
+            ↓ Download cross-file report (CSV)
+          </a>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+// ─── Per-upload tabbed view ──────────────────────────────────────────────
+
+const PerUploadReportsCard = ({ reports, engagementId }) => {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const active = reports[activeIdx];
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
+        Per-upload cleansing · {reports.length} files
+      </div>
+      <Card padding={0}>
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border-default)", overflowX: "auto" }}>
+          {reports.map((u, i) => {
+            const summary = u.cleansing_report?.summary || {};
+            const isActive = i === activeIdx;
+            const hasError = !!u._error;
+            return (
+              <button
+                key={u.upload_id}
+                type="button"
+                onClick={() => setActiveIdx(i)}
+                style={{
+                  padding: "10px 16px",
+                  border: "none",
+                  borderBottom: isActive ? "2px solid var(--brand-700)" : "2px solid transparent",
+                  background: isActive ? "var(--brand-50)" : "transparent",
+                  color: hasError ? "var(--danger-700)" : isActive ? "var(--brand-700)" : "var(--ink-700)",
+                  cursor: "pointer", fontSize: "var(--fs-13)", fontWeight: isActive ? 600 : 400,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {u.file_type}
+                <span style={{ color: "var(--ink-500)", marginLeft: 6, fontSize: "var(--fs-11)", fontWeight: 400 }}>
+                  {hasError ? "✗" : `${summary.rules_fired || 0} rules`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ padding: 20 }}>
+          {active._error ? (
+            <Callout tone="danger" title={`Failed: ${active.file_type}`} icon={<I.X size={16} />}>{active._error}</Callout>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
+                <span>{active.original_filename}</span>
+                <span>Rows raw: <strong>{active.row_count_raw?.toLocaleString?.("en-IN")}</strong></span>
+                <span>Rows cleaned: <strong>{active.row_count_cleaned?.toLocaleString?.("en-IN")}</strong></span>
+                <span>Rules fired: <strong>{active.cleansing_report?.summary?.rules_fired}</strong></span>
+                <span>Fixed: <strong>{active.cleansing_report?.summary?.rows_fixed_total?.toLocaleString?.("en-IN")}</strong></span>
+                <span>Dropped: <strong>{active.cleansing_report?.summary?.rows_dropped_total?.toLocaleString?.("en-IN")}</strong></span>
+              </div>
+              <RuleTable entries={active.cleansing_report?.entries || []} />
+              <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                <a href={api.cleansingReportCsvUrl(engagementId, active.upload_id)} download
+                   style={{ fontSize: "var(--fs-12)", color: "var(--brand-700)", textDecoration: "underline" }}>
+                  ↓ Download this file's report (CSV)
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+      <div style={{ marginTop: 8, textAlign: "right" }}>
+        <a href={api.cleansingReportCsvUrl(engagementId, "all")} download
+           style={{ fontSize: "var(--fs-12)", color: "var(--brand-700)", textDecoration: "underline" }}>
+          ↓ Download FULL cleansing report (all files + cross-file) — CSV
+        </a>
+      </div>
+    </div>
+  );
+};
+
+// ─── Rule table with expandable details ──────────────────────────────────
+
+const RuleTable = ({ entries }) => {
+  const [openIdx, setOpenIdx] = useState(null);
+  if (!entries || entries.length === 0) {
+    return <div style={{ color: "var(--ink-500)", fontStyle: "italic", padding: 12 }}>No rules fired.</div>;
+  }
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+      <thead>
+        <tr>
+          {["", "Severity", "Stage", "Rule", "Rows", "Action"].map((h) => (
+            <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {entries.map((e, i) => {
+          const tone = SEVERITY_TONES[e.severity] || SEVERITY_TONES.info;
+          const hasDetails = e.details && Object.keys(e.details).length > 0;
+          const isOpen = openIdx === i;
+          return (
+            <React.Fragment key={i}>
+              <tr
+                style={{ cursor: hasDetails ? "pointer" : "default" }}
+                onClick={() => hasDetails && setOpenIdx(isOpen ? null : i)}
+              >
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", width: 24, color: "var(--ink-500)" }}>
+                  {hasDetails ? (isOpen ? "▾" : "▸") : ""}
+                </td>
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <span style={{ background: tone.bg, color: tone.fg, padding: "2px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>
+                    {e.severity}
+                  </span>
+                </td>
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{e.stage}</td>
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <div style={{ fontWeight: 500 }}>{e.rule_name}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{e.rule_id}</div>
+                </td>
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", textAlign: "right", fontFamily: "var(--font-mono)" }}>
+                  {e.rows_affected?.toLocaleString?.("en-IN") || e.rows_affected}
+                </td>
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{e.action}</td>
+              </tr>
+              {isOpen && hasDetails && (
+                <tr>
+                  <td colSpan={6} style={{ padding: 0, borderBottom: "1px solid var(--border-subtle)" }}>
+                    <pre style={{
+                      margin: 0, padding: "12px 24px",
+                      background: "var(--surface-sunk)", color: "var(--ink-700)",
+                      fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)",
+                      whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 280,
+                    }}>{JSON.stringify(e.details, null, 2)}</pre>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+};
+
+// ─── Legacy single-report fallback (Gold) ────────────────────────────────
+
+const CleansingReport = ({ report, title }) => {
   const entries = report.entries || [];
   const summary = report.summary || {};
   if (entries.length === 0) return null;
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
-        Cleansing report · {summary.rules_fired} rules fired
+        {title || `Cleansing report · ${summary.rules_fired} rules fired`}
       </div>
       <Card padding={20}>
         <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
@@ -95,38 +281,87 @@ const CleansingReport = ({ report }) => {
           <span>Rows fixed: <strong>{summary.rows_fixed_total}</strong></span>
           <span>Rows dropped: <strong>{summary.rows_dropped_total}</strong></span>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
-          <thead>
-            <tr>
-              {["Severity", "Stage", "Rule", "Rows affected", "Action"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e, i) => {
-              const tone = SEVERITY_TONES[e.severity] || SEVERITY_TONES.info;
-              return (
-                <tr key={i}>
-                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
-                    <span style={{ background: tone.bg, color: tone.fg, padding: "2px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>
-                      {e.severity}
-                    </span>
-                  </td>
-                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{e.stage}</td>
-                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
-                    <div style={{ fontWeight: 500 }}>{e.rule_name}</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{e.rule_id}</div>
-                  </td>
-                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", textAlign: "right", fontFamily: "var(--font-mono)" }}>
-                    {e.rows_affected?.toLocaleString?.("en-IN") || e.rows_affected}
-                  </td>
-                  <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{e.action}</td>
+        <RuleTable entries={entries} />
+      </Card>
+    </div>
+  );
+};
+
+// ─── KB-vs-engine implementation audit ───────────────────────────────────
+
+const STAT_TONES = {
+  implemented: { bg: "var(--success-50)", fg: "var(--success-700)" },
+  not_implemented: { bg: "var(--danger-50)", fg: "var(--danger-700)" },
+  handled_at_other_stage: { bg: "var(--info-50)", fg: "var(--info-700)" },
+  subsumed: { bg: "var(--surface-sunk)", fg: "var(--ink-600)" },
+};
+
+const RuleAuditCard = () => {
+  const [audit, setAudit] = useState(null);
+  const [open, setOpen] = useState(false);
+  React.useEffect(() => {
+    api.cleansingAudit().then(setAudit).catch(() => {});
+  }, []);
+  if (!audit) return null;
+  const totals = audit.totals || {};
+  const byStatus = totals.by_status || {};
+  return (
+    <div style={{ marginTop: 24 }}>
+      <Card padding={20}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+             onClick={() => setOpen(!open)}>
+          <div>
+            <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)" }}>
+              KB-vs-engine rule audit
+            </div>
+            <div style={{ marginTop: 6, fontSize: "var(--fs-14)", color: "var(--ink-700)" }}>
+              <strong>{byStatus.implemented || 0}</strong> of <strong>{totals.yaml_rules_total}</strong> documented rules wired ·{" "}
+              <span style={{ color: "var(--danger-700)" }}>{byStatus.not_implemented || 0} not implemented</span> ·{" "}
+              <span style={{ color: "var(--info-700)" }}>{byStatus.handled_at_other_stage || 0} handled at other stages</span> ·{" "}
+              <span style={{ color: "var(--ink-600)" }}>{byStatus.subsumed || 0} subsumed</span> ·{" "}
+              +{totals.engine_only_total} engine-only emit
+            </div>
+          </div>
+          <span style={{ color: "var(--ink-500)" }}>{open ? "▾" : "▸"}</span>
+        </div>
+        {open && (
+          <div style={{ marginTop: 16, maxHeight: 480, overflowY: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-12)" }}>
+              <thead>
+                <tr>
+                  {["KB rule id", "Status", "Engine emits", "Note"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "6px 10px", fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>{h}</th>
+                  ))}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {Object.entries(audit.yaml_rules || {}).map(([id, v]) => {
+                  const tone = STAT_TONES[v.stat] || STAT_TONES.subsumed;
+                  return (
+                    <tr key={id}>
+                      <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)" }}>{id}</td>
+                      <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <span style={{ background: tone.bg, color: tone.fg, padding: "1px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>{v.stat}</span>
+                      </td>
+                      <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-600)" }}>{v.fires_as || "—"}</td>
+                      <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{v.note || ""}</td>
+                    </tr>
+                  );
+                })}
+                {(audit.engine_only || []).map((r) => (
+                  <tr key={r.rule_id}>
+                    <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)", fontStyle: "italic" }}>(engine-only)</td>
+                    <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                      <span style={{ background: "var(--surface-sunk)", color: "var(--ink-600)", padding: "1px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>engine_only</span>
+                    </td>
+                    <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-600)" }}>{r.rule_id}</td>
+                    <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{r.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

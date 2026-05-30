@@ -27,6 +27,8 @@ rules:
   # -------- STRUCTURAL / FILE-LEVEL --------
 
   - id: detect_sheet_structure
+    implemented: not_implemented
+    implementation_note: "implicit in pandas header parsing"
     name: Detect file structure
     description: For multi-sheet workbooks, identify which sheets are data, which are summary/instructions/totals.
     action: flag
@@ -35,6 +37,8 @@ rules:
     auto_apply: true
 
   - id: identify_column_headers
+    implemented: handled_at_other_stage
+    implementation_note: "Stage 5/6 column mapping"
     name: Identify column header row
     description: First row is the column header by default, but handle multi-row headers.
     action: fix
@@ -43,6 +47,7 @@ rules:
     auto_apply: true
 
   - id: strip_header_repetitions
+    implemented: not_implemented
     name: Remove repeated header rows
     description: In multi-section files, header rows often repeat. Detect and remove.
     action: fix
@@ -51,6 +56,7 @@ rules:
     auto_apply: true
 
   - id: strip_totals_rows
+    implemented: not_implemented
     name: Strip totals/footer rows
     description: Detect rows containing "TOTAL", "GRAND TOTAL", "Subtotal" at the start; remove.
     action: fix
@@ -59,6 +65,7 @@ rules:
     auto_apply: true
 
   - id: handle_merged_cells
+    implemented: not_implemented
     name: Un-merge merged cells
     description: For merged cells, propagate the value down to all spanned rows.
     action: fix
@@ -69,6 +76,8 @@ rules:
   # -------- BLANK / EMPTY --------
 
   - id: remove_fully_blank_rows
+    implemented: implemented
+    fires_as: "universal.remove_fully_blank_rows"
     name: Remove fully blank rows
     description: Drop rows where every cell is empty / null / whitespace-only.
     action: drop
@@ -77,6 +86,7 @@ rules:
     auto_apply: true
 
   - id: remove_fully_blank_columns
+    implemented: not_implemented
     name: Remove fully blank columns
     description: Drop columns where every cell is empty / null.
     action: drop
@@ -86,6 +96,9 @@ rules:
     notes: "Show consultant the dropped column names; they can choose to add back."
 
   - id: empty_required_field
+    implemented: implemented
+    fires_as: "universal.empty_required_field"
+    implementation_note: "PO + PR only; VM/MM/GRN/INV/CM/OS skipped"
     name: Empty required field
     description: For columns marked required in the template schema, flag rows with empty/null values.
     action: flag
@@ -96,6 +109,8 @@ rules:
   # -------- DATA TYPES --------
 
   - id: normalise_date_format
+    implemented: implemented
+    fires_as: "universal.normalise_date_format"
     name: Normalise date formats
     description: Detect dates in mixed formats and normalise to ISO 8601.
     action: fix
@@ -105,6 +120,8 @@ rules:
     notes: "Indian default: dd/mm/yyyy interpretation when ambiguous."
 
   - id: normalise_numeric_format
+    implemented: implemented
+    fires_as: "universal.normalise_numeric_format"
     name: Normalise numeric formats
     description: Strip currency symbols, thousands separators, units; preserve decimal precision.
     action: fix
@@ -113,6 +130,8 @@ rules:
     auto_apply: true
 
   - id: detect_data_type_mismatch
+    implemented: subsumed
+    implementation_note: "silent inside _coerce_types"
     name: Detect data type mismatch
     description: For columns expected as numeric, flag rows with non-numeric values.
     action: flag
@@ -121,6 +140,8 @@ rules:
     auto_apply: false
 
   - id: trim_whitespace
+    implemented: implemented
+    fires_as: "universal.trim_whitespace"
     name: Trim whitespace
     description: Strip leading and trailing whitespace from all text cells.
     action: fix
@@ -129,6 +150,7 @@ rules:
     auto_apply: true
 
   - id: fix_encoding
+    implemented: not_implemented
     name: Fix character encoding
     description: Convert Latin-1, Windows-1252, and other legacy encodings to UTF-8.
     action: fix
@@ -137,6 +159,8 @@ rules:
     auto_apply: true
 
   - id: normalise_yes_no
+    implemented: implemented
+    fires_as: "universal.normalise_yes_no"
     name: Normalise Yes/No fields
     description: Convert variants (Yes/No, Y/N, True/False, 1/0) to canonical lowercase yes/no.
     action: fix
@@ -147,6 +171,7 @@ rules:
   # -------- CASE / TEXT --------
 
   - id: normalise_text_case
+    implemented: not_implemented
     name: Normalise text case (where appropriate)
     description: For lookup-type fields preserve source. For canonical fields, normalise to defined case.
     action: normalise
@@ -157,6 +182,8 @@ rules:
   # -------- DUPLICATES --------
 
   - id: detect_exact_duplicate_rows
+    implemented: implemented
+    fires_as: "universal.detect_exact_duplicate_rows"
     name: Detect exact duplicate rows
     description: Identify rows where every cell matches another row exactly.
     action: flag
@@ -167,6 +194,8 @@ rules:
   # -------- TIME PERIOD --------
 
   - id: detect_period_coverage
+    implemented: implemented
+    fires_as: "universal.detect_period_coverage"
     name: Detect time period coverage
     description: For date columns, determine min and max date.
     action: flag
@@ -175,6 +204,7 @@ rules:
     auto_apply: false
 
   - id: detect_period_gaps
+    implemented: not_implemented
     name: Detect period gaps
     description: For time-series data, identify months with zero transactions in active range.
     action: flag
@@ -185,6 +215,7 @@ rules:
   # -------- ANOMALIES --------
 
   - id: detect_extreme_outliers
+    implemented: not_implemented
     name: Detect extreme numeric outliers
     description: For numeric columns, flag values > 5 std dev from mean.
     action: flag
@@ -193,6 +224,8 @@ rules:
     auto_apply: false
 
   - id: detect_zero_negative_values
+    implemented: subsumed
+    implementation_note: "PO covered by po_negative_value_handling"
     name: Detect zero or negative values where unexpected
     description: For columns expected positive, flag zero or negative values.
     action: flag
@@ -203,6 +236,9 @@ rules:
   # -------- CROSS-FILE INTEGRITY --------
 
   - id: cross_file_id_check
+    implemented: implemented
+    fires_as: "universal.cross_file_id_check.vendor + .material"
+    implementation_note: "cross-file recon — requires multiple uploads"
     name: Cross-file ID referential integrity
     description: For files that reference IDs from other files, check that referenced IDs exist.
     action: flag

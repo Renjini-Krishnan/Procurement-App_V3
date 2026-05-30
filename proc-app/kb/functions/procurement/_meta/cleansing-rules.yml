@@ -67,6 +67,8 @@ rules:
   # ALL subsequent rules depend on. Without this, no analytical rule can fire.
 
   - id: procurement.column_mapping_confirmation
+    implemented: handled_at_other_stage
+    implementation_note: "Stage 6"
     name: "Column Mapping Confirmation (Client Raw → Canonical Schema)"
     stage: 5
     description: |
@@ -130,6 +132,8 @@ rules:
   # roles, dates, currencies, UoMs).
 
   - id: procurement.entity_classification_via_stage6_mapping
+    implemented: handled_at_other_stage
+    implementation_note: "Stage 5/6"
     name: "Entity Classification (Central / Plant / BU mapping)"
     stage: 6
     description: |
@@ -177,6 +181,8 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.plant_code_mapped_to_canonical
+    implemented: handled_at_other_stage
+    implementation_note: "Stage 6 mapping"
     name: "Plant Code Mapping to Canonical Plant List"
     stage: 6
     description: |
@@ -216,6 +222,7 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.vendor_type_classification_review
+    implemented: not_implemented
     name: "Vendor Type Classification (Captive / Group / Open-Market / Approved-Only)"
     stage: 6
     description: |
@@ -250,6 +257,8 @@ rules:
     edit_risk: MEDIUM
 
   - id: procurement.org_entity_mapped_to_canonical
+    implemented: handled_at_other_stage
+    implementation_note: "Stage 6 mapping"
     name: "Org Structure Entity Mapping"
     stage: 6
     description: |
@@ -278,6 +287,7 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.org_role_title_canonicalised
+    implemented: not_implemented
     name: "Role Title Canonicalisation (3-Step Pipeline)"
     stage: 6
     description: |
@@ -323,6 +333,8 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.date_format_confirmation
+    implemented: subsumed
+    implementation_note: "universal.normalise_date_format"
     name: "Date Format Confirmation"
     stage: 6
     description: |
@@ -349,6 +361,7 @@ rules:
     edit_risk: MEDIUM
 
   - id: procurement.currency_default_confirmation
+    implemented: not_implemented
     name: "Currency Default Confirmation"
     stage: 6
     description: |
@@ -382,6 +395,7 @@ rules:
     edit_risk: MEDIUM
 
   - id: procurement.uom_normalisation_review
+    implemented: not_implemented
     name: "UoM Normalisation Review"
     stage: 6
     description: |
@@ -413,6 +427,8 @@ rules:
   # Mostly automated; HITL only for fuzzy matches that need consultant validation.
 
   - id: procurement.vendor_dedup_semantic
+    implemented: implemented
+    fires_as: "procurement.vendor_dedup_semantic"
     name: "Vendor Semantic Deduplication"
     stage: 8
     description: |
@@ -455,6 +471,8 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.po_value_currency_normalised
+    implemented: implemented
+    fires_as: "procurement.po_value_currency_normalised"
     name: "PO Value Currency Normalisation to INR"
     stage: 8
     description: |
@@ -494,6 +512,8 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.po_negative_value_handling
+    implemented: implemented
+    fires_as: "procurement.po_negative_value_handling"
     name: "PO Negative Value (Cancellation / Return) Handling"
     stage: 8
     description: |
@@ -518,6 +538,8 @@ rules:
     edit_risk: MEDIUM
 
   - id: procurement.po_duplicate_line_detection
+    implemented: implemented
+    fires_as: "procurement.po_duplicate_line_detection"
     name: "PO Duplicate Line Detection"
     stage: 8
     description: |
@@ -547,6 +569,9 @@ rules:
     edit_risk: MEDIUM
 
   - id: procurement.pr_po_join_via_reference
+    implemented: implemented
+    fires_as: "procurement.pr_po_join_via_reference"
+    implementation_note: "cross-file recon"
     name: "PR-PO Join via PR Reference Field"
     stage: 8
     description: |
@@ -580,6 +605,7 @@ rules:
     edit_risk: MEDIUM
 
   - id: procurement.uom_canonical_mapping
+    implemented: not_implemented
     name: "UoM Canonical Mapping"
     stage: 8
     description: |
@@ -603,6 +629,9 @@ rules:
     edit_risk: LOW
 
   - id: procurement.contract_reference_derivation
+    implemented: implemented
+    fires_as: "procurement.contract_reference_derivation"
+    implementation_note: "cross-file recon"
     name: "Contract Reference Derivation (is_contracted Flag)"
     stage: 8
     description: |
@@ -636,6 +665,8 @@ rules:
     edit_risk: HIGH
 
   - id: procurement.short_text_pac_detection
+    implemented: implemented
+    fires_as: "procurement.short_text_pac_detection"
     name: "Short Text PAC Detection (Sole-Source Heuristic)"
     stage: 8
     description: |
@@ -671,6 +702,8 @@ rules:
   # pillar analyses consume.
 
   - id: procurement.category_aligned_to_industry_taxonomy
+    implemented: handled_at_other_stage
+    implementation_note: "Stage 9 archetype mapping"
     name: "Category Classification — Canonical Industry Taxonomy Alignment"
     stage: 9
     description: |
