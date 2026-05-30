@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Button, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
+import { DataQualityContext, KpiSummaryStrip } from "../design/patterns.jsx";
 import { api, postDownload } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { useIntel } from "../hooks/useIntel.js";
 
 /* Stage 28 — Findings Deck.
    Lists persisted findings from all pillar runs (op-model, doa, buying-channel,
@@ -17,6 +19,7 @@ const PILLAR_LABELS = {
 
 const FindingsDeck = () => {
   const { engagement, loading: engLoading } = useEngagement();
+  const { data: intel } = useIntel(engagement);
   const [findings, setFindings] = useState([]);
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +82,15 @@ const FindingsDeck = () => {
   return (
     <div>
       <Header />
+      <DataQualityContext intel={intel} />
+      {intel?.methodology_kpis && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
+            Methodology KPIs · context for findings
+          </div>
+          <KpiSummaryStrip kpis={intel.methodology_kpis.filter((k) => k.available)} />
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <Tabs items={tabItems} value={pillarTab} onChange={setPillarTab} />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

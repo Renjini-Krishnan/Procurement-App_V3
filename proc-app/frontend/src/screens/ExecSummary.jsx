@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Button, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { MaturityGauge } from "../design/patterns.jsx";
+import { MaturityGauge, DataQualityContext, KpiSummaryStrip } from "../design/patterns.jsx";
 import { api, postDownload } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { useIntel } from "../hooks/useIntel.js";
 import SignoffWidget from "./SignoffWidget.jsx";
 
 /* Stage 29 — Exec Summary. Runs the KPI dashboard once and renders a
@@ -18,6 +19,7 @@ const PILLAR_LABELS = {
 
 const ExecSummary = () => {
   const { engagement, loading: engLoading } = useEngagement();
+  const { data: intel } = useIntel(engagement);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,6 +59,17 @@ const ExecSummary = () => {
   return (
     <div>
       <Header />
+      <DataQualityContext intel={intel} />
+
+      {/* Methodology KPI strip */}
+      {intel?.methodology_kpis && (
+        <div style={{ marginBottom: 24 }}>
+          <Label>Methodology KPIs · vs benchmark</Label>
+          <div style={{ marginTop: 8 }}>
+            <KpiSummaryStrip kpis={intel.methodology_kpis.filter((k) => k.available)} />
+          </div>
+        </div>
+      )}
 
       {/* Hero — overall maturity */}
       <Card padding={32}>

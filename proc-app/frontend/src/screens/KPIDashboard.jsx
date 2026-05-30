@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Card, Badge, Callout, Input, Select, Button } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { MaturityGauge } from "../design/patterns.jsx";
+import { MaturityGauge, DataQualityContext, KpiSummaryStrip } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { useIntel } from "../hooks/useIntel.js";
 
 /* Stage 30 — KPI Dashboard
    Runs all 4 pillars, assembles unified KPI list, then:
@@ -29,6 +30,7 @@ const STATUS_META = {
 
 const KPIDashboard = () => {
   const { engagement, loading: engLoading } = useEngagement();
+  const { data: intel } = useIntel(engagement);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -130,7 +132,17 @@ const KPIDashboard = () => {
   return (
     <div>
       <Header />
+      <DataQualityContext intel={intel} />
       <PortfolioHero data={data} />
+
+      {intel?.methodology_kpis && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
+            Stage 10 methodology KPIs (canonical-aware)
+          </div>
+          <KpiSummaryStrip kpis={intel.methodology_kpis.filter((k) => k.available)} />
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 24, marginTop: 24 }}>
         <Sidebar

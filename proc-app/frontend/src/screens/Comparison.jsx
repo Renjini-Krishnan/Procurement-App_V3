@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
+import { DataQualityContext } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { useIntel } from "../hooks/useIntel.js";
 
 /* Comparison view — current vs prior pillar runs.
    Shows per-pillar score delta + theme-level deltas + score history mini chart. */
@@ -16,6 +18,7 @@ const PILLAR_LABELS = {
 
 const Comparison = () => {
   const { engagement, loading: engLoading } = useEngagement();
+  const { data: intel } = useIntel(engagement);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,6 +62,7 @@ const Comparison = () => {
   return (
     <div>
       <Header />
+      <DataQualityContext intel={intel} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 24 }}>
         {comps.map((c) => <PillarCompCard key={c.pillar} c={c} />)}

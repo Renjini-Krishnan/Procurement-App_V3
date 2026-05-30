@@ -7,11 +7,13 @@ import { useEngagement } from "../hooks/useEngagement.js";
 /* Central export hub — every downloadable artefact in one place + history. */
 
 const EXPORTS = [
-  { id: "bronze-csv",      label: "Bronze data",        format: "CSV",  desc: "Cleansed PO data after type coercion + vendor dedup + currency normalisation", path: api.exportBronzeCsvPath },
-  { id: "gold-csv",        label: "Gold data",          format: "CSV",  desc: "Enriched data with category archetype classification (Stage 9 applied)",      path: api.exportGoldCsvPath },
-  { id: "kpis-xlsx",       label: "KPI workbook",       format: "XLSX", desc: "3 sheets — KPIs, Pillar summary, Findings", path: api.exportKpisXlsxPath },
-  { id: "findings-deck",   label: "Findings deck",      format: "PPTX", desc: "8-slide deck — cover · exec summary · per-pillar detail · attention · appendix", path: api.exportFindingsDeckPath },
-  { id: "exec-summary",    label: "Executive summary",  format: "PPTX", desc: "3-slide briefing — cover · exec summary · pillar overview", path: api.exportExecSummaryPath },
+  { id: "bronze-csv",      label: "Bronze data",        format: "CSV",  desc: "Cleansed PO data after type coercion + vendor dedup + currency normalisation", path: api.exportBronzeCsvPath, method: "POST" },
+  { id: "gold-csv",        label: "Gold data",          format: "CSV",  desc: "Enriched data with category archetype classification + canonical_id (Stage 9 applied)", path: api.exportGoldCsvPath, method: "POST" },
+  { id: "kpis-xlsx",       label: "KPI workbook",       format: "XLSX", desc: "3 sheets — KPIs, Pillar summary, Findings", path: api.exportKpisXlsxPath, method: "POST" },
+  { id: "kpis-csv",        label: "KPI matrix",         format: "CSV",  desc: "Stage 10 flat matrix — one row per (KPI × dimension × value). Portfolio + per-archetype + per-canonical. Includes benchmark + DQ columns.", url: api.kpisExportCsvUrl, method: "GET" },
+  { id: "cleansing-csv",   label: "Cleansing report",   format: "CSV",  desc: "Stage 7 full per-file cleansing + cross-file recon entries with severity, rows_affected and details_json.", url: (id) => api.cleansingReportCsvUrl(id, "all"), method: "GET" },
+  { id: "findings-deck",   label: "Findings deck",      format: "PPTX", desc: "8-slide deck — cover · exec summary · per-pillar detail · attention · appendix", path: api.exportFindingsDeckPath, method: "POST" },
+  { id: "exec-summary",    label: "Executive summary",  format: "PPTX", desc: "3-slide briefing — cover · exec summary · pillar overview", path: api.exportExecSummaryPath, method: "POST" },
 ];
 
 const FORMAT_TONES = {
@@ -78,9 +80,18 @@ const ExportCenter = () => {
     if (uploads.length === 0) { alert("Upload PO data first (Stage 4)."); return; }
     setBusy((b) => ({ ...b, [item.id]: true }));
     try {
-      await postDownload(item.path(engagement.id), {
-        upload_id: uploads[0].id, industry: engagement.industry,
-      }, `${item.id}.${item.format.toLowerCase()}`);
+      if (item.method === "GET" && item.url) {
+        // Simple GET — open via anchor href
+        const url = item.url(engagement.id);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${item.id}.${item.format.toLowerCase()}`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } else {
+        await postDownload(item.path(engagement.id), {
+          upload_id: uploads[0].id, industry: engagement.industry,
+        }, `${item.id}.${item.format.toLowerCase()}`);
+      }
       recordHistory(item);
     } catch (e) {
       alert(`${item.label} failed: ${e.message || e}`);

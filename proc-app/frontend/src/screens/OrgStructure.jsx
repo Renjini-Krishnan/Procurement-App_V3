@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
@@ -76,6 +76,7 @@ const OrgStructure = () => {
   return (
     <div>
       <Header />
+      <DataQualityContext intel={data.intel_context} />
       <PillarHero data={data} />
 
       <Callout tone="info" title="V1 limitation" icon={<I.Doc size={16} />}>

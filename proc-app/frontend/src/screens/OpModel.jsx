@@ -4,6 +4,7 @@ import { I } from "../design/icons.jsx";
 import {
   ScoreBadge, MaturityGauge, RCACard, CitationChip,
   BenchmarkCascade, VolumeValueQuadrant, PerCategoryMatrix,
+  DataQualityContext,
 } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
@@ -82,6 +83,8 @@ const OpModel = () => {
   return (
     <div>
       <Header phase="Analyze" stage={12} title="Op Model" subtitle="4 themes · 24 components · Steel industry overlay applied" />
+
+      <DataQualityContext intel={data.intel_context} />
 
       {/* Hero row: pillar score + key metrics */}
       <PillarHero data={data} />

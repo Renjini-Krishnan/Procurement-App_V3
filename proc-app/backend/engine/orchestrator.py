@@ -77,10 +77,14 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     }
     rca_cards = rca_engine.run_rca_op_model(theme_outputs)
 
+    # Attach intel context for the DataQualityContext header strip
+    intel_context = _build_intel_context(df_classified, industry, engagement_id)
+
     timings["total"] = round(time.time() - t0, 2)
 
     result = {
         "engagement_id": engagement_id,
+        "intel_context": intel_context,
         "upload_id": upload_id,
         "pillar": "op-model",
         "industry": industry,
@@ -294,6 +298,43 @@ def _load_qre(engagement_id: str) -> dict:
     return {"responses": []}
 
 
+def _build_intel_context(df_classified: 'pd.DataFrame', industry: str,
+                          engagement_id: str) -> dict:
+    """Lightweight intel context for pillar screens. Adds canonical
+    classification stats + portfolio summary + (optionally) cached DQS.
+    Runs the canonical classifier on the already-classified df."""
+    from . import stage9_canonical_classify
+    out: dict = {"industry": industry}
+    try:
+        df_w_canon, canon_report = stage9_canonical_classify.classify_canonical(
+            df_classified, industry=industry,
+        )
+        out["canonical_classification"] = {
+            "industry": industry,
+            "taxonomy_canonicals": canon_report.get("taxonomy_canonicals"),
+            "stats": canon_report.get("stats", {}),
+        }
+    except Exception:
+        out["canonical_classification"] = {}
+    # Portfolio
+    try:
+        spend_col = "net_value_inr" if "net_value_inr" in df_classified.columns else "net_value"
+        spend = 0.0
+        if spend_col in df_classified.columns:
+            spend = float(pd.to_numeric(df_classified[spend_col], errors="coerce").fillna(0).sum())
+        out["portfolio_summary"] = {
+            "total_po_count": int(df_classified["po_number"].nunique()) if "po_number" in df_classified.columns else 0,
+            "total_spend_inr": spend,
+        }
+    except Exception:
+        out["portfolio_summary"] = {}
+    # DQS — compute only if we can get per_upload_reports cheaply. Skip in
+    # pillar context to avoid recomputing the multi-upload bronze pass.
+    out["data_quality_score"] = None
+    out["pillar_feasibility"] = {}
+    return out
+
+
 def _persist_findings(engagement_id: str, result: dict) -> None:
     """Persist a small set of high-level findings to the findings table for later
     UI retrieval. V1 stores theme-level headlines + key metrics."""
@@ -363,6 +404,7 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     db.update_engagement_stage(engagement_id, 15)
     _persist_findings_doa(engagement_id, result)
     _record_run(engagement_id, "doa", result)
+    result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
 
     return result
 
@@ -413,6 +455,7 @@ def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str 
     db.update_engagement_stage(engagement_id, 17)
     _persist_findings_generic(engagement_id, result, "buying-channel")
     _record_run(engagement_id, "buying-channel", result)
+    result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     return result
 
 
@@ -450,6 +493,7 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     db.update_engagement_stage(engagement_id, 14)
     _persist_findings_generic(engagement_id, result, "org-structure")
     _record_run(engagement_id, "org-structure", result)
+    result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     return result
 
 

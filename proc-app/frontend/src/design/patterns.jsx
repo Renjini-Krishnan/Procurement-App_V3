@@ -275,3 +275,148 @@ const tdHead = {
   color: "var(--ink-600)", borderBottom: "1px solid var(--border-default)",
 };
 const tdCell = { padding: "10px 12px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-800)" };
+
+
+/* ===========================================================================
+ * DataQualityContext — shared header strip showing DQS + dataset shape +
+ * canonical classification. Drop at the top of any Analyze stage so the
+ * consultant always knows the trustworthiness of the data behind the verdict.
+ * Consumes the run_intel response shape from orchestrator.
+ * ======================================================================== */
+
+const DQS_BAND = {
+  HIGH:       { bg: "var(--success-50)", fg: "var(--success-700)" },
+  GOOD:       { bg: "var(--success-50)", fg: "var(--success-700)" },
+  ACCEPTABLE: { bg: "var(--warn-50)",    fg: "var(--warn-700)" },
+  LOW:        { bg: "var(--warn-50)",    fg: "var(--warn-700)" },
+  VERY_LOW:   { bg: "var(--danger-50)",  fg: "var(--danger-700)" },
+};
+
+export const DataQualityContext = ({ intel }) => {
+  if (!intel) return null;
+  const dqs = intel.data_quality_score || {};
+  const cc = intel.canonical_classification || {};
+  const port = intel.portfolio_summary || {};
+  const band = DQS_BAND[dqs.band] || { bg: "var(--surface-sunk)", fg: "var(--ink-600)" };
+  const items = [];
+  if (dqs.score !== undefined) {
+    items.push({
+      label: "Data quality",
+      value: `${dqs.score} · ${dqs.band || "—"}`,
+      tone: band,
+      tip: dqs.band_interpretation,
+    });
+  }
+  if (port.total_po_count) {
+    items.push({ label: "POs", value: port.total_po_count.toLocaleString("en-IN") });
+  }
+  if (port.total_spend_inr) {
+    items.push({ label: "Spend", value: `₹${(port.total_spend_inr / 1e7).toFixed(1)} Cr` });
+  }
+  if (cc.taxonomy_canonicals) {
+    items.push({
+      label: "Canonicals",
+      value: `${cc.taxonomy_canonicals} (${cc.stats?.canonicals_assigned?.toLocaleString("en-IN") || 0} rows assigned)`,
+    });
+  }
+  if (cc.stats?.unclassified_pct !== undefined) {
+    items.push({
+      label: "Unclassified",
+      value: `${cc.stats.unclassified_pct}%`,
+      tone: cc.stats.unclassified_pct > 15
+        ? { bg: "var(--warn-50)", fg: "var(--warn-700)" } : undefined,
+    });
+  }
+  const feasibility = intel.pillar_feasibility || {};
+  return (
+    <div style={{
+      display: "flex", flexWrap: "wrap", gap: 8, padding: 12,
+      background: "var(--surface-sunk)", border: "1px solid var(--border-subtle)",
+      borderRadius: "var(--r-md)", marginBottom: 16,
+    }}>
+      {items.map((it) => {
+        const tone = it.tone || { bg: "transparent", fg: "var(--ink-700)" };
+        return (
+          <div key={it.label} title={it.tip || ""}
+                style={{ display: "flex", flexDirection: "column", padding: "2px 12px",
+                          borderRight: "1px solid var(--border-subtle)" }}>
+            <span style={{ fontSize: "var(--fs-10)", color: "var(--ink-500)",
+                            textTransform: "uppercase", letterSpacing: "0.08em" }}>{it.label}</span>
+            <span style={{ fontSize: "var(--fs-13)", fontWeight: 600,
+                            color: tone.fg, background: tone.bg === "transparent" ? "none" : tone.bg,
+                            padding: tone.bg !== "transparent" ? "1px 6px" : 0,
+                            borderRadius: tone.bg !== "transparent" ? 4 : 0,
+                            marginTop: 2, display: "inline-block" }}>
+              {it.value}
+            </span>
+          </div>
+        );
+      })}
+      {Object.keys(feasibility).length > 0 && (
+        <details style={{ marginLeft: "auto" }}>
+          <summary style={{ cursor: "pointer", fontSize: "var(--fs-11)", color: "var(--ink-600)", padding: "4px 8px" }}>
+            Pillar feasibility ▾
+          </summary>
+          <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {Object.entries(feasibility).map(([p, v]) => {
+              const tone = v.tier === "high" ? { bg: "var(--success-50)", fg: "var(--success-700)" }
+                          : v.tier === "medium" ? { bg: "var(--warn-50)", fg: "var(--warn-700)" }
+                          : v.tier === "skip" ? { bg: "var(--danger-50)", fg: "var(--danger-700)" }
+                          : { bg: "var(--surface-card)", fg: "var(--ink-600)" };
+              return (
+                <span key={p} style={{ background: tone.bg, color: tone.fg, padding: "1px 8px",
+                                          borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600,
+                                          textTransform: "uppercase" }}>
+                  {p}: {v.tier}
+                </span>
+              );
+            })}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+};
+
+
+/* ===========================================================================
+ * KpiSummaryStrip — compact KPI scorecard. One pill per KPI showing value
+ * + benchmark verdict. Used by FindingsDeck and ExecSummary.
+ * ======================================================================== */
+
+export const KpiSummaryStrip = ({ kpis }) => {
+  if (!Array.isArray(kpis) || kpis.length === 0) return null;
+  const tone = (pos) => {
+    if (pos === "above_typical_good" || pos === "below_typical_good") return { bg: "var(--success-50)", fg: "var(--success-700)" };
+    if (pos === "within_typical") return { bg: "var(--surface-sunk)", fg: "var(--ink-700)" };
+    if (pos === "above_typical_bad" || pos === "below_typical") return { bg: "var(--warn-50)", fg: "var(--warn-700)" };
+    return { bg: "var(--surface-card)", fg: "var(--ink-500)" };
+  };
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+      {kpis.map((k) => {
+        const b = k.benchmark || {};
+        const t = tone(b.your_position);
+        const v = k.value == null ? "—" : (typeof k.value === "number" ? k.value.toLocaleString("en-IN", { maximumFractionDigits: 1 }) : k.value);
+        return (
+          <div key={k.id} style={{
+            background: t.bg, padding: "10px 12px", borderRadius: "var(--r-md)",
+            border: `1px solid ${t.fg}22`,
+          }}>
+            <div style={{ fontSize: "var(--fs-10)", color: "var(--ink-500)", textTransform: "uppercase",
+                            letterSpacing: "0.08em" }}>{k.label}</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
+              <span style={{ fontSize: "var(--fs-18)", fontWeight: 600, color: t.fg }}>{v}</span>
+              <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{k.unit}</span>
+            </div>
+            {b.typical_low != null && (
+              <div style={{ fontSize: "var(--fs-10)", color: "var(--ink-500)", marginTop: 2 }}>
+                vs typ {b.typical_low}–{b.typical_high}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
