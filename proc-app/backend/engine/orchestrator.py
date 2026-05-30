@@ -151,6 +151,11 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     # Multi-upload cleansing + cross-file recon (V2)
     per_upload_reports, cross_file_report = _run_multi_upload_bronze(engagement_id, lookback_months=_load_scope_lookback(engagement_id))
 
+    # Data Quality Score + Pillar Feasibility (KB-PART-5)
+    from . import cleansing_engine
+    dqs = cleansing_engine.compute_data_quality_score(per_upload_reports, cross_file_report)
+    pillar_feasibility = cleansing_engine.compute_pillar_feasibility(per_upload_reports, cross_file_report, dqs)
+
     return {
         "engagement_id": engagement_id,
         "upload_id": upload_id,
@@ -164,6 +169,8 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         "cleansing_report": cleansing_report,
         "per_upload_reports": per_upload_reports,
         "cross_file_recon": cross_file_report,
+        "data_quality_score": dqs,
+        "pillar_feasibility": pillar_feasibility,
         "methodology_kpis": methodology,
         "timings_seconds": {"total": round(time.time() - t0, 2)},
     }

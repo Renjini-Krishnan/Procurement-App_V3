@@ -1,0 +1,254 @@
+# =============================================================================
+# Bronze Validation Rules
+# =============================================================================
+# Purpose: Structural validation rules applied at Stage 5 (AI Validation) and
+#          Stage 6 (User Validation) before data is promoted to Bronze.
+#
+# Logic Embodied: For each data template, define mandatory columns, data types,
+#                 completeness thresholds, and structural anomaly detection.
+#                 Engine runs these rules at Stage 5; flags raised to UI for
+#                 Stage 6 consultant review.
+# =============================================================================
+
+metadata:
+  id: bronze-validation-rules
+  layer: function
+  function: procurement
+  domain: data-cleansing
+  version: 1.0
+  last_updated: 2026-05-28
+  owner: kb-admin
+  status: active
+
+# =============================================================================
+# FILE-LEVEL VALIDATION (applied before any column-level checks)
+# =============================================================================
+
+file_level_rules:
+
+  - rule_id: file_format_supported
+    description: "File must be CSV, XLSX, XLS, or TSV"
+    severity: blocking
+    detection: |
+      Check file extension + MIME type. Reject PDF, DOC, RTF.
+    action_on_fail: REJECT_UPLOAD
+
+  - rule_id: file_size_within_limit
+    description: "File size <= 100 MB"
+    severity: blocking
+    detection: file size > 100 MB
+    action_on_fail: REJECT_UPLOAD
+
+  - rule_id: encoding_valid
+    description: "UTF-8, UTF-16, or ISO-8859-1 encoding"
+    severity: blocking
+    detection: parser cannot decode file
+    action_on_fail: REJECT_UPLOAD
+
+  - rule_id: header_row_present
+    description: "First row contains column headers (not data)"
+    severity: blocking
+    detection: |
+      Heuristic: first row contains mostly text; all subsequent rows have
+      numbers / dates in expected positions.
+    action_on_fail: REQUEST_HEADER_ROW_CONFIRMATION
+
+  - rule_id: minimum_row_count
+    description: "Data file has at least 10 data rows"
+    severity: warning
+    detection: data row count < 10
+    action_on_fail: FLAG_FOR_REVIEW
+    note: "Could be a small client OR truncated upload"
+
+  - rule_id: maximum_row_count
+    description: "Data file has at most 5 million data rows"
+    severity: blocking
+    detection: data row count > 5,000,000
+    action_on_fail: REQUEST_FILE_SPLIT
+    note: "Single file performance — split into multiple uploads"
+
+# =============================================================================
+# COLUMN-LEVEL VALIDATION
+# =============================================================================
+# Per template, define required + optional columns with their types
+# =============================================================================
+
+column_rules:
+
+  po_dump:
+    required_columns:
+      - { name: po_id, type: string, max_null_pct: 0 }
+      - { name: po_date, type: date, max_null_pct: 0 }
+      - { name: vendor_id, type: string, max_null_pct: 5 }
+      - { name: vendor_name, type: string, max_null_pct: 5 }
+      - { name: material_code, type: string, max_null_pct: 30, note: "Often blank for services POs" }
+      - { name: material_description, type: string, max_null_pct: 10 }
+      - { name: quantity, type: number, max_null_pct: 30 }
+      - { name: uom, type: string, max_null_pct: 30 }
+      - { name: unit_price, type: number, max_null_pct: 30 }
+      - { name: po_value, type: number, max_null_pct: 0 }
+      - { name: po_currency, type: string, max_null_pct: 0, default: INR }
+      - { name: plant, type: string, max_null_pct: 5 }
+      - { name: buying_entity, type: string, max_null_pct: 10, note: "central/plant/BU; may be derived in Stage 6" }
+      - { name: buyer_id, type: string, max_null_pct: 20 }
+      - { name: po_approver_designation, type: string, max_null_pct: 30 }
+
+    optional_columns:
+      - { name: po_approver_id, type: string }
+      - { name: bu, type: string }
+      - { name: cost_centre, type: string }
+      - { name: payment_terms, type: string }
+      - { name: po_type, type: string, allowed: [capex, opex, services, pac, emergency] }
+      - { name: hsn_code, type: string }
+      - { name: sac_code, type: string }
+      - { name: gst_rate_pct, type: number }
+      - { name: contract_ref, type: string }
+      - { name: rate_contract_flag, type: boolean }
+
+    rules:
+      - rule_id: po_id_unique
+        description: "po_id must be unique within file"
+        severity: warning
+        action_on_fail: FLAG_DUPLICATES
+      - rule_id: po_value_positive
+        description: "po_value > 0"
+        severity: warning
+        detection: po_value <= 0
+        action_on_fail: FLAG_FOR_REVIEW
+        note: "Could be credit note OR data error"
+      - rule_id: po_date_within_range
+        description: "po_date within last 5 years OR within configured engagement window"
+        severity: warning
+        detection: po_date outside [engagement.from_date, engagement.to_date]
+
+  pr:
+    required_columns:
+      - { name: pr_id, type: string, max_null_pct: 0 }
+      - { name: pr_date, type: date, max_null_pct: 0 }
+      - { name: requester_id, type: string, max_null_pct: 5 }
+      - { name: pr_value_estimated, type: number, max_null_pct: 10 }
+      - { name: category, type: string, max_null_pct: 20 }
+      - { name: approval_status, type: string, allowed: [approved, rejected, pending], max_null_pct: 0 }
+      - { name: po_id, type: string, max_null_pct: 30, note: "Blank for pending/rejected PRs" }
+
+    rules:
+      - rule_id: pr_date_before_po_date
+        description: "If po_id present, pr_date <= po_date"
+        severity: warning
+
+  grn:
+    required_columns:
+      - { name: grn_id, type: string, max_null_pct: 0 }
+      - { name: po_id, type: string, max_null_pct: 0 }
+      - { name: grn_date, type: date, max_null_pct: 0 }
+      - { name: quantity_received, type: number, max_null_pct: 0 }
+      - { name: quantity_accepted, type: number, max_null_pct: 0 }
+      - { name: quantity_rejected, type: number, max_null_pct: 5, default: 0 }
+
+    rules:
+      - rule_id: grn_quantity_balance
+        description: "quantity_accepted + quantity_rejected = quantity_received"
+        severity: warning
+
+  invoice:
+    required_columns:
+      - { name: invoice_id, type: string, max_null_pct: 0 }
+      - { name: po_id, type: string, max_null_pct: 5 }
+      - { name: invoice_date, type: date, max_null_pct: 0 }
+      - { name: vendor_id, type: string, max_null_pct: 0 }
+      - { name: invoice_value, type: number, max_null_pct: 0 }
+      - { name: invoice_currency, type: string, max_null_pct: 0 }
+      - { name: gst_amount, type: number, max_null_pct: 15, note: "Indian context" }
+      - { name: payment_status, type: string, allowed: [paid, pending, partial], max_null_pct: 5 }
+
+  material_master:
+    required_columns:
+      - { name: material_code, type: string, max_null_pct: 0 }
+      - { name: material_description, type: string, max_null_pct: 0 }
+      - { name: category, type: string, max_null_pct: 10 }
+      - { name: uom, type: string, max_null_pct: 5 }
+      - { name: active_flag, type: boolean, max_null_pct: 0, default: true }
+
+  vendor_master:
+    required_columns:
+      - { name: vendor_id, type: string, max_null_pct: 0 }
+      - { name: vendor_name, type: string, max_null_pct: 0 }
+      - { name: gstin, type: string, max_null_pct: 15, note: "Indian; may be blank for foreign vendors" }
+      - { name: pan, type: string, max_null_pct: 10 }
+      - { name: msme_flag, type: boolean, max_null_pct: 20, default: false }
+      - { name: active_flag, type: boolean, max_null_pct: 0, default: true }
+
+    optional_columns:
+      - { name: vendor_category, type: string }
+      - { name: country, type: string, default: IN }
+      - { name: city, type: string }
+      - { name: payment_terms, type: string }
+      - { name: bank_account_no, type: string }
+      - { name: contact_email, type: string }
+
+  org_structure:
+    required_columns:
+      - { name: employee_id, type: string, max_null_pct: 0 }
+      - { name: employee_name, type: string, max_null_pct: 0 }
+      - { name: role_title, type: string, max_null_pct: 5 }
+      - { name: designation, type: string, max_null_pct: 5 }
+      - { name: entity, type: string, max_null_pct: 5, note: "central / plant_X / BU_X" }
+      - { name: reports_to, type: string, max_null_pct: 30, note: "~60% raw typical; Stage 6 uplift target 78%" }
+      - { name: active_flag, type: boolean, max_null_pct: 0, default: true }
+
+    optional_columns:
+      - { name: function, type: string }
+      - { name: cost_centre, type: string }
+      - { name: location, type: string }
+      - { name: hire_date, type: date }
+
+  vendor_performance:
+    required_columns:
+      - { name: vendor_id, type: string, max_null_pct: 0 }
+      - { name: period, type: date, max_null_pct: 0 }
+      - { name: otd_pct, type: number, max_null_pct: 10 }
+      - { name: quality_pct, type: number, max_null_pct: 10 }
+
+# =============================================================================
+# UNIVERSAL CELL-LEVEL CHECKS
+# =============================================================================
+
+universal_cell_checks:
+
+  - rule_id: date_parseable
+    description: "All date cells parse to valid ISO date"
+    severity: warning
+    formats_accepted: [YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, DD-MMM-YYYY, MM/DD/YYYY]
+    action_on_ambiguous: FLAG_FOR_FORMAT_CONFIRMATION
+    note: "DD/MM vs MM/DD ambiguity → request explicit format from user"
+
+  - rule_id: number_parseable
+    description: "All number cells parse to valid numeric"
+    severity: warning
+    handle_thousands_separator: true   # 1,00,000 (Indian) and 100,000 (Western) both OK
+    handle_currency_prefix: true       # ₹100, $100, etc.
+
+  - rule_id: text_encoding_clean
+    description: "No mojibake (encoding errors)"
+    severity: warning
+    detection: presence of replacement chars (�) or known mojibake patterns
+    action_on_fail: REQUEST_FILE_RE_UPLOAD
+
+  - rule_id: no_html_artefacts
+    description: "No HTML tags / entities in cells"
+    severity: warning
+    detection: presence of <tag>, &nbsp;, &amp;, etc.
+    action_on_fail: STRIP_AND_FLAG
+
+  - rule_id: trim_whitespace
+    description: "Strip leading/trailing whitespace from all text cells"
+    severity: auto-fix
+    note: "Applied silently; no flag"
+
+# =============================================================================
+# Editable Configuration
+# Adding a required column: HIGH risk (partner) — affects all engagements
+# Changing max_null_pct thresholds: MEDIUM (peer)
+# Changing severity: MEDIUM
+# Universal cell checks: HIGH (changes core parsing behaviour)
+# =============================================================================

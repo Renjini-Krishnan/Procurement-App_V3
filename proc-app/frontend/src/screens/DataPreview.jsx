@@ -32,6 +32,14 @@ const DataPreview = ({ stage, title, phase, blurb }) => {
         <>
           <SummaryGrid summary={data.gold_summary} />
 
+          {stage === 7 && data.data_quality_score && (
+            <DataQualityScoreCard dqs={data.data_quality_score} />
+          )}
+
+          {stage === 7 && data.pillar_feasibility && (
+            <PillarFeasibilityCard feasibility={data.pillar_feasibility} />
+          )}
+
           {stage === 7 && data.cross_file_recon && (
             <CrossFileReconCard recon={data.cross_file_recon} engagementId={engagement.id} />
           )}
@@ -90,6 +98,156 @@ const SEVERITY_TONES = {
   warn: { bg: "var(--warn-50)", fg: "var(--warn-700)", border: "var(--warn-500)" },
   info: { bg: "var(--surface-sunk)", fg: "var(--ink-600)", border: "var(--ink-300)" },
 };
+
+// ─── Data Quality Score card (KB-PART-5 formula) ─────────────────────────
+
+const DQS_BAND_COLOR = {
+  HIGH: { bg: "var(--success-50)", fg: "var(--success-700)", bar: "var(--success-500)" },
+  GOOD: { bg: "var(--success-50)", fg: "var(--success-700)", bar: "var(--success-500)" },
+  ACCEPTABLE: { bg: "var(--warn-50)", fg: "var(--warn-700)", bar: "var(--warn-500)" },
+  LOW: { bg: "var(--warn-50)", fg: "var(--warn-700)", bar: "var(--warn-500)" },
+  VERY_LOW: { bg: "var(--danger-50)", fg: "var(--danger-700)", bar: "var(--danger-500)" },
+};
+
+const DataQualityScoreCard = ({ dqs }) => {
+  const palette = DQS_BAND_COLOR[dqs.band] || DQS_BAND_COLOR.ACCEPTABLE;
+  const Bar = ({ value }) => (
+    <div style={{ width: "100%", height: 6, background: "var(--surface-sunk)", borderRadius: 3, overflow: "hidden", marginTop: 4 }}>
+      <div style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: "100%", background: palette.bar }} />
+    </div>
+  );
+  return (
+    <div style={{ marginTop: 24 }}>
+      <Card padding={20}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)" }}>
+              Data Quality Score · KB-PART-5
+            </div>
+            <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-600)", marginTop: 4 }}>
+              0.40 × completeness + 0.30 × validity + 0.30 × consistency
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "var(--fs-36)", fontWeight: 700, color: palette.fg, lineHeight: 1 }}>
+              {dqs.score}
+              <span style={{ fontSize: "var(--fs-16)", color: "var(--ink-500)", fontWeight: 400 }}> / 100</span>
+            </div>
+            <span style={{ display: "inline-block", marginTop: 6,
+                            background: palette.bg, color: palette.fg,
+                            padding: "3px 10px", borderRadius: "var(--r-pill)",
+                            fontSize: "var(--fs-12)", fontWeight: 600 }}>
+              {dqs.band}
+            </span>
+          </div>
+        </div>
+        <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-700)", marginBottom: 14 }}>
+          {dqs.band_interpretation}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Completeness · 40%</div>
+            <div style={{ fontSize: "var(--fs-20)", fontWeight: 600, marginTop: 4 }}>{dqs.components.completeness_pct}%</div>
+            <Bar value={dqs.components.completeness_pct} />
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 6 }}>
+              % of required fields populated across templates
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Validity · 30%</div>
+            <div style={{ fontSize: "var(--fs-20)", fontWeight: 600, marginTop: 4 }}>{dqs.components.validity_pct}%</div>
+            <Bar value={dqs.components.validity_pct} />
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 6 }}>
+              % of rows passing cleansing rules (warn = ½ penalty, drop = full)
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Consistency · 30%</div>
+            <div style={{ fontSize: "var(--fs-20)", fontWeight: 600, marginTop: 4 }}>{dqs.components.consistency_pct}%</div>
+            <Bar value={dqs.components.consistency_pct} />
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 6 }}>
+              {dqs.cross_file_rules_passed} of {dqs.cross_file_rules_total} cross-file rules passed
+            </div>
+          </div>
+        </div>
+        {dqs.per_template_completeness && Object.keys(dqs.per_template_completeness).length > 0 && (
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+              Per-template completeness × validity
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {Object.entries(dqs.per_template_completeness).map(([ft, c]) => {
+                const v = (dqs.per_template_validity || {})[ft];
+                return (
+                  <span key={ft} style={{
+                    background: "var(--surface-sunk)", padding: "4px 10px", borderRadius: "var(--r-md)",
+                    fontSize: "var(--fs-12)", color: "var(--ink-700)",
+                  }}>
+                    <strong>{ft}</strong> · {c}% complete · {v}% valid
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+// ─── Pillar Feasibility card ─────────────────────────────────────────────
+
+const TIER_TONE = {
+  high:   { bg: "var(--success-50)", fg: "var(--success-700)" },
+  medium: { bg: "var(--warn-50)", fg: "var(--warn-700)" },
+  low:    { bg: "var(--warn-50)", fg: "var(--warn-700)" },
+  skip:   { bg: "var(--danger-50)", fg: "var(--danger-700)" },
+};
+
+const PILLAR_LABELS = {
+  op_model: "Op Model", org_structure: "Org Structure", doa: "DoA",
+  buying_channel: "Buying Channel", pr_to_po: "PR-to-PO",
+  post_po: "Post-PO", material_master: "Material Master", supplier: "Supplier",
+};
+
+const PillarFeasibilityCard = ({ feasibility }) => (
+  <div style={{ marginTop: 16 }}>
+    <Card padding={20}>
+      <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 4 }}>
+        Pillar feasibility gates · KB-PART-5
+      </div>
+      <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-600)", marginBottom: 12 }}>
+        Confidence tier per pillar, based on uploaded templates + completeness thresholds.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
+        {Object.entries(feasibility).map(([k, v]) => {
+          const tone = TIER_TONE[v.tier] || TIER_TONE.skip;
+          return (
+            <div key={k} style={{
+              border: "1px solid var(--border-subtle)", borderRadius: "var(--r-md)",
+              padding: "10px 12px",
+            }}>
+              <div style={{ fontSize: "var(--fs-13)", fontWeight: 500, color: "var(--ink-900)" }}>
+                {PILLAR_LABELS[k] || k}
+              </div>
+              <span style={{
+                display: "inline-block", marginTop: 6,
+                background: tone.bg, color: tone.fg,
+                padding: "2px 8px", borderRadius: "var(--r-pill)",
+                fontSize: "var(--fs-11)", fontWeight: 600, textTransform: "uppercase",
+              }}>{v.tier}</span>
+              {v.reason && (
+                <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)", marginTop: 4 }}>
+                  {v.reason}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  </div>
+);
 
 // ─── Cross-file recon card ────────────────────────────────────────────────
 
@@ -305,6 +463,7 @@ const RuleAuditCard = () => {
   if (!audit) return null;
   const totals = audit.totals || {};
   const byStatus = totals.by_status || {};
+  const kb5ByStatus = totals.kb_part_5_by_status || {};
   return (
     <div style={{ marginTop: 24 }}>
       <Card padding={20}>
@@ -314,12 +473,18 @@ const RuleAuditCard = () => {
             <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)" }}>
               KB-vs-engine rule audit
             </div>
-            <div style={{ marginTop: 6, fontSize: "var(--fs-14)", color: "var(--ink-700)" }}>
-              <strong>{byStatus.implemented || 0}</strong> of <strong>{totals.yaml_rules_total}</strong> documented rules wired ·{" "}
-              <span style={{ color: "var(--danger-700)" }}>{byStatus.not_implemented || 0} not implemented</span> ·{" "}
-              <span style={{ color: "var(--info-700)" }}>{byStatus.handled_at_other_stage || 0} handled at other stages</span> ·{" "}
+            <div style={{ marginTop: 6, fontSize: "var(--fs-13)", color: "var(--ink-700)" }}>
+              <strong>Legacy YAML:</strong> {byStatus.implemented || 0} of {totals.yaml_rules_total} wired ·{" "}
+              <span style={{ color: "var(--danger-700)" }}>{byStatus.not_implemented || 0} unimplemented</span> ·{" "}
+              <span style={{ color: "var(--info-700)" }}>{byStatus.handled_at_other_stage || 0} elsewhere</span> ·{" "}
               <span style={{ color: "var(--ink-600)" }}>{byStatus.subsumed || 0} subsumed</span> ·{" "}
-              +{totals.engine_only_total} engine-only emit
+              +{totals.engine_only_total} engine-only
+            </div>
+            <div style={{ marginTop: 4, fontSize: "var(--fs-13)", color: "var(--ink-700)" }}>
+              <strong>KB-PART-5:</strong> {kb5ByStatus.implemented || 0} of {totals.kb_part_5_total} wired ·{" "}
+              <span style={{ color: "var(--danger-700)" }}>{kb5ByStatus.not_implemented || 0} unimplemented</span> ·{" "}
+              <span style={{ color: "var(--info-700)" }}>{kb5ByStatus.handled_at_other_stage || 0} elsewhere</span> ·{" "}
+              <span style={{ color: "var(--ink-600)" }}>{kb5ByStatus.subsumed || 0} subsumed</span>
             </div>
           </div>
           <span style={{ color: "var(--ink-500)" }}>{open ? "▾" : "▸"}</span>
@@ -360,6 +525,38 @@ const RuleAuditCard = () => {
                 ))}
               </tbody>
             </table>
+
+            {audit.kb_part_5_coverage && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: "var(--fs-11)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--ink-500)", marginBottom: 6 }}>
+                  KB-PART-5 coverage ({Object.keys(audit.kb_part_5_coverage).length} rules)
+                </div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-12)" }}>
+                  <thead>
+                    <tr>
+                      {["KB-PART-5 rule", "Status", "Engine emits", "Note"].map((h) => (
+                        <th key={h} style={{ textAlign: "left", padding: "6px 10px", fontSize: "var(--fs-11)", color: "var(--ink-500)", textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(audit.kb_part_5_coverage).map(([id, v]) => {
+                      const tone = STAT_TONES[v.stat] || STAT_TONES.subsumed;
+                      return (
+                        <tr key={id}>
+                          <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)" }}>{id}</td>
+                          <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                            <span style={{ background: tone.bg, color: tone.fg, padding: "1px 8px", borderRadius: "var(--r-pill)", fontSize: "var(--fs-11)", fontWeight: 600 }}>{v.stat}</span>
+                          </td>
+                          <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-600)" }}>{v.fires_as || "—"}</td>
+                          <td style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", color: "var(--ink-600)" }}>{v.note || ""}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </Card>

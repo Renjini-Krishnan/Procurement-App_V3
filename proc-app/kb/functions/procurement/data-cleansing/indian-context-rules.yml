@@ -1,0 +1,235 @@
+# =============================================================================
+# Indian-Context Data Cleansing Rules
+# =============================================================================
+# Purpose: India-specific data cleansing — GST, HSN/SAC codes, MSME compliance,
+#          INR currency primary, TDS thresholds, Companies Act references.
+# =============================================================================
+
+metadata:
+  id: indian-context-rules
+  layer: function
+  function: procurement
+  domain: data-cleansing
+  version: 1.0
+  last_updated: 2026-05-28
+  owner: kb-admin
+  status: active
+  geography: india
+
+# =============================================================================
+# GST VALIDATION
+# =============================================================================
+
+gst_rules:
+
+  - rule_id: gstin_format_validation
+    description: "GSTIN must conform to 15-char format"
+    regex: "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
+    structure: |
+      2-digit state code | 10-char PAN | 1-char entity type | Z | checksum
+    invalid_action: HITL_FLAG
+
+  - rule_id: state_code_in_gstin_matches_address
+    description: "First 2 digits of GSTIN should match vendor's state of registration"
+    state_codes_reference: |
+      01 = Jammu & Kashmir | 02 = Himachal Pradesh | ... | 27 = Maharashtra | 33 = Tamil Nadu | ...
+    invalid_action: HITL_FLAG_LOW_PRIORITY
+
+  - rule_id: gst_rate_validation
+    description: "GST rate should be 0%, 5%, 12%, 18%, or 28%"
+    allowed_rates: [0, 5, 12, 18, 28]
+    invalid_action: HITL_FLAG
+
+  - rule_id: input_tax_credit_eligibility
+    description: "Tag input tax credit eligibility"
+    logic: |
+      Input GST = po_value × gst_rate / 100
+      Eligible for ITC if:
+        - vendor_gstin valid
+        - HSN/SAC code present
+        - invoice within ITC timeframe (180 days from invoice date typical)
+      Tag: itc_eligible: true | false | partial
+
+# =============================================================================
+# HSN / SAC CODES
+# =============================================================================
+
+hsn_sac_rules:
+
+  - rule_id: hsn_code_format
+    description: "HSN code: 4 / 6 / 8 digit numeric"
+    regex: "^[0-9]{4,8}$"
+    note: "8-digit mandatory for invoices > ₹5 Cr (per GST mandates)"
+
+  - rule_id: sac_code_format
+    description: "SAC code: 6 digit numeric"
+    regex: "^[0-9]{6}$"
+
+  - rule_id: hsn_for_goods_sac_for_services
+    description: "Goods POs should have HSN; services POs should have SAC"
+    logic: |
+      If po_type = goods AND sac_code present (no hsn_code) → flag
+      If po_type = services AND hsn_code present (no sac_code) → flag
+
+  - rule_id: hsn_completeness_threshold
+    description: "≥ 90% of POs should have HSN/SAC code"
+    metric_type: percentage
+    threshold: 90
+    note: "Below this threshold = HSN/SAC discipline gap (audit finding)"
+
+# =============================================================================
+# MSME VALIDATION
+# =============================================================================
+
+msme_rules:
+
+  - rule_id: msme_flag_population
+    description: "Vendor.msme_flag should be populated"
+    severity: warning
+    detection: msme_flag IS NULL OR msme_flag NOT IN [true, false]
+    action_on_fail: HITL_FLAG — "Verify MSME status"
+
+  - rule_id: msme_compliance_payment_within_45_days
+    description: "Identify late payments to MSME vendors (MSMED Act § 15)"
+    logic: |
+      For invoices from MSME vendors:
+        payment_lag_days = payment_date - invoice_received_date
+        If payment_lag_days > 45 → flag MSME_LATE_PAYMENT
+    note: |
+      Critical Indian compliance check. Late payments to MSME = legal liability
+      (interest at 3× bank rate per MSMED Act § 16).
+
+  - rule_id: msme_share_of_vendor_base
+    description: "Track MSME share of vendor count + spend"
+    output_metrics:
+      - msme_vendor_count_pct
+      - msme_spend_pct
+    benchmark: |
+      Indian government targets:
+        - 25% of total procurement value from MSE (Micro + Small)
+        - Specifically: 3% from MSE owned by SC/ST entrepreneurs
+        - 3% from MSE owned by women entrepreneurs
+    note: "Applies primarily to government / PSU procurement. Private sector
+           tracks but not regulated."
+
+# =============================================================================
+# TDS RULES
+# =============================================================================
+
+tds_rules:
+
+  - rule_id: tds_threshold_check
+    description: "Identify POs requiring TDS deduction"
+    logic: |
+      Section 194Q — TDS on purchase of goods:
+        - Vendor turnover > ₹10 Cr (preceding FY)
+        - Purchase from this vendor > ₹50 lakh in current FY
+        - TDS rate: 0.1% on amount exceeding ₹50 lakh
+      Section 194C — TDS on contracts:
+        - Single payment > ₹30,000 OR aggregate > ₹1 lakh
+        - TDS rate: 1% (individual) / 2% (companies)
+    output:
+      - tds_applicable: true | false
+      - tds_section: 194Q / 194C / etc.
+      - tds_rate_pct
+      - tds_amount_inr
+
+  - rule_id: tds_pan_required
+    description: "If TDS applicable, vendor PAN must be present"
+    severity: warning
+    detection: tds_applicable = true AND vendor.pan IS NULL → flag
+    note: "Without PAN, TDS rate doubles (Section 206AA)"
+
+# =============================================================================
+# CURRENCY — INR PRIMARY
+# =============================================================================
+
+currency_rules:
+
+  - rule_id: inr_primary_default
+    description: "Default currency = INR for Indian engagements"
+    setting: engagement.default_currency = INR
+    note: "Unless engagement is foreign-owned Indian operation with parent-company
+           reporting in different currency"
+
+  - rule_id: rbi_reference_rate_for_fx
+    description: "Use RBI reference rate for INR-related FX conversion"
+    source: "RBI Reference Rates published daily"
+    fallback: "Use closest prior business day if PO date is non-trading day"
+
+  - rule_id: cr_lakh_aware_display
+    description: "Display amounts in Indian numbering convention"
+    logic: |
+      Value > ₹10,000,000 → display in Cr (e.g., ₹2.5 Cr)
+      Value ₹100,000 - ₹10,000,000 → display in lakh (e.g., ₹5 lakh)
+      Value < ₹100,000 → display in absolute (e.g., ₹85,000)
+
+# =============================================================================
+# CAPEX VS OPEX (Indian Accounting Convention)
+# =============================================================================
+
+capex_opex_rules:
+
+  - rule_id: capex_threshold_default
+    description: "Asset acquisition threshold for capex classification"
+    default_threshold_inr: 50000   # ₹50,000 — typical capitalisation threshold
+    note: |
+      Companies Act 2013 + AS 10 (Property, Plant & Equipment):
+      Items below threshold expensed; above capitalised.
+      Engagement-specific override possible (some clients use ₹100,000 or
+      ₹500,000 thresholds).
+
+  - rule_id: capex_indicators
+    description: "Heuristics to flag capex POs"
+    indicators:
+      - "Category in [Plant Expansion, New Equipment, Building, Vehicle, IT Infrastructure (above threshold)]"
+      - "NFA (Note for Approval) reference present"
+      - "Depreciation rate indicated"
+      - "po_value > ₹50 lakh (single asset)"
+
+# =============================================================================
+# REGULATORY REFERENCES (for cross-pillar audit findings)
+# =============================================================================
+
+regulatory_references:
+
+  - reference_id: companies_act_2013
+    document: "Companies Act 2013"
+    relevant_sections:
+      - "Schedule V — managerial authority limits"
+      - "Section 188 — RPT approval thresholds"
+      - "Section 196-197 — managerial remuneration"
+    procurement_relevance: "DoA tier thresholds for related party transactions"
+
+  - reference_id: sebi_lodr
+    document: "SEBI Listing Obligations & Disclosure Requirements"
+    relevant_sections:
+      - "Regulation 23 — Related Party Transactions"
+      - "Regulation 30 — Material Event Disclosure"
+    procurement_relevance: "Material contracts above 10% of turnover require disclosure"
+
+  - reference_id: msmed_act_2006
+    document: "Micro, Small & Medium Enterprises Development Act 2006"
+    relevant_sections:
+      - "Section 15 — 45-day payment mandate"
+      - "Section 16 — Interest on delayed payment"
+    procurement_relevance: "Payment workflow + TReDS discipline"
+
+  - reference_id: rbi_fema
+    document: "RBI / FEMA Regulations"
+    relevant_sections:
+      - "Foreign exchange management for imports"
+      - "ECB regulations for foreign-currency procurement"
+    procurement_relevance: "Import POs, foreign currency invoices"
+
+  - reference_id: cvc_guidelines
+    document: "Central Vigilance Commission Guidelines"
+    applies_to: ["psu", "government", "public_sector_partner"]
+    procurement_relevance: "Tendering procedures, single-tender justification"
+
+# =============================================================================
+# Editable Configuration
+# Regulatory references: HIGH (partner) — legal accuracy critical
+# Threshold values (capex, TDS, MSME): MEDIUM (peer)
+# GST format regex: HIGH (changes are rare; require KB lead + tax specialist)
+# =============================================================================

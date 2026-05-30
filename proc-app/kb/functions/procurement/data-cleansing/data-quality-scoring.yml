@@ -1,0 +1,244 @@
+# =============================================================================
+# Data Quality Scoring + Pillar Feasibility Gates
+# =============================================================================
+# Purpose: Methodology for computing engagement-level data quality score (1-100)
+#          and per-pillar feasibility gates (which pillars run at what confidence).
+# =============================================================================
+
+metadata:
+  id: data-quality-scoring
+  layer: function
+  function: procurement
+  domain: data-cleansing
+  version: 1.0
+  last_updated: 2026-05-28
+  owner: kb-admin
+  status: active
+
+# =============================================================================
+# OVERALL DATA QUALITY SCORE
+# =============================================================================
+
+overall_score:
+  formula: |
+    data_quality_score = (
+      0.40 × completeness_pct
+    + 0.30 × validity_pct
+    + 0.30 × consistency_pct
+    )
+  range: [0, 100]
+  rationale: |
+    Completeness is heaviest weight because missing data limits what can run.
+    Validity (data within expected ranges/formats) and Consistency (cross-template
+    integrity) equal weight; both reflect cleanliness of what is present.
+
+# =============================================================================
+# COMPONENT METRICS
+# =============================================================================
+
+components:
+
+  completeness_pct:
+    description: "% of required fields populated across all templates"
+    formula: |
+      For each template:
+        required_cells = #rows × #required_columns
+        populated_cells = #cells where value not null
+        completeness[template] = populated_cells / required_cells × 100
+      Overall: weighted average across templates (PO weight = 0.40, others equal)
+    weights:
+      po_dump: 0.40
+      vendor_master: 0.15
+      material_master: 0.10
+      org_structure: 0.15
+      pr: 0.05
+      grn: 0.05
+      invoice: 0.05
+      vendor_performance: 0.05
+
+  validity_pct:
+    description: "% of cell values passing validation rules (format, range, allowed values)"
+    formula: |
+      For each row:
+        For each cell:
+          If passes universal_cell_checks + template column rules → valid
+        Validity[row] = valid_cells / total_cells × 100
+      Validity[template] = mean(Validity[row])
+      Overall: same template weights as completeness
+
+  consistency_pct:
+    description: "% of cross-template foreign keys that resolve cleanly"
+    formula: |
+      cross_ref_checks_passed = COUNT(rules passing in cross-template-integrity-rules.yml)
+      total_cross_ref_checks = COUNT(rules applicable, given uploaded templates)
+      consistency_pct = passed / total × 100
+
+# =============================================================================
+# BANDS + INTERPRETATION
+# =============================================================================
+
+bands:
+
+  - band: HIGH
+    score_range: [90, 100]
+    interpretation: "Excellent data quality. All pillars run at High confidence."
+    color: green
+
+  - band: GOOD
+    score_range: [75, 90]
+    interpretation: "Solid data quality. All pillars run at Medium-High confidence."
+    color: light_green
+
+  - band: ACCEPTABLE
+    score_range: [60, 75]
+    interpretation: "Workable. Some components skip; theme verdicts may be directional."
+    color: yellow
+
+  - band: LOW
+    score_range: [40, 60]
+    interpretation: "Significant data gaps. Many components skip. Pillar verdicts directional only. Recommend data improvement before formal deliverable."
+    color: orange
+
+  - band: VERY_LOW
+    score_range: [0, 40]
+    interpretation: "Major data quality issues. Recommend data improvement workshop with client before proceeding. Pillar findings should be heavily caveated."
+    color: red
+
+# =============================================================================
+# PILLAR FEASIBILITY GATES
+# =============================================================================
+# For each pillar, define which data conditions must be met for which confidence
+# tier. Pillars degrade gracefully — if data is insufficient, fewer components
+# run.
+
+pillar_feasibility:
+
+  op_model:
+    high_confidence:
+      - po_dump.completeness_pct >= 95
+      - po_dump has columns: [buying_entity, category, vendor_id, po_value, plant]
+      - vendor_master.completeness_pct >= 80
+      - qre_completeness_pct >= 90
+    medium_confidence:
+      - po_dump.completeness_pct >= 80
+      - buying_entity coverage >= 70% (else C1 partially skip)
+    low_confidence:
+      - po_dump.completeness_pct >= 60
+      - QRE-only fallback for centralization (C0+C5 only)
+
+  org_structure:
+    high_confidence:
+      - org_structure.completeness_pct >= 90
+      - role_title coverage >= 95%
+      - reports_to coverage >= 78% (post-Stage-6 lift)
+    medium_confidence:
+      - org_structure.completeness_pct >= 75
+      - reports_to coverage >= 60% (HS1/HS2 run at reduced confidence)
+    low_confidence:
+      - org_structure.completeness_pct >= 50
+      - Theme 4 only (hierarchy/span skipped)
+
+  doa:
+    high_confidence:
+      - doa_document_parsed_confidence_pct >= 90
+      - po_dump.po_approver_designation coverage >= 80%
+      - po_dump.po_approver_id coverage >= 70%
+      - qre completeness >= 80
+    medium_confidence:
+      - doa_document_parsed_confidence_pct >= 60
+      - po_approver_designation coverage >= 50%
+    low_confidence:
+      - doa_document_parsed: false (Theme 4 QRE-only + Theme 5 PO-data-only run)
+
+  buying_channel:
+    high_confidence:
+      - po_dump.completeness_pct >= 90
+      - po_dump has columns: [vendor_id, category, rate_contract_flag, contract_ref]
+    medium_confidence:
+      - po_dump.completeness_pct >= 75
+      - rate_contract_flag coverage >= 60%
+
+  pr_to_po:
+    high_confidence:
+      - pr.completeness_pct >= 85 (PR template required)
+      - pr.linked_to_po_pct >= 85
+      - po_dump.completeness_pct >= 95
+    medium_confidence:
+      - pr.completeness_pct >= 60
+      - pr.linked_to_po_pct >= 60 (some components skip)
+    skip_pillar_if:
+      - pr template not uploaded
+
+  post_po:
+    high_confidence:
+      - po_dump.completeness_pct >= 95
+      - grn.completeness_pct >= 80
+      - invoice.completeness_pct >= 80
+    medium_confidence:
+      - grn OR invoice partially complete
+    skip_pillar_components_if:
+      - grn missing: skip GRN-related components
+      - invoice missing: skip 3-way match analysis
+
+  material_master:
+    high_confidence:
+      - material_master.completeness_pct >= 90
+      - linked to >= 80% of PO records
+    medium_confidence:
+      - material_master.completeness_pct >= 75
+    low_confidence:
+      - material_master.completeness_pct >= 50
+
+  supplier:
+    high_confidence:
+      - vendor_master.completeness_pct >= 90
+      - vendor_performance present + linked
+    medium_confidence:
+      - vendor_master.completeness_pct >= 75 OR vendor_performance present
+    low_confidence:
+      - vendor_master.completeness_pct >= 60
+
+# =============================================================================
+# AUTOMATIC DEGRADATION POLICY
+# =============================================================================
+
+degradation_policy:
+  rule: |
+    When a pillar would otherwise run at Low confidence, the engine should:
+    1. Always run QRE-driven components (these never depend on data quality)
+    2. Skip data-heavy components with explicit "skipped — insufficient data" tag
+    3. Cap pillar maturity verdict at "directional" (not authoritative)
+    4. Deliverable explicitly flags data quality as limiting factor
+
+  surface_to_consultant: |
+    Stage 6 (User Validation) screen shows:
+      - Per-template completeness/validity/consistency scores
+      - Per-pillar feasibility prediction
+      - "Improve data" suggested actions (specific missing fields/templates)
+    Consultant decision: proceed at lower confidence OR pause for client data improvement
+
+# =============================================================================
+# CONSULTANT VALIDATION ROLE
+# =============================================================================
+
+consultant_role_in_quality:
+  description: |
+    Stage 6 (User Validation) is where consultant judgement upgrades raw
+    quality scores. Consultant can:
+      - Approve a record with low completeness (e.g., known field doesn't
+        apply at this client)
+      - Bulk-approve mapping decisions (e.g., 80% of plant codes auto-mapped,
+        consultant approves remaining 20% in batches)
+      - Override low scores with explicit reasoning logged
+
+  impact_on_scoring:
+    - Records consultant-approved (despite raw flags) count as VALID in score
+    - Override reasoning logged in audit trail
+    - Engagement-level data quality score adjusts upward post-Stage-6
+
+# =============================================================================
+# Editable Configuration
+# Component weights (completeness 0.40, validity 0.30, consistency 0.30): HIGH risk (partner)
+# Pillar feasibility thresholds: MEDIUM (per-pillar adjustments by KB lead)
+# Band ranges (HIGH/GOOD/ACCEPTABLE/LOW/VERY_LOW): HIGH (changes scoring globally)
+# =============================================================================

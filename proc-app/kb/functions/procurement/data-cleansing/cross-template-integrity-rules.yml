@@ -1,0 +1,215 @@
+# =============================================================================
+# Cross-Template Integrity Rules
+# =============================================================================
+# Purpose: Referential integrity rules across data templates. Detects orphan
+#          records (foreign keys that don't resolve), inconsistent values, and
+#          cross-template anomalies.
+#
+# Logic Embodied: Run at end of Stage 7 (Bronze) before Gold promotion. Flags
+#                 raised to consultant for review; auto-resolution where safe.
+# =============================================================================
+
+metadata:
+  id: cross-template-integrity-rules
+  layer: function
+  function: procurement
+  domain: data-cleansing
+  version: 1.0
+  last_updated: 2026-05-28
+  owner: kb-admin
+  status: active
+
+integrity_rules:
+
+  # =========================================================================
+  # PO ↔ VENDOR MASTER
+  # =========================================================================
+
+  - rule_id: po_vendor_id_exists_in_vendor_master
+    description: "Every PO's vendor_id should exist in Vendor Master"
+    severity: warning
+    detection: |
+      Left join: PO.vendor_id → Vendor Master.vendor_id
+      Flag PO records where join fails
+    action_on_fail:
+      - If Vendor Master uploaded: HITL flag — "Add vendor to master?"
+      - If Vendor Master not uploaded: auto-create stub record in gold.vendor (active_flag=unknown)
+    threshold: |
+      If > 10% of POs have orphan vendors → consider Vendor Master incomplete
+      Engagement-level data quality flag
+
+  - rule_id: vendor_name_consistency_po_vs_master
+    description: "PO.vendor_name should match Vendor Master.vendor_name for same vendor_id"
+    severity: warning
+    detection: |
+      For each PO with valid vendor_id:
+        If PO.vendor_name fuzzy_match Vendor Master.vendor_name < 0.85 → flag
+    action_on_fail: HITL FLAG — "Vendor name mismatch — which is correct?"
+
+  - rule_id: vendor_active_flag_consistency
+    description: "POs should be against active vendors"
+    severity: warning
+    detection: |
+      PO joined to Vendor Master.active_flag = false → flag
+      (Could be legitimate — vendor deactivated AFTER PO date — or data error)
+
+  # =========================================================================
+  # PO ↔ MATERIAL MASTER
+  # =========================================================================
+
+  - rule_id: po_material_code_exists_in_material_master
+    description: "PO.material_code should exist in Material Master"
+    severity: warning
+    detection: |
+      Left join: PO.material_code → Material Master.material_code
+      Flag PO records where join fails AND material_code is not blank
+    action_on_fail:
+      - If material code looks valid format: HITL FLAG — "Add to material master?"
+      - If material_code blank: assume services PO (often legitimate)
+
+  - rule_id: po_uom_consistency_with_material_master
+    description: "PO.uom should match Material Master.uom for same material_code"
+    severity: warning
+    detection: |
+      For each PO with valid material_code:
+        If PO.uom != Material Master.uom → flag
+    action_on_fail: HITL FLAG — "UoM mismatch"
+
+  # =========================================================================
+  # PR ↔ PO
+  # =========================================================================
+
+  - rule_id: pr_to_po_linkage
+    description: "PRs marked 'approved' should have a po_id"
+    severity: warning
+    detection: |
+      PR.approval_status = 'approved' AND PR.po_id IS NULL → flag
+    note: "Could indicate PRs that were never converted to POs (process gap) or
+           data linkage gap"
+
+  - rule_id: pr_po_date_sequence
+    description: "PR.pr_date <= PO.po_date (for linked records)"
+    severity: warning
+    detection: |
+      Join PR to PO on po_id; if PR.pr_date > PO.po_date → flag
+    note: "Reverse-dated PRs typically data entry error OR post-facto PR creation"
+
+  - rule_id: pr_po_value_consistency
+    description: "PR.pr_value_estimated approximately equal to PO.po_value"
+    severity: info
+    detection: |
+      |PR.pr_value_estimated - PO.po_value| / PO.po_value > 0.50 → flag
+    note: "Large deviations may indicate negotiation impact (savings KPI) OR
+           wrong PR-PO linkage"
+
+  # =========================================================================
+  # PO ↔ GRN
+  # =========================================================================
+
+  - rule_id: po_grn_linkage
+    description: "Material POs (not services) should have GRN records"
+    severity: info
+    detection: |
+      PO.po_type != 'services' AND NOT EXISTS (GRN with po_id) → flag
+    note: "Missing GRN could mean: incomplete data upload, PO not yet received,
+           or services PO miscategorised"
+
+  - rule_id: grn_quantity_vs_po_quantity
+    description: "Sum of GRN.quantity_received should approximate PO.quantity"
+    severity: info
+    detection: |
+      For each PO: sum(GRN.quantity_received) compared to PO.quantity
+      Tolerance: ±5%
+    note: "Helps identify partial deliveries, over/under-deliveries"
+
+  # =========================================================================
+  # PO ↔ INVOICE
+  # =========================================================================
+
+  - rule_id: po_invoice_linkage
+    description: "Each PO should typically have an Invoice"
+    severity: info
+    detection: |
+      PO.po_type != 'pending' AND NOT EXISTS (Invoice with po_id) → flag
+    note: "Missing invoice could mean: incomplete data, vendor hasn't invoiced
+           yet, or partial deliveries with consolidated invoicing"
+
+  - rule_id: invoice_value_vs_po_value
+    description: "Invoice value within reasonable range of PO value"
+    severity: warning
+    detection: |
+      |Invoice.invoice_value - PO.po_value| / PO.po_value > 0.20 → flag
+      (Excluding multi-invoice POs where partial invoicing is expected)
+    note: "Significant deviations may indicate billing errors, scope changes,
+           or wrong linkage"
+
+  # =========================================================================
+  # PO ↔ ORG STRUCTURE
+  # =========================================================================
+
+  - rule_id: po_approver_in_org_structure
+    description: "PO.po_approver_id should exist in Org Structure"
+    severity: warning
+    detection: |
+      PO.po_approver_id not in Org Structure.employee_id → flag
+    note: "Could be: approver no longer in org (left), data error, or system
+           ID mismatch"
+
+  - rule_id: po_buyer_in_org_structure
+    description: "PO.buyer_id should exist in Org Structure"
+    severity: info
+    detection: |
+      PO.buyer_id not in Org Structure.employee_id → flag
+
+  # =========================================================================
+  # INVOICE ↔ VENDOR MASTER
+  # =========================================================================
+
+  - rule_id: invoice_vendor_consistency
+    description: "Invoice.vendor_id should match PO.vendor_id (for linked invoices)"
+    severity: warning
+    detection: |
+      Invoice.po_id present + Invoice.vendor_id != PO.vendor_id → flag
+    note: "Vendor mismatch between PO and Invoice is a control concern"
+
+  # =========================================================================
+  # AGGREGATE-LEVEL INTEGRITY
+  # =========================================================================
+
+  - rule_id: total_spend_consistency
+    description: "Total PO spend approximately equal to total Invoice spend"
+    severity: info
+    detection: |
+      |SUM(PO.po_value) - SUM(Invoice.invoice_value)| / SUM(PO.po_value) > 0.15 → flag
+    note: "Large divergence typically indicates incomplete data uploads OR
+           significant unbilled deliveries"
+
+  - rule_id: vendor_count_reasonableness
+    description: "# unique vendors in PO data should match Vendor Master count"
+    severity: info
+    detection: |
+      |UNIQUE(PO.vendor_id) count - Vendor Master count| / Vendor Master count > 0.30 → flag
+
+# =============================================================================
+# RESOLUTION SUMMARY
+# =============================================================================
+
+resolution_summary:
+  auto_resolved:
+    - "Stub vendor records created for orphan PO vendor_ids (if Vendor Master not uploaded)"
+    - "Materials with services PO (blank material_code) — treated as legitimate"
+  hitl_flag:
+    - "Vendor name mismatches"
+    - "UoM mismatches between PO and Material Master"
+    - "Large value deviations (PO vs Invoice)"
+    - "Approver not in Org Structure (likely deactivated employee)"
+  warning_aggregated_to_data_quality_score:
+    - "Orphan rate (% of records with unresolved foreign keys)"
+    - "Consistency rate (% of cross-template values matching)"
+
+# =============================================================================
+# Editable Configuration
+# Adding a new integrity rule: HIGH risk (partner)
+# Tolerance thresholds: MEDIUM
+# Severity assignments: MEDIUM
+# =============================================================================
