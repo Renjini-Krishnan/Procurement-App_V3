@@ -107,3 +107,68 @@ outlier_general:
   principle: upper_fence_only
   do_not_drop_fast_values: true
   rationale: "Fast TATs / good performance are real. Only drop the slow tail (data quality issues)."
+
+# =============================================================================
+# Benchmarks — Indian large-enterprise steel / cement procurement
+# =============================================================================
+# Source: ACN Procurement Benchmark — Steel + Cement (2024). Bands represent
+# the typical [low, high] range across the practice's engagement database.
+# UI shows: "your X vs typical [low, high]" with directional good/bad cue.
+# =============================================================================
+
+benchmarks:
+  tat:
+    typical_low: 7
+    typical_high: 21
+    unit: days
+    direction: lower_is_better
+    note: "Median PR-to-PO TAT across Indian steel/cement engagements. <7d = best-in-class; >21d = process gap."
+
+  savings_over_lpo:
+    typical_low: 2
+    typical_high: 6
+    unit: "%"
+    direction: higher_is_better
+    note: "Sustainable savings as % over LPO. >6% sustained YoY = mature category sourcing; 2-6% = typical; <2% = price-taker."
+
+  rc_adoption:
+    typical_low: 35
+    typical_high: 55
+    unit: "%"
+    direction: higher_is_better
+    note: "% of PO lines against active rate contracts. >55% indicates strong sourcing maturity; <35% means tail spend exposure."
+
+  pac:
+    typical_low: 8
+    typical_high: 20
+    unit: "%"
+    direction: lower_is_better
+    note: "% POs flagged PAC (single-source). >20% indicates competition risk; <8% is best-in-class diversification."
+
+  tail_spend:
+    typical_low: 35
+    typical_high: 55
+    unit: "%"
+    direction: lower_is_better
+    note: "% PO lines below ₹1L. >55% = excessive transactional drag; <35% = strong consolidation."
+
+  spend_per_fte:
+    typical_low: 75
+    typical_high: 175
+    unit: "₹ Cr/FTE"
+    direction: higher_is_better
+    note: "Addressable spend managed per procurement FTE. >175 Cr = lean ops; <75 Cr = potential over-staffing or low automation."
+
+  otd:
+    typical_low: 75
+    typical_high: 92
+    unit: "%"
+    direction: higher_is_better
+    note: "% deliveries received on or before promised date (strict). <75% indicates supplier reliability gap; >92% is best-in-class."
+
+  sourcing_tool_usage:
+    typical_low: 30
+    typical_high: 65
+    unit: "%"
+    direction: higher_is_better
+    note: "% sourcing events run via e-sourcing platform. >65% = mature digital sourcing; <30% = paper/email-driven."

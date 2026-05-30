@@ -84,6 +84,7 @@ export const api = {
   cleansingAudit: () => request(`/cleansing/audit`),
   cleansingReportCsvUrl: (id, scope = "all") =>
     `/api/engagement/${id}/cleansing-report.csv?scope=${encodeURIComponent(scope)}`,
+  kpisExportCsvUrl: (id) => `/api/engagement/${id}/kpis/export.csv`,
   previewUpload: (id, uploadId, limit = 20) =>
     request(`/engagement/${id}/uploads/${uploadId}/preview?limit=${limit}`),
   confirmMapping: (id, uploadId, confirmedMapping) =>

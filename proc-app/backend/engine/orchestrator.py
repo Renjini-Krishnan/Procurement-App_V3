@@ -9,6 +9,8 @@ import time
 import uuid
 from typing import Any, Optional
 
+import pandas as pd
+
 from .. import db, kb_loader
 from . import gold_data, rca_engine, scoring, stage9_classify, stage10_kpis
 from . import kpi_calculator
@@ -147,18 +149,59 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     db.set_stage_status(engagement_id, 9, "done", {"unclassified_pct": classify_summary.get("unclassified_pct")})
     db.set_stage_status(engagement_id, 10, "done", {"mg_count": len(df_mg)})
 
+    # Multi-upload cleansing + cross-file recon (V2)
+    per_upload_reports, cross_file_report = _run_multi_upload_bronze(engagement_id, lookback_months=_load_scope_lookback(engagement_id))
+
     # Methodology KPIs — TAT, RC%, Savings, PAC%, Tail%, Spend/FTE, OTD, Sourcing Tool
+    # Now with per-canonical + per-archetype breakdowns + DQ + benchmarks.
     from . import methodology_kpis
     eng = db.get_engagement(engagement_id) or {}
     qre = _load_qre(engagement_id)
+
+    # Look up PR cleaned df from the multi-upload bronze pass (for TAT join)
+    pr_df = None
+    for u in per_upload_reports:
+        if u.get("file_type") == "PR" and not u.get("_error"):
+            try:
+                pr_df, _ = gold_data.build_gold_dataframe_with_report(
+                    u["upload_id"], lookback_months=_load_scope_lookback(engagement_id),
+                )
+            except Exception:
+                pr_df = None
+            break
+
+    # Build taxonomy lookup {canonical_id → {label, archetype}} for breakdowns
+    taxonomy_lookup = {t["id"]: {"label": t.get("label", t["id"]),
+                                   "archetype": t.get("archetype")}
+                        for t in (canonical_report.get("taxonomy") or [])}
+
     methodology = methodology_kpis.compute_all(
         df_classified,
         fte_count=eng.get("fte_count"),
         qre_responses=qre,
+        pr_df=pr_df,
+        taxonomy_lookup=taxonomy_lookup,
     )
 
-    # Multi-upload cleansing + cross-file recon (V2)
-    per_upload_reports, cross_file_report = _run_multi_upload_bronze(engagement_id, lookback_months=_load_scope_lookback(engagement_id))
+    # Per-canonical aggregate table (replaces / sits alongside per_mg_table)
+    per_canonical_table: list[dict] = []
+    if "canonical_id" in df_classified.columns:
+        for cid, sub in df_classified.groupby("canonical_id"):
+            meta = taxonomy_lookup.get(cid, {})
+            spend_col = "net_value_inr" if "net_value_inr" in sub.columns else "net_value"
+            spend = float(pd.to_numeric(sub[spend_col], errors="coerce").fillna(0).sum()) if spend_col in sub.columns else 0
+            per_canonical_table.append({
+                "canonical_id": str(cid),
+                "canonical_label": meta.get("label") or str(cid),
+                "archetype": meta.get("archetype"),
+                "row_count": int(len(sub)),
+                "po_count": int(sub["po_number"].nunique()) if "po_number" in sub.columns else 0,
+                "vendor_count": int(sub["vendor_id"].nunique()) if "vendor_id" in sub.columns else 0,
+                "plant_count": int(sub["plant"].nunique()) if "plant" in sub.columns else 0,
+                "total_spend_inr": spend,
+                "total_spend_inr_cr": round(spend / 1e7, 2),
+            })
+        per_canonical_table.sort(key=lambda r: -r["total_spend_inr"])
 
     # Data Quality Score + Pillar Feasibility (KB-PART-5)
     from . import cleansing_engine
@@ -174,6 +217,7 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         "portfolio_summary": portfolio,
         "by_archetype": by_arch,
         "per_mg_table": per_mg_table,
+        "per_canonical_table": per_canonical_table,
         "mg_count": len(df_mg),
         "cleansing_report": cleansing_report,
         "per_upload_reports": per_upload_reports,

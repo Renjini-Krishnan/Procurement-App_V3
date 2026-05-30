@@ -130,6 +130,59 @@ def run_intel(engagement_id: str, payload: RunPillarRequest):
         raise HTTPException(500, f"Intel run failed: {e}")
 
 
+@router.get("/{engagement_id}/kpis/export.csv")
+def kpis_export_csv(engagement_id: str):
+    """Stage 10 KPI export — one row per (kpi, dimension, value).
+    Dimensions: portfolio, archetype, canonical."""
+    from fastapi.responses import Response
+    import csv, io
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    uploads = upload_service.list_uploads(engagement_id)
+    if not uploads:
+        raise HTTPException(404, "No uploads found")
+    po_upload = next((u for u in uploads if u.get("file_type") == "PO"), uploads[0])
+    try:
+        intel = orchestrator.run_intel(engagement_id, po_upload["id"],
+                                          industry=eng.get("industry") or "steel")
+    except Exception as e:
+        raise HTTPException(500, f"KPI run failed: {e}")
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["kpi_id", "kpi_label", "dimension", "dimension_value", "archetype",
+                 "value", "unit", "row_count",
+                 "benchmark_low", "benchmark_high", "your_position",
+                 "data_quality_coverage_pct", "rows_used", "rows_available", "source"])
+    for k in intel.get("methodology_kpis", []):
+        b = k.get("benchmark") or {}
+        dq = k.get("data_quality") or {}
+        # Portfolio row
+        w.writerow([
+            k["id"], k.get("label"), "portfolio", "ALL", "",
+            k.get("value"), k.get("unit"), dq.get("rows_used"),
+            b.get("typical_low"), b.get("typical_high"), b.get("your_position"),
+            dq.get("coverage_pct"), dq.get("rows_used"), dq.get("rows_available"),
+            k.get("source"),
+        ])
+        for pa in k.get("per_archetype", []):
+            w.writerow([
+                k["id"], k.get("label"), "archetype", pa.get("archetype"), pa.get("archetype"),
+                pa.get("value"), k.get("unit"), pa.get("row_count"),
+                "", "", "", "", "", "", "",
+            ])
+        for pc in k.get("per_canonical", []):
+            w.writerow([
+                k["id"], k.get("label"), "canonical",
+                pc.get("canonical_label") or pc.get("canonical_id"),
+                pc.get("archetype") or "",
+                pc.get("value"), k.get("unit"), pc.get("row_count"),
+                "", "", "", "", "", "", "",
+            ])
+    return Response(content=buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=kpis-{engagement_id}.csv"})
+
+
 @router.get("/{engagement_id}/cleansing-report.csv")
 def cleansing_report_csv(engagement_id: str, scope: str = "all"):
     """Download the Stage 7 cleansing report as CSV.
