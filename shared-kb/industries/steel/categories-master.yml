@@ -1,0 +1,509 @@
+# =============================================================================
+# Steel Industry — Categories Master Taxonomy
+# =============================================================================
+# Canonical category list for Stage 9 (Category Classification).
+# Schema reference: kb/functions/procurement/data-cleansing/categories-master-schema.md
+#
+# Coverage target: every Material_Group_Desc value in the demo steel PO seed
+# maps to exactly one canonical via Tier A (HSN), Tier C (keywords/synonyms),
+# Tier D (vendor specialisation), or Tier E (G/L patterns).
+# =============================================================================
+
+metadata:
+  id: steel-categories-master
+  industry: steel
+  version: 1.0
+  source: "ACN Procurement Benchmark — Steel; supplemented with HSN code references from CBIC GST schedules"
+  source_year: 2024
+  last_updated: 2026-05-30
+  confidence: high
+
+canonicals:
+
+  # ============== BULK RAW MATERIALS ==============
+
+  - id: iron_ore
+    label: "Iron Ore"
+    archetype: BULK
+    direct_indirect: D
+    keywords: [iron ore, fe ore, ore lump, ore fines, ore pellet, hematite, magnetite, pellet feed]
+    synonyms: [IO, iron_ore_lumps, iron_ore_fines, iron_ore_pellets]
+    hsn_codes: ["2601", "260111", "260112", "260120"]
+    vendor_specialisation_examples: [NMDC, SAIL Mining, ESSEL Mining, Vedanta Iron Ore, JSPL Mining, Rungta Mines]
+    sap_signals:
+      mtart: [ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5101%", "510101%"]
+    typical_spend_share_pct: [18, 28]
+    typical_kpis: [rc_adoption, savings_over_lpo, otd]
+    notes: "Largest single category. Lumps + fines + pellets variants. Long-term contracts with state-owned + private miners."
+
+  - id: coking_coal
+    label: "Coking Coal"
+    archetype: BULK
+    direct_indirect: D
+    keywords: [coking coal, met coal, metallurgical coal, hard coking, semi soft coking, pci coal]
+    synonyms: [CC, met_coal, HCC, SSCC]
+    hsn_codes: ["2701", "270111", "270112"]
+    vendor_specialisation_examples: [BHP, Glencore, Anglo American, Peabody, Coal India, Adani Resources, BMA]
+    sap_signals:
+      mtart: [ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5102%"]
+    typical_spend_share_pct: [12, 20]
+    typical_kpis: [rc_adoption, savings_over_lpo]
+    notes: "Imported (AUS premium) or domestic. Quality grades critical."
+
+  - id: thermal_coal
+    label: "Thermal Coal (Power & Process)"
+    archetype: BULK
+    direct_indirect: I
+    keywords: [thermal coal, steam coal, non coking coal, grade a, grade b, grade c, washery rejects]
+    synonyms: [TC, steam_coal, NCC]
+    hsn_codes: ["270119", "270120"]
+    vendor_specialisation_examples: [Coal India, SCCL, NLCIL, Adani Power]
+    sap_signals:
+      mtart: [ROH, HIBE]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5103%"]
+    typical_spend_share_pct: [4, 10]
+    typical_kpis: [rc_adoption, savings_over_lpo]
+    notes: "Power generation + DRI kiln fuel. Grade A/B/C distinction."
+
+  - id: limestone_dolomite
+    label: "Limestone, Dolomite, Flux"
+    archetype: BULK
+    direct_indirect: D
+    keywords: [limestone, dolomite, flux, quartzite, lime, bf flux]
+    synonyms: [LS, dolo, flux_stone]
+    hsn_codes: ["2521", "2518", "2506"]
+    vendor_specialisation_examples: [Birla Corporation, OCL India, Saurashtra Lime, KJS Mining]
+    sap_signals:
+      mtart: [ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5104%"]
+    typical_spend_share_pct: [2, 5]
+    typical_kpis: [otd, rc_adoption]
+    notes: "Local sourcing typical. Logistics-sensitive. Includes blast-furnace quartzite."
+
+  - id: scrap_steel
+    label: "Steel Scrap"
+    archetype: BULK
+    direct_indirect: D
+    keywords: [scrap, steel scrap, hms, heavy melt, shredded scrap, melting scrap, turning scrap]
+    synonyms: [HMS, HMS1, HMS2, scrap_iron]
+    hsn_codes: ["7204", "720410", "720441", "720449"]
+    vendor_specialisation_examples: [MMK Metalik, Adsil, Bhagwati Recycling, Tube Investments]
+    sap_signals:
+      mtart: [ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5105%"]
+    typical_spend_share_pct: [3, 8]
+    typical_kpis: [savings_over_lpo, supplier_defect_rate]
+    notes: "EAF / mini-mill input. Spot-heavy. HMS-1 / HMS-2 grade split."
+
+  # ============== FERRO ALLOYS ==============
+
+  - id: ferro_alloys
+    label: "Ferro-Alloys (FeMn, FeSi, FeCr, FeNi, SiMn)"
+    archetype: DIRECT
+    direct_indirect: D
+    keywords: [ferro manganese, ferro silicon, ferro chrome, ferro nickel, silico manganese, femn, fesi, fecr, feni, simn]
+    synonyms: [FA, ferro_alloy, ferromanganese, ferrosilicon, ferrochrome, silicomanganese]
+    hsn_codes: ["7202", "720211", "720221", "720241", "720260", "720230"]
+    vendor_specialisation_examples: [Maithan Alloys, Tata Steel Mining, Indian Metals & Ferro Alloys, Sarda Mines, Balasore Alloys]
+    sap_signals:
+      mtart: [ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5106%"]
+    typical_spend_share_pct: [4, 8]
+    typical_kpis: [pac_single_vendor, savings_over_lpo, supplier_defect_rate]
+    notes: "Quality-sensitive. Low P / low C grades for special steel."
+
+  # ============== REFRACTORIES ==============
+
+  - id: refractories_basic
+    label: "Basic Refractories (MgO-C, Dolomite-based)"
+    archetype: DIRECT
+    direct_indirect: D
+    keywords: [refractory brick, refractory castable, magnesia carbon, mag c, basic refractory, dolomite refractory]
+    synonyms: [refractory_basic, mgo_c]
+    hsn_codes: ["6815", "6815910", "6815990"]
+    vendor_specialisation_examples: [RHI Magnesita, Tata Refractories, IFGL Refractories, Vesuvius India, Calderys]
+    sap_signals:
+      mtart: [ROH, ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5201%"]
+    typical_spend_share_pct: [2, 4]
+    typical_kpis: [tat_pr_to_po, rc_adoption, pac_single_vendor]
+    notes: "BOF/EAF lining + ladle lining."
+
+  - id: refractories_alumina
+    label: "Alumina Refractories (Castable, Mortar, Bricks)"
+    archetype: DIRECT
+    direct_indirect: D
+    keywords: [castable, refractory castable, high alumina, alumina refractory, refractory mortar, fireclay]
+    synonyms: [HA_castable, alumina_brick]
+    hsn_codes: ["6815", "6904", "381600"]
+    vendor_specialisation_examples: [Calderys, Vesuvius, Saint-Gobain Refractories, Orient Refractories]
+    sap_signals:
+      mtart: [ROH, ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5202%"]
+    typical_spend_share_pct: [1, 3]
+    typical_kpis: [tat_pr_to_po, rc_adoption]
+    notes: "High-alumina applications: BF gunning, kiln lining."
+
+  - id: refractory_consumables
+    label: "Refractory Consumables (SEN, Slide Gates, Tundish Board, Lance Pipe, Mould Powder)"
+    archetype: DIRECT
+    direct_indirect: D
+    keywords: [submerged entry nozzle, slide gate, tundish board, lance pipe, mould flux, mould powder, sen, slide plate]
+    synonyms: [SEN, slide_gate_plate, tundish_consumable]
+    hsn_codes: ["6815", "381600"]
+    vendor_specialisation_examples: [Vesuvius, RHI Magnesita, Krosaki]
+    sap_signals:
+      mtart: [ERSA, HIBE]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5203%"]
+    typical_spend_share_pct: [1, 2]
+    typical_kpis: [tat_pr_to_po, rc_adoption, supplier_defect_rate]
+    notes: "Caster + BOF consumables. SEN / Tundish board / Slide gate / Mould flux."
+
+  # ============== ELECTRODES + CONSUMABLES ==============
+
+  - id: graphite_electrodes
+    label: "Graphite Electrodes"
+    archetype: DIRECT
+    direct_indirect: D
+    keywords: [graphite electrode, graphite electr, uhp electrode, hp electrode, ge600, ge 600mm]
+    synonyms: [GE, graphite_e]
+    hsn_codes: ["8545", "854511"]
+    vendor_specialisation_examples: [HEG Limited, Graphite India, Showa Denko Carbon, Tokai Carbon]
+    sap_signals:
+      mtart: [ROH, ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5301%"]
+    typical_spend_share_pct: [2, 5]
+    typical_kpis: [pac_single_vendor, savings_over_lpo]
+    notes: "EAF critical consumable. PAC-heavy due to few qualified vendors."
+
+  - id: welding_consumables
+    label: "Welding Electrodes & Wire"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [welding electrode, welding wire, e7018, e6013, mig wire, tig wire, flux core, sub arc, saw wire]
+    synonyms: [WE, weld_electrode]
+    hsn_codes: ["8311"]
+    vendor_specialisation_examples: [Ador Welding, ESAB India, Mailam India, D&H Secheron, Modi Hitech]
+    sap_signals:
+      mtart: [ERSA, HIBE]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5302%"]
+    typical_spend_share_pct: [1, 2]
+    typical_kpis: [tail_spend, rc_adoption]
+    notes: "Maintenance welding consumable. RC opportunity."
+
+  # ============== ROLLS + MILL CONSUMABLES ==============
+
+  - id: mill_rolls
+    label: "Mill Rolls (Work / Backup / Intermediate)"
+    archetype: DIRECT
+    direct_indirect: D
+    keywords: [mill roll, work roll, backup roll, intermediate roll, forged roll, cast roll, roll chock]
+    synonyms: [WR, BUR, IR, mill_roll]
+    hsn_codes: ["8455", "84553010"]
+    vendor_specialisation_examples: [Union Electric Akers, Walzen Irugesh, HMP Engineers, Karasawa Roll Mill]
+    sap_signals:
+      mtart: [ROH, ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5401%"]
+    typical_spend_share_pct: [1, 3]
+    typical_kpis: [pac_single_vendor, savings_over_lpo]
+    notes: "Hot mill + cold mill rolls. Includes chock assemblies."
+
+  # ============== INDIRECT SPARES + CONSUMABLES ==============
+
+  - id: bearings_anti_friction
+    label: "Bearings (Anti-Friction)"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [bearing, ball bearing, roller bearing, taper bearing, deep groove, brg, spherical bearing, needle bearing]
+    synonyms: [BRG, bearing_arf]
+    hsn_codes: ["8482", "848210", "848220", "848230", "848240"]
+    vendor_specialisation_examples: [SKF, Timken, NTN, Schaeffler, NSK, FAG, NBC Bearings, Pune Bearings]
+    sap_signals:
+      mtart: [ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5403%"]
+    typical_spend_share_pct: [1, 2]
+    typical_kpis: [tail_spend, rc_adoption, tat_pr_to_po]
+    notes: "MRO critical consumable. RC + ASL opportunity. SKF/Timken/NTN dominate."
+
+  - id: mechanical_spares
+    label: "Mechanical Spares (Pumps, Motors, Valves, Hoses)"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [pump, centrifugal pump, induction motor, motor spare, valve, pneumatic valve, hydraulic hose, conveyor belt, gear box, coupling]
+    synonyms: [MS, mech_spare]
+    hsn_codes: ["8413", "8501", "8481", "4009"]
+    vendor_specialisation_examples: [Kirloskar Brothers, Crompton Greaves, ABB, Siemens, Forbes Marshall, Continental Industries]
+    sap_signals:
+      mtart: [ERSA, ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5404%"]
+    typical_spend_share_pct: [3, 6]
+    typical_kpis: [tail_spend, rc_adoption, tat_pr_to_po]
+    notes: "Largest MRO bucket by line count. Standard items good for ASL + catalogue."
+
+  - id: electrical_spares
+    label: "Electrical Spares & Instrumentation"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [instrumentation, sensor, pressure sensor, transmitter, contactor, relay, mcb, breaker, vfd, drive, cable, switchgear]
+    synonyms: [ES, elec_spare, instr]
+    hsn_codes: ["8536", "8537", "9026", "9027"]
+    vendor_specialisation_examples: [Siemens, ABB, Schneider Electric, L&T Electrical, Honeywell Automation, Yokogawa, Emerson]
+    sap_signals:
+      mtart: [ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5405%"]
+    typical_spend_share_pct: [2, 4]
+    typical_kpis: [tail_spend, rc_adoption]
+    notes: "Electrical MRO + instrumentation."
+
+  - id: lubricants_oils
+    label: "Lubricants & Industrial Oils"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [lubricant, lubrication, hydraulic oil, grease, gear oil, turbine oil, compressor oil, iso 68, ep2, lithium grease]
+    synonyms: [lube, oil_industrial]
+    hsn_codes: ["2710", "271019"]
+    vendor_specialisation_examples: [Indian Oil, Hindustan Petroleum, Shell India, Castrol, Gulf Oil, Tide Water]
+    sap_signals:
+      mtart: [HIBE, ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5410%"]
+    typical_spend_share_pct: [1, 2]
+    typical_kpis: [rc_adoption, tail_spend]
+    notes: "Hydraulic / turbine / gear / compressor oils. High RC opportunity."
+
+  - id: industrial_gases
+    label: "Industrial Gases (Oxygen, Nitrogen, Argon)"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [oxygen, nitrogen, argon, industrial gas, gas liquid, helium, acetylene, lpg]
+    synonyms: [gases, ind_gas, O2, N2, Ar]
+    hsn_codes: ["2804"]
+    vendor_specialisation_examples: [INOX Air Products, Linde India, Praxair, Air Liquide]
+    sap_signals:
+      mtart: [HIBE, ROH]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5411%"]
+    typical_spend_share_pct: [1, 3]
+    typical_kpis: [rc_adoption, otd]
+    notes: "On-site supply contracts common (PSA / cryogenic plants)."
+
+  - id: ppe_safety
+    label: "PPE & Safety Equipment"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [ppe, helmet, safety boots, safety shoes, gloves, respirator, safety goggles, safety harness, fire suit]
+    synonyms: [PPE, safety_gear]
+    hsn_codes: ["6506", "6403", "640299", "401519"]
+    vendor_specialisation_examples: [3M India, Honeywell Safety, Karam Industries, Mallcom India, Liberty Footwear]
+    sap_signals:
+      mtart: [HIBE, ERSA]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5412%"]
+    typical_spend_share_pct: [0.5, 1.5]
+    typical_kpis: [rc_adoption, tail_spend]
+    notes: "Statutory safety inventory. RC + ASL standard."
+
+  - id: stationery_office
+    label: "Stationery & Office Supplies"
+    archetype: INDIRECT
+    direct_indirect: I
+    keywords: [stationery, office supplies, paper, printer toner, toner cartridge, laser cartridge, office supply]
+    synonyms: [stat, office_consumable]
+    hsn_codes: ["4802", "4811", "8443"]
+    vendor_specialisation_examples: [HP India, Canon, Xerox, ITC Paperboards, JK Paper]
+    sap_signals:
+      mtart: [HIBE]
+      pstyp_excluded: [B, K]
+      gl_patterns: ["5701%"]
+    typical_spend_share_pct: [0.2, 0.8]
+    typical_kpis: [tail_spend, rc_adoption]
+    notes: "Pure tail-spend candidate. P-card / catalogue ideal."
+
+  # ============== CAPEX ==============
+
+  - id: capex_rolling_mill
+    label: "Capex — Rolling Mill Equipment"
+    archetype: CAPEX
+    direct_indirect: D
+    keywords: [rolling mill, mill upgrade, hot strip mill, cold rolling, mill stand, mill equipment, finishing mill]
+    synonyms: [HSM, CRM, mill_capex]
+    hsn_codes: ["8455"]
+    vendor_specialisation_examples: [Primetals Technologies, Danieli, SMS Group, JFE Engineering]
+    sap_signals:
+      mtart: [ANLZ, FHMI]
+      pstyp_allowed: [A]
+      gl_patterns: ["1501%", "1502%"]
+    typical_spend_share_pct: [2, 8]
+    typical_kpis: [savings_over_lpo, otd]
+    notes: "Major capex during plant upgrades."
+
+  - id: capex_dri_blast_furnace
+    label: "Capex — DRI / Blast Furnace Equipment"
+    archetype: CAPEX
+    direct_indirect: D
+    keywords: [dri plant, blast furnace, bf equipment, kiln, kiln component, sponge iron, midrex, hyl]
+    synonyms: [DRI, BF, sponge_iron]
+    hsn_codes: ["8417", "8419"]
+    vendor_specialisation_examples: [Midrex Technologies, HYL, Tenova HYL, Paul Wurth, Outotec]
+    sap_signals:
+      mtart: [ANLZ]
+      pstyp_allowed: [A]
+      gl_patterns: ["1503%"]
+    typical_spend_share_pct: [1, 5]
+    typical_kpis: [savings_over_lpo, otd]
+    notes: "Iron-making capex. Major OEM-driven."
+
+  - id: capex_power_equipment
+    label: "Capex — Power Plant & Turbine Equipment"
+    archetype: CAPEX
+    direct_indirect: I
+    keywords: [power plant, turbine, generator, captive power, steam turbine, boiler, transformer]
+    synonyms: [CPP, turbine_capex]
+    hsn_codes: ["8406", "8502", "8504"]
+    vendor_specialisation_examples: [BHEL, Siemens Energy, GE Power, Doosan Heavy Industries]
+    sap_signals:
+      mtart: [ANLZ]
+      pstyp_allowed: [A]
+      gl_patterns: ["1504%"]
+    typical_spend_share_pct: [1, 4]
+    typical_kpis: [savings_over_lpo, otd]
+    notes: "Captive power plant capex."
+
+  - id: capex_crane_handling
+    label: "Capex — Cranes & Material Handling"
+    archetype: CAPEX
+    direct_indirect: I
+    keywords: [crane, eot crane, gantry crane, overhead crane, conveyor system, hoist, mobile crane, new installation]
+    synonyms: [EOT, MH_capex]
+    hsn_codes: ["8426", "8428"]
+    vendor_specialisation_examples: [Anupam Industries, Konecranes, Demag, ElectroMech]
+    sap_signals:
+      mtart: [ANLZ]
+      pstyp_allowed: [A]
+      gl_patterns: ["1505%"]
+    typical_spend_share_pct: [0.5, 2]
+    typical_kpis: [savings_over_lpo]
+    notes: "EOT cranes + plant material handling capex."
+
+  - id: capex_civil_construction
+    label: "Capex — Civil Construction & Project Works"
+    archetype: CAPEX
+    direct_indirect: I
+    keywords: [civil construction, civil work, project work, structural steel work, foundation, building work]
+    synonyms: [civil_capex, project_capex]
+    hsn_codes: ["9954"]
+    vendor_specialisation_examples: [L&T Construction, Tata Projects, Shapoorji Pallonji, NCC, GR Infraprojects]
+    sap_signals:
+      mtart: [ANLZ]
+      pstyp_allowed: [A, D]
+      gl_patterns: ["1601%"]
+    typical_spend_share_pct: [1, 5]
+    typical_kpis: [savings_over_lpo, otd]
+    notes: "Project civil works. Often SAC-coded (services)."
+
+  # ============== SERVICES ==============
+
+  - id: amc_maintenance
+    label: "AMC & Maintenance Contracts"
+    archetype: SERVICE
+    direct_indirect: I
+    keywords: [annual maintenance contract, amc, maintenance contract, preventive maintenance, predictive maintenance, refractory relining, hvac amc, crane amc]
+    synonyms: [AMC, maint_contract]
+    hsn_codes: ["9987"]
+    vendor_specialisation_examples: [Thermax Services, Voltas Maintenance, ABB Service, Siemens Service]
+    sap_signals:
+      mtart: [DIEN]
+      pstyp_allowed: [D]
+      gl_patterns: ["6201%", "6202%"]
+    typical_spend_share_pct: [1, 3]
+    typical_kpis: [rc_adoption, savings_over_lpo, supplier_defect_rate]
+    notes: "Equipment-specific AMCs. Strong RC opportunity."
+
+  - id: contract_labour
+    label: "Contract Labour & Manpower Services"
+    archetype: SERVICE
+    direct_indirect: I
+    keywords: [contract labour, contract labor, manpower, casual labour, contract workmen, daily wage]
+    synonyms: [CL, contract_labor]
+    hsn_codes: ["9985"]
+    vendor_specialisation_examples: [Quess Corp, TeamLease, Adecco India, ISS Facility Services]
+    sap_signals:
+      mtart: [DIEN]
+      pstyp_allowed: [D]
+      gl_patterns: ["6203%"]
+    typical_spend_share_pct: [1, 4]
+    typical_kpis: [savings_over_lpo, rc_adoption]
+    notes: "Plant maintenance + project execution labour."
+
+  - id: housekeeping_security
+    label: "Housekeeping & Security Services"
+    archetype: SERVICE
+    direct_indirect: I
+    keywords: [housekeeping, security service, security contract, facility management, janitorial, sanitation service]
+    synonyms: [HK, security_svc]
+    hsn_codes: ["9985"]
+    vendor_specialisation_examples: [ISS, Sodexo, G4S, SIS Limited, Tops Security]
+    sap_signals:
+      mtart: [DIEN]
+      pstyp_allowed: [D]
+      gl_patterns: ["6204%"]
+    typical_spend_share_pct: [0.5, 1.5]
+    typical_kpis: [rc_adoption, savings_over_lpo]
+    notes: "Plant facility services."
+
+  - id: transport_logistics
+    label: "Inplant Transport & Logistics Services"
+    archetype: SERVICE
+    direct_indirect: I
+    keywords: [transport, inplant transport, logistics service, freight, trucking, material movement, hire vehicle]
+    synonyms: [logistics_svc, freight]
+    hsn_codes: ["9965"]
+    vendor_specialisation_examples: [VRL Logistics, TCI, Allcargo Logistics, Gati]
+    sap_signals:
+      mtart: [DIEN]
+      pstyp_allowed: [D]
+      gl_patterns: ["6205%"]
+    typical_spend_share_pct: [1, 3]
+    typical_kpis: [savings_over_lpo, rc_adoption]
+    notes: "Inplant + interplant movement."
+
+  - id: consultancy_engineering
+    label: "Consultancy & Engineering Services"
+    archetype: SERVICE
+    direct_indirect: I
+    keywords: [consultancy, consulting, engineering design, design service, technical consultancy, advisory]
+    synonyms: [consulting, eng_consultancy]
+    hsn_codes: ["9983"]
+    vendor_specialisation_examples: [Tata Consulting Engineers, Mecon, Engineers India, AECOM]
+    sap_signals:
+      mtart: [DIEN]
+      pstyp_allowed: [D]
+      gl_patterns: ["6206%"]
+    typical_spend_share_pct: [0.3, 1]
+    typical_kpis: [savings_over_lpo]
+    notes: "Project engineering + operational consultancy."
+
+# =============================================================================
+# Editable Configuration
+# Adding a new canonical: HIGH risk (partner)
+# Adding keywords / synonyms to existing canonical: LOW (peer)
+# Adding hsn_codes: MEDIUM (peer + tax desk review)
+# Modifying archetype or direct_indirect: HIGH (cascades downstream)
+# =============================================================================

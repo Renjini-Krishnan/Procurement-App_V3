@@ -112,6 +112,15 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     gold_summary = gold_data.summarise(df_gold)
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
     classify_summary = stage9_classify.summarise(df_classified)
+
+    # Stage 9 canonical classification (6-tier accumulator). Runs alongside
+    # the V1 archetype classifier — adds canonical_id + signal_trace columns
+    # without disturbing downstream pillars that key off archetype.
+    from . import stage9_canonical_classify
+    df_classified, canonical_report = stage9_canonical_classify.classify_canonical(
+        df_classified, industry=industry,
+    )
+
     df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
     portfolio = stage10_kpis.portfolio_summary(df_mg)
 
@@ -171,6 +180,7 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
         "cross_file_recon": cross_file_report,
         "data_quality_score": dqs,
         "pillar_feasibility": pillar_feasibility,
+        "canonical_classification": canonical_report,
         "methodology_kpis": methodology,
         "timings_seconds": {"total": round(time.time() - t0, 2)},
     }
