@@ -408,7 +408,59 @@ def gen_invoice(universe: dict, fraction: float = 0.78) -> pd.DataFrame:
 # Main
 # ============================================================================
 
+def _augment_po_with_approver_and_emergency():
+    """Add PO_Approver_Designation + PO_Approver_ID columns to the PO seed
+    if missing, scaled to PO value. Also sprinkle ~2.5% of Short_Text rows
+    with emergency prefixes to exercise Gold enrichment paths."""
+    po_path = SEED_DIR / "demo_po_dump.csv"
+    df = pd.read_csv(po_path, low_memory=False)
+    changed = False
+
+    if "PO_Approver_Designation" not in df.columns:
+        T5 = ["CPO", "Chief Procurement Officer", "Head Procurement", "CFO", "Chairman"]
+        T4 = ["GM", "DGM", "VP - Procurement", "VP Procurement", "GM Procurement", "Director - Procurement"]
+        T3 = ["AGM", "AGM Procurement", "Sr Manager", "Sr. Manager", "Senior Manager", "Senior Manager Procurement", "Chief Manager"]
+        T2 = ["Manager", "Manager Procurement", "Mgr", "Asst Manager", "Assistant Manager", "Manager - Sourcing"]
+        T1 = ["Officer", "Procurement Officer", "Procurement Executive", "Sourcing Executive", "Buyer", "Sr. Buyer", "Asst Buyer", "Specialist"]
+        def pick(v):
+            if v >= 5_00_00_000: return random.choices([random.choice(T5), random.choice(T4)], weights=[0.6, 0.4])[0]
+            if v >= 50_00_000:    return random.choices([random.choice(T4), random.choice(T3)], weights=[0.45, 0.55])[0]
+            if v >= 5_00_000:     return random.choices([random.choice(T3), random.choice(T2)], weights=[0.4, 0.6])[0]
+            if v >= 50_000:       return random.choices([random.choice(T2), random.choice(T1)], weights=[0.5, 0.5])[0]
+            return random.choice(T1)
+        random.seed(42)
+        nv = pd.to_numeric(df["Net_Value"], errors="coerce").fillna(0)
+        df["PO_Approver_Designation"] = [pick(v) for v in nv]
+        df["PO_Approver_ID"] = [f"EMP-{random.randint(1000, 9999)}" for _ in range(len(df))]
+        changed = True
+        print(f"  augmented PO with approver columns ({len(df)} rows)")
+
+    if "Short_Text" in df.columns:
+        # Check if any emergency keywords already present
+        existing = df["Short_Text"].astype(str).str.lower().str.contains(
+            r"emergency|urgent|breakdown|rush order", na=False, regex=True
+        ).sum()
+        if existing < int(len(df) * 0.01):
+            prefixes = ["EMERGENCY -", "URGENT:", "BREAKDOWN -", "RUSH ORDER:", "CRITICAL BREAKDOWN -"]
+            random.seed(123)
+            target = int(len(df) * 0.025)
+            idx = random.sample(range(len(df)), target)
+            st = df["Short_Text"].astype(str).copy()
+            for i in idx:
+                cur = str(st.iloc[i] or "").strip()
+                p = random.choice(prefixes)
+                st.iloc[i] = f"{p} {cur}" if cur and cur != "nan" else p
+            df["Short_Text"] = st
+            changed = True
+            print(f"  tagged {target} Short_Text rows with emergency keywords")
+
+    if changed:
+        df.to_csv(po_path, index=False)
+        print(f"  → wrote {po_path}")
+
+
 def main():
+    _augment_po_with_approver_and_emergency()
     universe = load_po_universe()
     print(f"PO universe: {len(universe['vendors'])} vendors, "
           f"{len(universe['plants'])} plants, {len(universe['mgs'])} MGs, "
