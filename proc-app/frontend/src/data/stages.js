@@ -23,10 +23,10 @@ export const STAGES = [
   { id: 13, phase: "Analyze",    name: "Org Structure",     slug: "org-structure",     status: "todo" },
   { id: 14, phase: "Analyze",    name: "DoA",               slug: "doa",               status: "todo" },
   { id: 16, phase: "Analyze",    name: "Buying Channel",    slug: "buying-channel",    status: "todo" },
-  { id: 18, phase: "Analyze",    name: "Material Master",   slug: "material-master",   status: "todo", locked: true },
-  { id: 20, phase: "Analyze",    name: "PR-to-PO",          slug: "pr-to-po",          status: "todo", locked: true },
-  { id: 21, phase: "Analyze",    name: "Post-PO",           slug: "post-po",           status: "todo", locked: true },
-  { id: 22, phase: "Analyze",    name: "Supplier",          slug: "supplier",          status: "todo", locked: true },
+  { id: 18, phase: "Analyze",    name: "Material Master",   slug: "material-master",   status: "todo"},
+  { id: 20, phase: "Analyze",    name: "PR-to-PO",          slug: "pr-to-po",          status: "todo"},
+  { id: 21, phase: "Analyze",    name: "Post-PO",           slug: "post-po",           status: "todo"},
+  { id: 22, phase: "Analyze",    name: "Supplier",          slug: "supplier",          status: "todo"},
 
   // Output phase (28-30)
   { id: 28, phase: "Output",     name: "Findings deck",     slug: "findings-deck",     status: "todo" },

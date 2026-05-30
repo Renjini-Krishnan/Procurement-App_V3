@@ -22,6 +22,7 @@ import DoA from "./screens/DoA.jsx";
 import BuyingChannel from "./screens/BuyingChannel.jsx";
 import OrgStructure from "./screens/OrgStructure.jsx";
 import FindingsDeck from "./screens/FindingsDeck.jsx";
+import { MaterialMaster, PrToPo, PostPo, Supplier } from "./screens/V2Pillar.jsx";
 import ExecSummary from "./screens/ExecSummary.jsx";
 import KPIDashboard from "./screens/KPIDashboard.jsx";
 import Comparison from "./screens/Comparison.jsx";
@@ -47,6 +48,10 @@ const STAGE_SCREENS = {
   "org-structure": OrgStructure,
   "buying-channel": BuyingChannel,
   doa: DoA,
+  "material-master": MaterialMaster,
+  "pr-to-po": PrToPo,
+  "post-po": PostPo,
+  "supplier": Supplier,
   "findings-deck": FindingsDeck,
   "exec-summary": ExecSummary,
   "kpi-dashboard": KPIDashboard,

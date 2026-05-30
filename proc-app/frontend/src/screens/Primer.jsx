@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
+import { KpiSummaryStrip, DataQualityContext } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import { useIntel } from "../hooks/useIntel.js";
 
 /* Stage 11 — Engagement Primer.
    Shows benchmark cascade per pillar: function defaults → industry overlays.
@@ -17,6 +19,7 @@ const PILLARS = [
 
 const Primer = () => {
   const { engagement, loading: engLoading } = useEngagement();
+  const { data: intel } = useIntel(engagement);
   const [activePillar, setActivePillar] = useState("op-model");
   const [benchmarks, setBenchmarks] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +47,20 @@ const Primer = () => {
   return (
     <div>
       <Header />
+      <DataQualityContext intel={intel} />
+
+      {intel?.methodology_kpis && (
+        <Card padding={20} style={{ marginBottom: 24 }}>
+          <Label>Methodology KPIs · benchmark cascade</Label>
+          <div style={{ marginTop: 4, fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
+            Industry-typical ranges from <code style={{ fontFamily: "var(--font-mono)" }}>kb/_meta/kpi-calculation-rules.yml#benchmarks</code>.
+            Your engagement values shown against each band.
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <KpiSummaryStrip kpis={intel.methodology_kpis.filter((k) => k.available)} />
+          </div>
+        </Card>
+      )}
 
       <Card padding={24} style={{ marginBottom: 24 }}>
         <Label>Industry context</Label>

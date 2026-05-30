@@ -92,6 +92,45 @@ def run_org_structure_pillar(engagement_id: str, payload: RunPillarRequest):
     return result
 
 
+def _run_v2_pillar(engagement_id: str, payload: 'RunPillarRequest', kind: str, label: str):
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    upload = upload_service.get_upload(payload.upload_id)
+    if not upload or upload.get("engagement_id") != engagement_id:
+        raise HTTPException(404, "Upload not found for this engagement")
+    try:
+        runner = {
+            "material-master": orchestrator.run_material_master_pillar,
+            "pr-to-po":        orchestrator.run_pr_to_po_pillar,
+            "post-po":         orchestrator.run_post_po_pillar,
+            "supplier":        orchestrator.run_supplier_pillar,
+        }[kind]
+        return runner(engagement_id=engagement_id, upload_id=payload.upload_id, industry=payload.industry)
+    except Exception as e:
+        raise HTTPException(500, f"{label} pillar run failed: {e}")
+
+
+@router.post("/{engagement_id}/run-pillar/material-master")
+def run_material_master(engagement_id: str, payload: RunPillarRequest):
+    return _run_v2_pillar(engagement_id, payload, "material-master", "Material Master")
+
+
+@router.post("/{engagement_id}/run-pillar/pr-to-po")
+def run_pr_to_po(engagement_id: str, payload: RunPillarRequest):
+    return _run_v2_pillar(engagement_id, payload, "pr-to-po", "PR-to-PO")
+
+
+@router.post("/{engagement_id}/run-pillar/post-po")
+def run_post_po(engagement_id: str, payload: RunPillarRequest):
+    return _run_v2_pillar(engagement_id, payload, "post-po", "Post-PO")
+
+
+@router.post("/{engagement_id}/run-pillar/supplier")
+def run_supplier(engagement_id: str, payload: RunPillarRequest):
+    return _run_v2_pillar(engagement_id, payload, "supplier", "Supplier")
+
+
 @router.post("/{engagement_id}/run-kpi-dashboard")
 def run_kpi_dashboard(engagement_id: str, payload: RunPillarRequest):
     eng = db.get_engagement(engagement_id)

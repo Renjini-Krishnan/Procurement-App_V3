@@ -662,3 +662,87 @@ def get_findings(engagement_id: str, pillar: Optional[str] = None) -> list[dict]
                     pass
         out.append(d)
     return out
+
+
+# ============================================================================
+# V2 pillars — Material Master, PR-to-PO, Post-PO, Supplier
+# ============================================================================
+
+def _v2_load_aux_dfs(engagement_id: str, file_types: list[str]) -> dict:
+    """Load cleansed dfs for the requested file_types from the upload store.
+    Returns {file_type: df_or_None}. Never raises."""
+    from ..services import upload_service
+    out: dict = {}
+    uploads = upload_service.list_uploads(engagement_id)
+    for ft in file_types:
+        u = next((x for x in uploads if x.get("file_type") == ft), None)
+        if not u:
+            out[ft] = None
+            continue
+        try:
+            df, _ = gold_data.build_gold_dataframe_with_report(
+                u["id"], lookback_months=_load_scope_lookback(engagement_id),
+            )
+            out[ft] = df
+        except Exception:
+            out[ft] = None
+    return out
+
+
+def _v2_run_pillar(engagement_id: str, upload_id: str, industry: str,
+                    pillar_kind: str) -> dict:
+    from . import v2_pillars
+    df_gold = gold_data.build_gold_dataframe(
+        upload_id, lookback_months=_load_scope_lookback(engagement_id),
+    )
+    df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    # Add canonical classification for intel_context
+    from . import stage9_canonical_classify
+    df_classified, canon_report = stage9_canonical_classify.classify_canonical(
+        df_classified, industry=industry,
+    )
+
+    if pillar_kind == "material-master":
+        aux = _v2_load_aux_dfs(engagement_id, ["MATERIAL_MASTER"])
+        result = v2_pillars.run_material_master(
+            df_classified, aux.get("MATERIAL_MASTER"),
+            {"taxonomy_canonicals": canon_report.get("taxonomy_canonicals"),
+              "stats": canon_report.get("stats", {})},
+        )
+    elif pillar_kind == "pr-to-po":
+        aux = _v2_load_aux_dfs(engagement_id, ["PR"])
+        result = v2_pillars.run_pr_to_po(df_classified, aux.get("PR"))
+    elif pillar_kind == "post-po":
+        aux = _v2_load_aux_dfs(engagement_id, ["GRN", "INVOICE"])
+        result = v2_pillars.run_post_po(df_classified, aux.get("GRN"), aux.get("INVOICE"))
+    elif pillar_kind == "supplier":
+        aux = _v2_load_aux_dfs(engagement_id, ["VENDOR_MASTER"])
+        result = v2_pillars.run_supplier(df_classified, aux.get("VENDOR_MASTER"))
+    else:
+        raise ValueError(f"Unknown V2 pillar: {pillar_kind}")
+
+    result["engagement_id"] = engagement_id
+    result["upload_id"] = upload_id
+    result["industry"] = industry
+    result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
+    # Persist + advance not wired for V2 pillars (no specific stage_id mapping);
+    # findings are persisted generically.
+    _persist_findings_generic(engagement_id, result, pillar_kind)
+    _record_run(engagement_id, pillar_kind, result)
+    return result
+
+
+def run_material_master_pillar(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
+    return _v2_run_pillar(engagement_id, upload_id, industry, "material-master")
+
+
+def run_pr_to_po_pillar(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
+    return _v2_run_pillar(engagement_id, upload_id, industry, "pr-to-po")
+
+
+def run_post_po_pillar(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
+    return _v2_run_pillar(engagement_id, upload_id, industry, "post-po")
+
+
+def run_supplier_pillar(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
+    return _v2_run_pillar(engagement_id, upload_id, industry, "supplier")

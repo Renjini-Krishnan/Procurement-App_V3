@@ -114,6 +114,26 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ upload_id: uploadId, industry }),
     }),
+  runMaterialMaster: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/material-master`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  runPrToPo: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/pr-to-po`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  runPostPo: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/post-po`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
+  runSupplier: (id, uploadId, industry = "steel") =>
+    request(`/engagement/${id}/run-pillar/supplier`, {
+      method: "POST",
+      body: JSON.stringify({ upload_id: uploadId, industry }),
+    }),
   runKpiDashboard: (id, uploadId, industry = "steel") =>
     request(`/engagement/${id}/run-kpi-dashboard`, {
       method: "POST",
