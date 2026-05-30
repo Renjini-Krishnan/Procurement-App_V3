@@ -196,6 +196,14 @@ def list_uploads_endpoint(engagement_id: str):
     return upload_service.list_uploads(engagement_id)
 
 
+@router.get("/{engagement_id}/uploads/summary")
+def uploads_summary_endpoint(engagement_id: str):
+    """Per-upload classification + quick stats, surfaced on Stage 5."""
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    return upload_service.build_upload_summary(engagement_id)
+
+
 @router.get("/{engagement_id}/uploads/{upload_id}")
 def get_upload_endpoint(engagement_id: str, upload_id: str):
     upload = upload_service.get_upload(upload_id)

@@ -79,6 +79,7 @@ export const api = {
     return res.json();
   },
   listUploads: (id) => request(`/engagement/${id}/uploads`),
+  uploadsSummary: (id) => request(`/engagement/${id}/uploads/summary`),
   previewUpload: (id, uploadId, limit = 20) =>
     request(`/engagement/${id}/uploads/${uploadId}/preview?limit=${limit}`),
   confirmMapping: (id, uploadId, confirmedMapping) =>

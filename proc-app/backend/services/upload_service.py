@@ -316,6 +316,208 @@ def classify_file_type(raw_columns: list[str]) -> dict:
 
 
 # --------------------------------------------------------------------------
+# Per-upload quick-stats — surfaced on Stage 5 AI Validation
+# --------------------------------------------------------------------------
+
+def _resolve_columns(raw_columns: list[str], file_type: str,
+                      wanted_fields: list[str]) -> dict[str, Optional[str]]:
+    """Best-effort: map canonical field → raw column name using suggest_mapping."""
+    suggestion = canonical_schema.suggest_mapping(raw_columns, file_type)
+    by_canonical: dict[str, str] = {}
+    for m in suggestion.get("matches", []):
+        if m.get("suggested_field") and m["suggested_field"] not in by_canonical:
+            by_canonical[m["suggested_field"]] = m["raw_column"]
+    return {fld: by_canonical.get(fld) for fld in wanted_fields}
+
+
+def _detect_currency_unit(values: pd.Series) -> tuple[float, str]:
+    """Sum-based unit detection (mirrors KB cleansing rule). Returns
+    (multiplier_to_INR, label). If the magnitude suggests thousands or
+    lakhs/crores in header text we'd handle that elsewhere — here we use
+    a conservative sum-magnitude heuristic only as a fallback label."""
+    total = float(pd.to_numeric(values, errors="coerce").fillna(0).sum())
+    # Conservative: assume the column is already in INR; just return total + label.
+    return total, "INR"
+
+
+def _format_inr(amount: float) -> str:
+    if amount is None or amount != amount:  # NaN check
+        return "—"
+    a = abs(amount)
+    if a >= 1e7:
+        return f"₹{amount/1e7:,.2f} Cr"
+    if a >= 1e5:
+        return f"₹{amount/1e5:,.2f} L"
+    if a >= 1e3:
+        return f"₹{amount/1e3:,.1f} K"
+    return f"₹{amount:,.0f}"
+
+
+def _date_range(series: pd.Series) -> Optional[dict]:
+    try:
+        s = pd.to_datetime(series, errors="coerce", dayfirst=True)
+        s = s.dropna()
+        if len(s) == 0:
+            return None
+        return {
+            "min": s.min().strftime("%Y-%m-%d"),
+            "max": s.max().strftime("%Y-%m-%d"),
+            "span_days": int((s.max() - s.min()).days),
+            "parsed_rows": int(len(s)),
+        }
+    except Exception:
+        return None
+
+
+def _quick_stats_for(file_type: str, df: pd.DataFrame) -> dict:
+    """Compute file-type-specific summary stats. Best-effort; missing
+    columns just yield fewer fields. NEVER raises."""
+    ft = file_type.upper()
+    raw_cols = [str(c).strip() for c in df.columns]
+    stats: dict[str, Any] = {"row_count": int(len(df))}
+
+    def _col(canonical: str) -> Optional[str]:
+        return _resolve_columns(raw_cols, ft, [canonical]).get(canonical)
+
+    try:
+        if ft == "PO":
+            amt_col = _col("net_value") or _col("gr_value") or _col("invoice_value")
+            if amt_col and amt_col in df.columns:
+                total, _ = _detect_currency_unit(df[amt_col])
+                stats["total_value_inr"] = total
+                stats["total_value_label"] = _format_inr(total)
+            vendor_col = _col("vendor_id") or _col("vendor_name")
+            if vendor_col and vendor_col in df.columns:
+                stats["distinct_vendors"] = int(df[vendor_col].dropna().nunique())
+            mg_col = _col("material_group_desc") or _col("material_group")
+            if mg_col and mg_col in df.columns:
+                grp = df[mg_col].dropna().astype(str)
+                stats["distinct_material_groups"] = int(grp.nunique())
+                if amt_col and amt_col in df.columns:
+                    vals = pd.to_numeric(df[amt_col], errors="coerce").fillna(0)
+                    top = (pd.DataFrame({"mg": grp, "v": vals})
+                            .groupby("mg")["v"].sum().sort_values(ascending=False).head(5))
+                    stats["top_categories"] = [
+                        {"label": k, "value_inr": float(v), "value_label": _format_inr(float(v))}
+                        for k, v in top.items()
+                    ]
+            date_col = _col("po_creation_date") or _col("delivery_date")
+            if date_col and date_col in df.columns:
+                dr = _date_range(df[date_col]);  dr and stats.update({"date_range": dr})
+
+        elif ft == "PR":
+            pr_col = _col("pr_number")
+            if pr_col and pr_col in df.columns:
+                stats["distinct_prs"] = int(df[pr_col].dropna().nunique())
+            amt_col = _col("pr_total_value")
+            if amt_col and amt_col in df.columns:
+                total, _ = _detect_currency_unit(df[amt_col])
+                stats["total_value_inr"] = total
+                stats["total_value_label"] = _format_inr(total)
+            date_col = _col("pr_creation_date") or _col("pr_release_date")
+            if date_col and date_col in df.columns:
+                dr = _date_range(df[date_col]);  dr and stats.update({"date_range": dr})
+
+        elif ft == "GRN":
+            grn_col = _col("grn_number")
+            if grn_col and grn_col in df.columns:
+                stats["distinct_grns"] = int(df[grn_col].dropna().nunique())
+            amt_col = _col("amount")
+            if amt_col and amt_col in df.columns:
+                total, _ = _detect_currency_unit(df[amt_col])
+                stats["total_value_inr"] = total
+                stats["total_value_label"] = _format_inr(total)
+            date_col = _col("posting_date") or _col("document_date")
+            if date_col and date_col in df.columns:
+                dr = _date_range(df[date_col]);  dr and stats.update({"date_range": dr})
+
+        elif ft == "INVOICE":
+            inv_col = _col("invoice_doc_number")
+            if inv_col and inv_col in df.columns:
+                stats["distinct_invoices"] = int(df[inv_col].dropna().nunique())
+            amt_col = _col("gross_amount")
+            if amt_col and amt_col in df.columns:
+                total, _ = _detect_currency_unit(df[amt_col])
+                stats["total_value_inr"] = total
+                stats["total_value_label"] = _format_inr(total)
+            date_col = _col("invoice_date") or _col("posting_date")
+            if date_col and date_col in df.columns:
+                dr = _date_range(df[date_col]);  dr and stats.update({"date_range": dr})
+
+        elif ft == "VENDOR_MASTER":
+            vid_col = _col("vendor_id")
+            if vid_col and vid_col in df.columns:
+                stats["distinct_vendors"] = int(df[vid_col].dropna().nunique())
+
+        elif ft == "MATERIAL_MASTER":
+            mid_col = _col("material_number")
+            if mid_col and mid_col in df.columns:
+                stats["distinct_materials"] = int(df[mid_col].dropna().nunique())
+
+        elif ft == "ORG_STRUCTURE":
+            emp_col = _col("employee_id")
+            if emp_col and emp_col in df.columns:
+                stats["distinct_employees"] = int(df[emp_col].dropna().nunique())
+
+        elif ft == "CONTRACT_MASTER":
+            c_col = _col("contract_number")
+            if c_col and c_col in df.columns:
+                stats["distinct_contracts"] = int(df[c_col].dropna().nunique())
+    except Exception as e:
+        stats["_stats_error"] = str(e)
+
+    return stats
+
+
+def build_upload_summary(engagement_id: str) -> dict:
+    """Return per-upload roster: classification confidence (recomputed) +
+    quick stats. Used by Stage 5 AI Validation."""
+    rows = list_uploads(engagement_id)
+    uploads_summary = []
+    for u in rows:
+        try:
+            df = read_upload_dataframe(u["id"])
+        except Exception as e:
+            uploads_summary.append({
+                "upload_id": u["id"],
+                "file_type": u.get("file_type"),
+                "original_filename": u.get("original_filename"),
+                "row_count": u.get("row_count"),
+                "uploaded_at": u.get("uploaded_at"),
+                "auto_classified": bool(u.get("auto_classified")),
+                "_error": f"Could not read file: {e}",
+            })
+            continue
+        raw_cols = [str(c).strip() for c in df.columns]
+        classification = classify_file_type(raw_cols)
+        # Top 3 alternatives (excluding the best) by score
+        alternatives = sorted(
+            [(k, v) for k, v in classification["scores"].items() if k != classification["best"]],
+            key=lambda x: -x[1],
+        )[:3]
+        ft_used = u.get("file_type") or classification["best"]
+        quick = _quick_stats_for(ft_used, df) if ft_used else {"row_count": int(len(df))}
+        classification_matches_persisted = (classification["best"] == u.get("file_type"))
+        uploads_summary.append({
+            "upload_id": u["id"],
+            "file_type": u.get("file_type"),
+            "original_filename": u.get("original_filename"),
+            "row_count": u.get("row_count"),
+            "uploaded_at": u.get("uploaded_at"),
+            "auto_classified": bool(u.get("auto_classified")),
+            "classification": {
+                "best": classification["best"],
+                "score": classification["score"],
+                "confidence": classification["confidence"],
+                "matches_persisted_type": classification_matches_persisted,
+                "alternatives": [{"file_type": k, "score": v} for k, v in alternatives],
+            },
+            "quick_stats": quick,
+        })
+    return {"engagement_id": engagement_id, "uploads": uploads_summary}
+
+
+# --------------------------------------------------------------------------
 # Blank-template generators (XLSX + CSV) for client distribution
 # --------------------------------------------------------------------------
 

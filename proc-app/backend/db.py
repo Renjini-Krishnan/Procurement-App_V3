@@ -118,7 +118,22 @@ def init_db() -> None:
     config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(config.DB_PATH) as conn:
         conn.executescript(SCHEMA)
+        _apply_idempotent_migrations(conn)
         conn.commit()
+
+
+def _apply_idempotent_migrations(conn) -> None:
+    """ALTER TABLE … ADD COLUMN where the column is missing.
+    Lets dev DBs upgrade in place without losing seeded engagements."""
+    needed = [
+        ("uploads", "content_hash", "TEXT"),
+        ("uploads", "size_bytes", "INTEGER"),
+        ("uploads", "auto_classified", "INTEGER DEFAULT 0"),
+    ]
+    for table, col, decl in needed:
+        existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if col not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
 
 
 @contextmanager
