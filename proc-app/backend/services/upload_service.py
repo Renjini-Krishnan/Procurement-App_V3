@@ -202,6 +202,39 @@ def confirm_mapping(upload_id: str, confirmed_mapping: list[dict]) -> dict:
     }
 
 
+def list_validation_status(engagement_id: str) -> dict:
+    """Per-engagement view: which uploads still need column mapping confirmed.
+    Used by Stage 6 to drive the multi-file tracker + only advance to Bronze
+    once every upload is mapped."""
+    uploads = list_uploads(engagement_id)
+    items = []
+    confirmed_count = 0
+    for u in uploads:
+        cm = u.get("column_mapping") or {}
+        if not isinstance(cm, dict):
+            cm = {}
+        confirmed = cm.get("confirmed")
+        missing = cm.get("missing_required") or []
+        is_confirmed = bool(confirmed) and len(missing) == 0
+        if is_confirmed:
+            confirmed_count += 1
+        items.append({
+            "upload_id": u["id"],
+            "file_type": u.get("file_type"),
+            "original_filename": u.get("original_filename"),
+            "row_count": u.get("row_count"),
+            "is_confirmed": is_confirmed,
+            "missing_required": missing,
+        })
+    return {
+        "engagement_id": engagement_id,
+        "total": len(items),
+        "confirmed": confirmed_count,
+        "all_ready_for_bronze": (len(items) > 0 and confirmed_count == len(items)),
+        "uploads": items,
+    }
+
+
 def read_upload_dataframe(upload_id: str) -> pd.DataFrame:
     """Read the stored file back into a DataFrame for downstream stages."""
     upload = get_upload(upload_id)

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, Badge, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { api } from "../api/client.js";
@@ -11,6 +12,7 @@ import { useEngagement } from "../hooks/useEngagement.js";
 
 const AIValidation = () => {
   const { engagement, loading: engLoading } = useEngagement();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [preview, setPreview] = useState(null);
   const [selectedUploadId, setSelectedUploadId] = useState(null);
@@ -76,6 +78,9 @@ const AIValidation = () => {
         uploads={uploads}
         selectedId={selectedUploadId}
         onSelect={setSelectedUploadId}
+        onMapColumns={(uid) =>
+          navigate(`/engagement/${engagement.id}/user-validation?upload=${uid}`)
+        }
       />
 
       {/* Quick stats for the selected upload */}
@@ -147,7 +152,7 @@ const AIValidation = () => {
   );
 };
 
-const FileRosterCard = ({ uploads, selectedId, onSelect }) => (
+const FileRosterCard = ({ uploads, selectedId, onSelect, onMapColumns }) => (
   <Card padding={20} style={{ marginBottom: 16 }}>
     <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-500)", marginBottom: 12 }}>
       Uploaded files · auto-classification ({uploads.length})
@@ -192,7 +197,7 @@ const FileRosterCard = ({ uploads, selectedId, onSelect }) => (
               <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>
                 {u.row_count?.toLocaleString() || "—"}
               </td>
-              <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)" }}>
+              <td style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", whiteSpace: "nowrap" }}>
                 <button
                   type="button"
                   onClick={() => onSelect(u.upload_id)}
@@ -201,10 +206,23 @@ const FileRosterCard = ({ uploads, selectedId, onSelect }) => (
                     background: isSelected ? "var(--brand-700)" : "var(--surface-elev)",
                     color: isSelected ? "white" : "var(--ink-900)",
                     padding: "4px 10px", borderRadius: "var(--r-md)",
-                    fontSize: "var(--fs-12)", cursor: "pointer",
+                    fontSize: "var(--fs-12)", cursor: "pointer", marginRight: 6,
                   }}
                 >
                   {isSelected ? "Selected" : "Inspect"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onMapColumns(u.upload_id)}
+                  style={{
+                    border: "1px solid var(--brand-700)",
+                    background: "var(--surface-elev)",
+                    color: "var(--brand-700)",
+                    padding: "4px 10px", borderRadius: "var(--r-md)",
+                    fontSize: "var(--fs-12)", cursor: "pointer", fontWeight: 500,
+                  }}
+                >
+                  Map columns →
                 </button>
               </td>
             </tr>

@@ -251,7 +251,21 @@ def confirm_mapping_endpoint(engagement_id: str, upload_id: str, payload: Confir
         result = upload_service.confirm_mapping(upload_id, payload.confirmed_mapping)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    if result["ready_for_bronze"]:
-        db.set_stage_status(engagement_id, 6, "done", {"upload_id": upload_id, "mapping_confirmed": True})
+    # Only advance the engagement to Bronze once EVERY upload is confirmed.
+    status = upload_service.list_validation_status(engagement_id)
+    result["all_ready_for_bronze"] = status["all_ready_for_bronze"]
+    result["confirmed_count"] = status["confirmed"]
+    result["total_uploads"] = status["total"]
+    if status["all_ready_for_bronze"]:
+        db.set_stage_status(engagement_id, 6, "done",
+                             {"confirmed_count": status["confirmed"], "all_mapped": True})
         db.update_engagement_stage(engagement_id, 7)
     return result
+
+
+@router.get("/{engagement_id}/validation-status")
+def validation_status_endpoint(engagement_id: str):
+    """Multi-file mapping tracker for Stage 6."""
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    return upload_service.list_validation_status(engagement_id)
