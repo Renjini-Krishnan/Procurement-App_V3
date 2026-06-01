@@ -431,9 +431,12 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
 
     # DoA is heavily QRE-dependent. If the consultant hasn't answered ANY
     # questions, return a stub that the frontend renders as "needs QRE"
-    # rather than compute a fake maturity score from defaults.
+    # rather than compute a fake maturity score from defaults. Record the
+    # run anyway so history shows the attempt.
     if not (qre_responses.get("responses") or []):
-        return _empty_qre_stub("doa", "DoA", engagement_id, industry)
+        stub = _empty_qre_stub("doa", "DoA", engagement_id, industry)
+        _record_run(engagement_id, "doa", stub)
+        return stub
 
     result = run_doa(df_classified, df_mg, qre_responses)
     timings["stage14_doa"] = round(time.time() - t3, 2)
@@ -524,9 +527,11 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
         qre_responses = _load_qre(engagement_id)
 
     # Org Structure is heavily QRE-dependent in V1 (no Org file consumed yet).
-    # Return a "needs QRE" stub when zero answers exist.
+    # Return a "needs QRE" stub when zero answers exist; record the run.
     if not (qre_responses.get("responses") or []):
-        return _empty_qre_stub("org-structure", "Org Structure", engagement_id, industry)
+        stub = _empty_qre_stub("org-structure", "Org Structure", engagement_id, industry)
+        _record_run(engagement_id, "org-structure", stub)
+        return stub
 
     engagement = db.get_engagement(engagement_id) or {}
 
