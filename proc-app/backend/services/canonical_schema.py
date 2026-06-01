@@ -231,7 +231,9 @@ def suggest_mapping(raw_columns: list[str], file_type: str) -> dict:
     # Optional LLM enrichment — opt-in via env (heuristic is excellent on seeds;
     # LLM mainly helps on noisy real-world client headers).
     import os
-    if os.environ.get("PROCVAULT_LLM_COLMAP", "0") in ("1", "true", "yes"):
+    # LLM column-mapping enrichment is on by default. Set PROCVAULT_LLM_COLMAP=0 to disable.
+    # Falls back to heuristic mapping silently if Vertex AI / ADC is unavailable.
+    if os.environ.get("PROCVAULT_LLM_COLMAP", "1") in ("1", "true", "yes"):
         try:
             from ..services import llm, llm_prompts
             prompt, fallback = llm_prompts.column_mapping(

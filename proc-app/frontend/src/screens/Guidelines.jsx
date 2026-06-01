@@ -4,41 +4,35 @@ import { I } from "../design/icons.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
-/* Stage 3 — Guidelines (engagement ground rules).
-
-   Item content is hardcoded in the ITEMS array below. The content
-   describes what V1 ACTUALLY does — not aspiration. When app behaviour
-   changes, this file MUST be updated (see footer note).
-
-   View-mode toggle lives at the top: Consultant view (full access) vs
-   Client view (Findings Deck + Exec Summary only). State is persisted
-   in engagement_overrides under key 'view.mode'. */
+/* Stage 3 — Engagement Guidelines. Client-facing ground rules + scope clarity
+   + view-mode toggle. Avoid dev terminology (V1/V2/SQLite/env vars). */
 
 const ITEMS = [
   {
-    title: "Confidentiality (host-controlled — not app-encrypted)",
+    title: "How your data is protected",
     body: (
       <>
-        Uploaded files land on the host filesystem under{" "}
-        <code>proc-app/backend/data/uploads/</code>; SQLite engagement state
-        lives at <code>proc-app/backend/data/procvault.db</code>. There is
-        <strong> no application-level encryption at rest in V1</strong> —
-        confidentiality relies on the host OS file permissions and disk
-        encryption (FileVault / dm-crypt / similar). Host the app on a
-        machine that meets your data-residency + encryption needs.
+        Your uploaded files and engagement records stay on the machine
+        running this application. Confidentiality relies on standard
+        OS-level protections (FileVault on Mac, BitLocker on Windows, or
+        the equivalent disk encryption your IT team has provisioned). For
+        engagements involving sensitive procurement data, please ensure
+        this application runs on a machine that meets your organisation's
+        information-security policy.
       </>
     ),
   },
   {
-    title: "Access (no auth in V1)",
+    title: "Who can access this engagement",
     body: (
       <>
-        V1 has <strong>no authentication or user accounts</strong>. Anyone
-        who can reach the URL (<code>http://localhost:5173</code> or the
-        deployment URL) has full edit access to every engagement on that
-        instance. The only access boundary is the host network. Per-user
-        roles, signed sessions, and engagement-scoped access controls are
-        on the V2 roadmap.
+        Anyone with network access to this application instance can view
+        and edit any engagement. There is no individual user login or
+        per-user role today. If you need access boundaries between team
+        members or between consultant and client, host the application on
+        a network only authorised users can reach (a corporate VPN or
+        firewalled subnet), or share screenshots / exports rather than
+        the live URL.
       </>
     ),
   },
@@ -46,80 +40,90 @@ const ITEMS = [
     title: "Consultant view vs Client view",
     body: (
       <>
-        Switch the workspace into <strong>Client view</strong> from the
-        toggle at the top of the left rail. Client view hides everything
-        except <strong>Findings Deck (Stage 28)</strong> and <strong>Executive
-        Summary (Stage 29)</strong>, and forces all other URLs to redirect
-        to Findings Deck. Switch back to Consultant view via the same
-        toggle. Because there is no auth, the toggle is honour-based —
-        anyone with the URL can flip it. Treat it as a presentation mode,
-        not a security boundary.
+        Use the toggle below to switch the workspace between two
+        presentation modes. <strong>Consultant view</strong> is the
+        default — all stages, KPIs, and findings are visible and
+        editable. <strong>Client view</strong> hides the working machinery
+        and shows only the deliverables: the Findings Deck and the
+        Executive Summary. This is a presentation convenience, not a
+        security control — anyone with the URL can flip it back, so use
+        it during walk-throughs rather than as a hand-off boundary.
       </>
     ),
   },
   {
-    title: "Sign-off (cadence-driven, persisted, single-approver)",
+    title: "Sign-off and approvals",
     body: (
       <>
-        Sign-off is real — the widget appears on pillar screens (cadence{" "}
-        <code>end-of-pillar</code>) or on the Exec Summary (cadence{" "}
-        <code>end-of-phase</code>) and persists per scope in
-        <code> engagement_overrides</code> with key <code>signoff.&lt;scope&gt;</code>{" "}
-        <code>{`= {ts, signed: true}`}</code>. Cadence is set on Stage 2 (Scope).
-        Sign-off is <strong>single-approver</strong> in V1 — no
-        co-signer or audit trail of who clicked the button. Dual approval is
-        a V2 item.
+        Sign-off prompts appear at the end of each pillar and at the end
+        of each phase, depending on the cadence you choose on the next
+        screen (Stage 2 — Scope). Each sign-off is single-approver and is
+        recorded against the engagement. If your organisation requires
+        dual approval or a formal audit trail of who approved what and
+        when, capture that separately in your standard project
+        documentation.
       </>
     ),
   },
   {
-    title: "Citations + sources (genuinely traceable)",
+    title: "Citations and sources",
     body: (
       <>
-        Every benchmark, KPI, and finding cites <strong>source · year ·
-        confidence</strong> on screen. Pull the citation by clicking any KPI
-        card on the Dashboard, or look at the Stage 11 Primer for the full
-        cascade view. Cited values resolve through{" "}
-        <strong>function default → industry overlay → engagement override</strong>{" "}
-        (most specific wins) via{" "}
-        <code>backend/kb_loader.py:resolve_pillar_benchmarks</code>. Edit
-        the underlying YAML in <code>/kb</code> to change a benchmark; the
-        loader cache invalidates on save.
+        Every benchmark, KPI threshold, and finding is backed by a
+        cited source — typically a published industry benchmark, a
+        regulatory reference, or your client's own QRE responses. Click
+        any KPI card to view its source citation. The Engagement Primer
+        (Stage 11) shows the full benchmark library applicable to this
+        engagement's industry. If you need to override a benchmark for a
+        specific client, the Knowledge Base editor is available from the
+        top navigation.
       </>
     ),
   },
   {
-    title: "Overrides (immediate, single-click — no dual approval in V1)",
+    title: "Engagement-level overrides",
     body: (
       <>
-        Engagement-level overrides (KPI bands, scope settings, source
-        documents) save with a single button click and apply to the next
-        pillar run. Function defaults in <code>kb/functions/procurement/</code>{" "}
-        are editable via <code>/kb</code> but YAML-validated on save (broken
-        YAML is rejected). Industry overlays in{" "}
-        <code>shared-kb/industries/&lt;industry&gt;/</code> apply automatically
-        when an engagement's <code>industry</code> field matches. <strong>Dual
-        sign-off for overrides is a V2 item</strong> — V1 trusts whoever
-        edited it.
+        Any benchmark, KPI band, or scope setting can be customised for
+        this engagement. Overrides take effect on the next pillar run and
+        are scoped to this engagement only — they don't affect other
+        engagements or the default library. The default values are
+        sourced from industry benchmarks published by the practice; you
+        can review them on the Engagement Primer (Stage 11) before
+        deciding whether to override.
       </>
     ),
   },
   {
-    title: "AI usage (opt-in, fallbacks everywhere)",
+    title: "AI usage in this engagement",
     body: (
       <>
-        Gemini 2.5 Pro on Vertex AI is wired into three places — column
-        mapping (Stage 5), pillar finding narratives (KPI Dashboard / Exec
-        Summary), and Client auto-fill (Stage 1). All three are{" "}
-        <strong>opt-in via env vars</strong>{" "}
-        (<code>PROCVAULT_LLM_FINDINGS</code>,
-        <code> PROCVAULT_LLM_COLMAP</code>) and require Google Cloud ADC
-        (<code>gcloud auth application-default login</code>). Without ADC,
-        every call site falls back to deterministic templates — the app
-        works identically minus the narrative quality. Diagnostic at{" "}
-        <code>GET /api/llm/status</code>. Default Vertex AI region is{" "}
-        <code>us-central1</code>; override via{" "}
-        <code>GEMINI_VERTEX_LOCATION</code> for region-locked deployments.
+        Procvault uses Google's Gemini model for three narrow,
+        bounded tasks: <strong>(1)</strong> auto-populating the client
+        profile on Stage 1 (you can override every field manually),
+        <strong> (2)</strong> suggesting how columns in your uploaded data
+        map to the canonical schema (you confirm every mapping on Stage 6),
+        and <strong>(3)</strong> drafting the narrative paragraphs around
+        each KPI finding. Every AI output is paired with a deterministic
+        fallback — if the AI service is unavailable, the app keeps working
+        with rule-based templates. AI is not used to generate scores,
+        ratings, or maturity verdicts. Those are computed deterministically
+        from your data against published benchmarks.
+      </>
+    ),
+  },
+  {
+    title: "Data residency",
+    body: (
+      <>
+        All client data uploaded to this engagement stays on the host
+        machine. AI features (when enabled) send only the minimum context
+        required — for example, a column header list when suggesting a
+        mapping, or a finding label and its computed metric when drafting
+        a narrative. Raw PO line items, vendor lists, and pricing data
+        are never sent to the AI service. If your engagement requires
+        air-gapped operation, switch off AI features and use the
+        deterministic fallbacks for everything.
       </>
     ),
   },
@@ -141,12 +145,11 @@ const Guidelines = () => {
 
   const flipView = async () => {
     const next = viewMode === "consultant" ? "client" : "consultant";
-    if (next === "client" && !confirm("Switch to Client view? Rail will hide everything except Findings Deck + Executive Summary. Toggle back from the rail top.")) return;
+    if (next === "client" && !confirm("Switch to Client view? The left navigation will hide everything except the Findings Deck and Executive Summary. You can switch back from the same toggle.")) return;
     setSavingView(true);
     try {
       await api.upsertOverride(engagement.id, "view.mode", next, "view");
       setViewMode(next);
-      // Reload so the rail picks up the new mode
       window.location.reload();
     } catch (e) {
       alert("Failed: " + (e.message || e));
@@ -168,10 +171,10 @@ const Guidelines = () => {
             <div style={{ fontSize: "var(--fs-18)", fontWeight: 600, marginTop: 4 }}>
               {viewMode === "client" ? "Client view" : "Consultant view"}
             </div>
-            <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-600)", marginTop: 4 }}>
+            <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-600)", marginTop: 4 }}>
               {viewMode === "client"
-                ? "Rail shows only Findings Deck + Executive Summary. Other stages redirect to Findings Deck."
-                : "All stages visible + editable. Use the toggle to switch into a client-facing presentation mode."}
+                ? "Showing only Findings Deck + Executive Summary. Other stages are hidden."
+                : "Full workspace. Switch to Client view for a presentation-ready experience."}
             </div>
           </div>
           <Button onClick={flipView} disabled={!engagement || savingView}>
@@ -180,10 +183,10 @@ const Guidelines = () => {
         </div>
       </Card>
 
-      <Callout tone="info" title="What this page describes" icon={<I.Doc size={16} />}>
-        Honest description of what V1 actually does — confidentiality boundaries,
-        access controls, sign-off, citations, overrides, AI usage. <strong>Not aspirational</strong>.
-        When app behaviour changes, this page must be updated.
+      <Callout tone="info" title="What this page covers" icon={<I.Doc size={16} />}>
+        Ground rules for this engagement — confidentiality, access, sign-off,
+        citations, overrides, and AI usage. Review with your client before
+        beginning the assessment.
       </Callout>
 
       <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
@@ -199,20 +202,6 @@ const Guidelines = () => {
           </Card>
         ))}
       </div>
-
-      <Card padding={20} style={{ marginTop: 24, background: "var(--surface-sunk)" }}>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <Badge tone="neutral">META</Badge>
-          <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-700)", lineHeight: 1.55 }}>
-            <strong>These guidelines must track the app.</strong> Every change to
-            authentication, encryption, override flow, AI integration, or
-            view-mode behaviour requires a matching edit to{" "}
-            <code style={{ fontFamily: "var(--font-mono)" }}>frontend/src/screens/Guidelines.jsx</code>.
-            <br />
-            <span style={{ color: "var(--ink-500)" }}>Last reviewed: 2026-05-29 · Reviewer: engagement consultant</span>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 };
@@ -227,7 +216,7 @@ const Header = () => (
       Engagement guidelines
     </h1>
     <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "6px 0 0 0" }}>
-      What the app actually does · Consultant ↔ Client view toggle · Last reviewed 2026-05-29
+      Confidentiality · access · sign-off · citations · overrides · AI usage
     </p>
   </div>
 );

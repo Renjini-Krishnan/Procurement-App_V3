@@ -165,8 +165,15 @@ def run_intel(engagement_id: str, payload: RunPillarRequest):
             upload_id=payload.upload_id,
             industry=payload.industry,
         )
+    except ValueError as e:
+        # Likely missing column mapping or no upload — return as a 400 with
+        # actionable guidance, not a 500.
+        raise HTTPException(400, f"Intel run cannot start: {e}. "
+                                  f"Check Stage 4 (data uploaded?) + Stage 6 (column mapping confirmed?).")
     except Exception as e:
-        raise HTTPException(500, f"Intel run failed: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Intel run failed: {type(e).__name__}: {e}")
 
 
 @router.get("/{engagement_id}/kpis/export.csv")

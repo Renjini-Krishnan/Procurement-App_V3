@@ -434,7 +434,9 @@ def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame,
         finding = finding_template
         # LLM enrichment — opt-in via env var (off by default to keep KPI dashboard fast)
         import os
-        if os.environ.get("PROCVAULT_LLM_FINDINGS", "0") in ("1", "true", "yes"):
+        # LLM finding narratives are on by default. Set PROCVAULT_LLM_FINDINGS=0 to disable.
+        # Falls back to deterministic template silently if Vertex AI / ADC is unavailable.
+        if os.environ.get("PROCVAULT_LLM_FINDINGS", "1") in ("1", "true", "yes"):
             try:
                 from ..services import llm, llm_prompts
                 prompt, fallback = llm_prompts.finding_narrative(

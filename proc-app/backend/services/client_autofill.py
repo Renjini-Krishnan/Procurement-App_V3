@@ -114,9 +114,9 @@ def _heuristic_fallback(client_name: str) -> dict:
         "annual_revenue_inr_cr": None,
         "fte_count": None,
         "company_overview": (f"Profile for {client_name} could not be auto-populated. "
-                              "Set up Google Cloud ADC (gcloud auth application-default "
-                              "login) + PROCVAULT_LLM_FINDINGS=1 to enable AI auto-fill, "
-                              "or fill the form manually."),
+                              "The AI service is currently unavailable — please fill in the form manually. "
+                              "If you're a developer and want to enable AI auto-fill, see the README "
+                              "for Google Cloud ADC setup instructions."),
         "financials": {
             "fy_label": "",
             "revenue_inr_cr": None,

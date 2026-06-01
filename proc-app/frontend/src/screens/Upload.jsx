@@ -51,6 +51,27 @@ const Upload = () => {
     }
   };
 
+  const handleAllSeeds = async () => {
+    setUploading(true); setError(null); setBatchResults(null);
+    try {
+      const result = await api.uploadAllSeeds(engagement.id);
+      await refreshUploads();
+      // Reuse the batch results table to show what loaded
+      setBatchResults((result.files || []).map((f) => ({
+        original_filename: f.filename || `${f.file_type}.csv`,
+        size_bytes: 0,
+        status: f.status === "loaded" ? "uploaded" : f.status,
+        file_type: f.file_type,
+        row_count: f.row_count,
+        reason: f.reason,
+      })));
+    } catch (e) {
+      setError(e.body?.detail || e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -232,9 +253,31 @@ const Upload = () => {
         </div>
       </Card>
 
+      {/* Load all sample data — one click loads PO + PR + GRN + Invoice +
+          masters (8 files) and auto-confirms column mappings. */}
+      <Card padding={20} style={{ marginBottom: 16, background: "var(--gold-50)",
+                                     borderLeft: "3px solid var(--gold-500)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div>
+            <Badge tone="gold">Quickest demo path</Badge>
+            <h2 style={{ fontSize: "var(--fs-18)", fontWeight: 600, margin: "8px 0 4px 0" }}>
+              Load ALL sample data in one click
+            </h2>
+            <p style={{ fontSize: "var(--fs-13)", color: "var(--ink-700)", margin: 0, lineHeight: 1.5 }}>
+              Loads PO + PR + GRN + Invoice + Vendor / Material / Org / Contract masters
+              (8 files, ~36k rows total). Column mappings auto-confirmed.
+              Skips straight to Stage 6 (User Validation).
+            </p>
+          </div>
+          <Button size="md" onClick={handleAllSeeds} disabled={uploading} iconRight={<I.Arrow size={14} />}>
+            {uploading ? "Loading…" : "Load all sample data"}
+          </Button>
+        </div>
+      </Card>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
         <Card padding={28}>
-          <Badge tone="gold">Demo</Badge>
+          <Badge tone="gold">Demo (single file)</Badge>
           <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>Load sample {selectedType}</h2>
           <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 12px 0", lineHeight: 1.5 }}>
             {currentSeed ? `${(currentSeed.row_count_estimate || 0).toLocaleString("en-IN")} rows · realistic synthetic data, consistent with PO universe.`

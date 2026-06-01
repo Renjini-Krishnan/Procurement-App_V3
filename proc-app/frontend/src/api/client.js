@@ -67,6 +67,8 @@ export const api = {
   // Upload (Stage 4 / 5 / 6)
   uploadSeed: (id, fileType = "PO") =>
     request(`/engagement/${id}/upload-seed?file_type=${fileType}`, { method: "POST", body: "{}" }),
+  uploadAllSeeds: (id) =>
+    request(`/engagement/${id}/upload-all-seeds`, { method: "POST", body: "{}" }),
   listSeeds: () => request("/seeds"),
   uploadFile: async (id, file, fileType = "PO") => {
     const form = new FormData();

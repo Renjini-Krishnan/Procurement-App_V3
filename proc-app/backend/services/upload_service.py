@@ -280,17 +280,69 @@ def list_available_seeds() -> list[dict]:
 
 
 def use_seed_dataset(engagement_id: str, file_type: str = "PO") -> dict:
-    """Load the seed CSV for the requested file_type as if uploaded."""
+    """Load the seed CSV for the requested file_type as if uploaded.
+    Auto-confirms the suggested mapping so downstream stages (Bronze, Gold,
+    KPIs) don't trip on "no mapping confirmed" — the seeds are known-good
+    data with deterministic column names."""
     seed_path = get_seed_dataset_path(file_type)
     if not seed_path.exists():
         raise FileNotFoundError(f"Seed dataset not found at {seed_path}")
-    return save_upload(
+    result = save_upload(
         engagement_id=engagement_id,
         file_type=file_type.upper(),
         original_filename=seed_path.name,
         file_bytes=seed_path.read_bytes(),
         skip_dedup=True,  # demo seeds are allowed to be re-loaded
     )
+    # Auto-confirm the suggested mapping (seeds are known-good; no HITL needed)
+    try:
+        confirmed = [
+            {"raw_column": m["raw_column"], "canonical_field": m.get("suggested_field")}
+            for m in result.get("suggested_mapping", [])
+        ]
+        if confirmed:
+            confirm_mapping(result["upload_id"], confirmed)
+    except Exception:
+        # Don't fail the seed load if auto-confirm fails — user can still
+        # walk through Stage 6 manually.
+        pass
+    return result
+
+
+def load_all_seeds(engagement_id: str) -> dict:
+    """Load every seed dataset (PO + PR + GRN + INVOICE + masters) in one
+    call. Skips files that fail (e.g. dedup hit) and returns a per-file
+    report. Used by the "Load all sample data" button in Stage 4."""
+    results = []
+    success = 0
+    for ft in SEED_FILES.keys():
+        try:
+            r = use_seed_dataset(engagement_id, ft)
+            results.append({
+                "file_type": ft,
+                "status": "loaded",
+                "upload_id": r["upload_id"],
+                "filename": r["original_filename"],
+                "row_count": r["row_count"],
+            })
+            success += 1
+        except DuplicateUploadError as e:
+            results.append({
+                "file_type": ft, "status": "duplicate",
+                "existing_upload_id": e.existing_upload_id,
+                "reason": str(e),
+            })
+        except Exception as e:
+            results.append({
+                "file_type": ft, "status": "failed",
+                "reason": f"{type(e).__name__}: {e}",
+            })
+    return {
+        "engagement_id": engagement_id,
+        "total_seeds": len(SEED_FILES),
+        "loaded": success,
+        "files": results,
+    }
 
 
 # --------------------------------------------------------------------------

@@ -13,7 +13,13 @@
       "question": "Is there a documented procurement strategy aligned to business goals?",
       "required": true,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D1.2",
@@ -21,7 +27,17 @@
       "question": "What are the major spend categories (CAPEX, MRO, RM, services, logistics, energy)?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "CAPEX",
+        "MRO",
+        "RM",
+        "services",
+        "logistics",
+        "energy",
+        "Other",
+        "Don't know"
+      ]
     },
     {
       "id": "D1.3",
@@ -29,7 +45,13 @@
       "question": "Has a procurement maturity assessment been conducted previously?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D1.4",
@@ -37,7 +59,13 @@
       "question": "What is the organisation's vision for analytics and automation in procurement?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D2.1",
@@ -45,7 +73,13 @@
       "question": "How is procurement structured? Central vs unit-level split, reporting lines.",
       "required": true,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D2.2",
@@ -53,7 +87,14 @@
       "question": "What % of procurement team bandwidth is spent on strategic activities?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "0 \u2013 25 %",
+        "26 \u2013 50 %",
+        "51 \u2013 75 %",
+        "76 \u2013 100 %",
+        "Don't know"
+      ]
     },
     {
       "id": "D2.3",
@@ -61,7 +102,13 @@
       "question": "Which spend categories are centrally managed vs unit-managed?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D2.4",
@@ -69,7 +116,13 @@
       "question": "What is the DoA framework \u2014 value-based, category-based, or entity-based?",
       "required": true,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D2.5",
@@ -77,7 +130,13 @@
       "question": "Is there a shared service centre for procurement? What processes does it handle?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D3.1",
@@ -85,7 +144,13 @@
       "question": "Are formal category strategies developed for key spend categories?",
       "required": true,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D3.2",
@@ -93,7 +158,13 @@
       "question": "Is external market data (benchmarks, commodity indices) used?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D3.3",
@@ -101,7 +172,13 @@
       "question": "Is TCO or should-cost modelling applied in sourcing decisions?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D3.4",
@@ -109,7 +186,13 @@
       "question": "Are internal stakeholders systematically engaged during sourcing?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D4.1",
@@ -117,7 +200,14 @@
       "question": "What buying channels are currently in use (rate contracts, spot buys, ASLs)?",
       "required": true,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "rate contracts",
+        "spot buys",
+        "ASLs",
+        "Other",
+        "Don't know"
+      ]
     },
     {
       "id": "D4.2",
@@ -125,7 +215,13 @@
       "question": "Are competitive bidding processes documented and consistently followed?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D4.3",
@@ -133,7 +229,13 @@
       "question": "Are structured negotiation approaches (fact-based, BATNA, multi-round) used?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D4.4",
@@ -141,7 +243,13 @@
       "question": "How is low-value / tail spend managed today?",
       "required": false,
       "score": 4,
-      "evidence": "Best-practice process; fully digitised + measured."
+      "evidence": "Best-practice process; fully digitised + measured.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D5.1",
@@ -149,7 +257,13 @@
       "question": "Are S2C and P2P processes documented as SOPs?",
       "required": true,
       "score": 4,
-      "evidence": "Best-practice process; fully digitised + measured."
+      "evidence": "Best-practice process; fully digitised + measured.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D5.2",
@@ -157,7 +271,14 @@
       "question": "What % of procurement processes are system-supported vs offline?",
       "required": true,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "0 \u2013 25 %",
+        "26 \u2013 50 %",
+        "51 \u2013 75 %",
+        "76 \u2013 100 %",
+        "Don't know"
+      ]
     },
     {
       "id": "D5.3",
@@ -165,7 +286,13 @@
       "question": "Which ERP and procurement systems are in use across entities?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D5.4",
@@ -173,7 +300,13 @@
       "question": "What is the timeline for planned ERP or procurement system upgrades?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D5.5",
@@ -181,7 +314,13 @@
       "question": "How are invoices currently processed and matched to POs/GRNs?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D6.1",
@@ -189,7 +328,13 @@
       "question": "What KPIs and KRAs are currently used for procurement?",
       "required": true,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D6.2",
@@ -197,7 +342,13 @@
       "question": "How are KPI reports generated and disseminated?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D6.3",
@@ -205,7 +356,13 @@
       "question": "What analytical reports are currently available?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D6.4",
@@ -213,7 +370,13 @@
       "question": "Are external procurement benchmarks used to set targets?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D7.1",
@@ -221,7 +384,13 @@
       "question": "Is there a centralised contract repository?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D7.2",
@@ -229,7 +398,13 @@
       "question": "How is contract compliance monitored?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D7.3",
@@ -237,7 +412,13 @@
       "question": "Are standard contract templates used across categories?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D7.4",
@@ -245,7 +426,14 @@
       "question": "What % of total procurement spend is covered by active rate contracts?",
       "required": true,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "0 \u2013 25 %",
+        "26 \u2013 50 %",
+        "51 \u2013 75 %",
+        "76 \u2013 100 %",
+        "Don't know"
+      ]
     },
     {
       "id": "D8.1",
@@ -253,7 +441,13 @@
       "question": "How is supplier onboarding handled?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D8.2",
@@ -261,7 +455,13 @@
       "question": "Is there a formal supplier performance management process?",
       "required": true,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D8.3",
@@ -269,7 +469,13 @@
       "question": "Is there an approved / preferred vendor list?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D8.4",
@@ -277,7 +483,13 @@
       "question": "Are any suppliers classified as strategic partners?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D9.1",
@@ -285,7 +497,13 @@
       "question": "Are there specific regulatory requirements governing procurement?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D9.2",
@@ -293,7 +511,13 @@
       "question": "Are there recent internal audit observations on procurement?",
       "required": true,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D9.3",
@@ -301,7 +525,13 @@
       "question": "Is supply chain risk systematically assessed?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D9.4",
@@ -309,7 +539,13 @@
       "question": "Is there a contingency / BCP for critical categories?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D10.1",
@@ -317,7 +553,13 @@
       "question": "What procurement governance forums exist?",
       "required": true,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D10.2",
@@ -325,7 +567,13 @@
       "question": "Are procurement policies and code of conduct formally documented?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D10.3",
@@ -333,7 +581,13 @@
       "question": "Who are the key internal stakeholders for procurement transformation?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D11.1",
@@ -341,7 +595,13 @@
       "question": "What is the current capability profile of the procurement team?",
       "required": true,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D11.2",
@@ -349,7 +609,13 @@
       "question": "Is there a structured L&D program for procurement?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D11.3",
@@ -357,7 +623,13 @@
       "question": "What incentive structures exist for the procurement function?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D11.4",
@@ -365,7 +637,13 @@
       "question": "Are there dedicated category specialists?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D12.1",
@@ -373,7 +651,13 @@
       "question": "What procurement applications are currently in use?",
       "required": true,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D12.2",
@@ -381,7 +665,13 @@
       "question": "Which modules of your sourcing tool are actively used?",
       "required": false,
       "score": 2,
-      "evidence": "Process defined but not consistently applied across plants/BUs."
+      "evidence": "Process defined but not consistently applied across plants/BUs.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D12.3",
@@ -389,7 +679,13 @@
       "question": "Is there a data warehouse with historical procurement data?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D12.4",
@@ -397,7 +693,13 @@
       "question": "What automation or AI initiatives are planned for procurement?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "1 \u2014 Ad hoc / absent",
+        "2 \u2014 Emerging / partial",
+        "3 \u2014 Defined / documented",
+        "4 \u2014 Managed / measured"
+      ]
     },
     {
       "id": "D13.1",
@@ -405,7 +707,13 @@
       "question": "Does the organisation have a documented sustainable procurement policy?",
       "required": true,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D13.2",
@@ -413,7 +721,13 @@
       "question": "Are ESG criteria applied during supplier onboarding?",
       "required": false,
       "score": 1,
-      "evidence": "No formal process documented; ad-hoc handling reported."
+      "evidence": "No formal process documented; ad-hoc handling reported.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     },
     {
       "id": "D13.3",
@@ -421,7 +735,13 @@
       "question": "Is there any tracking of Scope 3 emissions through the supply chain?",
       "required": false,
       "score": 3,
-      "evidence": "Documented process consistently applied; partial digitisation in place."
+      "evidence": "Documented process consistently applied; partial digitisation in place.",
+      "options": [
+        "Yes \u2014 formal / documented",
+        "Partial \u2014 informal or in some areas",
+        "No \u2014 not done",
+        "Don't know"
+      ]
     }
   ],
   "summary": {

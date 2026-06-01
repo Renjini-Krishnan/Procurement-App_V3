@@ -21,11 +21,45 @@ SEED_PATH = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_re
 
 
 def _load_template() -> list[dict]:
-    """Load the QRE question template (52 questions) from seed."""
+    """Load the QRE question template (52 questions) from seed, enriched
+    with per-question options + answer_type from the QRE bank YAML so the
+    UI can render the correct input control per question."""
+    template: list[dict] = []
     if SEED_PATH.exists():
         d = json.loads(SEED_PATH.read_text())
-        return d.get("responses", [])
-    return []
+        template = d.get("responses", [])
+
+    # Enrich with per-question options + answer_type from the bank YAML
+    try:
+        import yaml
+        from .. import config
+        bank_path = config.PROC_KB_ROOT / "qre" / "qre-bank.yml"
+        if bank_path.exists():
+            bank_doc = yaml.safe_load(bank_path.read_text(encoding="utf-8")) or {}
+            bank_index: dict[str, dict] = {}
+            # Bank may be structured as {pillars: [{themes: [{questions: [...]}]}]}
+            # or as a flat questions: [...] list. Walk recursively.
+            def _walk(node):
+                if isinstance(node, list):
+                    for x in node: _walk(x)
+                elif isinstance(node, dict):
+                    if "id" in node and "question" in node:
+                        bank_index[node["id"]] = node
+                    for v in node.values(): _walk(v)
+            _walk(bank_doc)
+            for q in template:
+                bq = bank_index.get(q.get("id"))
+                if bq:
+                    if "options" in bq and bq["options"]:
+                        q["options"] = bq["options"]
+                    if "answer_type" in bq:
+                        q["answer_type"] = bq["answer_type"]
+                    if "guidance" in bq:
+                        q["guidance"] = bq["guidance"]
+    except Exception:
+        pass  # silent — keep base template if enrichment fails
+
+    return template
 
 
 class QREResponse(BaseModel):

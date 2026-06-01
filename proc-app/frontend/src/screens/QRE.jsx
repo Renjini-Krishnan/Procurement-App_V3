@@ -171,11 +171,35 @@ const QRECard = ({ resp, onUpdate }) => {
           <div style={{ fontSize: "var(--fs-14)", color: "var(--ink-900)", fontWeight: 500, lineHeight: 1.45 }}>
             {resp.question}
           </div>
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "200px 1fr", gap: 12 }}>
-            <Select value={resp.score ?? ""} onChange={(e) => onUpdate({ score: e.target.value === "" ? null : Number(e.target.value) })}>
-              <option value="">Score…</option>
-              {SCORE_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
-            </Select>
+          {resp.guidance && (
+            <div style={{ fontSize: "var(--fs-12)", color: "var(--ink-500)", marginTop: 6, fontStyle: "italic" }}>
+              Guidance: {resp.guidance}
+            </div>
+          )}
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "260px 1fr", gap: 12 }}>
+            {resp.options && Array.isArray(resp.options) && resp.options.length > 0 ? (
+              // Per-question categorical options from the QRE bank.
+              // Save the index+1 as the score (1-based), and the chosen
+              // option label as evidence prefix for traceability.
+              <Select value={resp.score ?? ""}
+                       onChange={(e) => {
+                         const v = e.target.value === "" ? null : Number(e.target.value);
+                         onUpdate({ score: v });
+                       }}>
+                <option value="">Select an answer…</option>
+                {resp.options.map((opt, i) => (
+                  <option key={i} value={i + 1}>{opt}</option>
+                ))}
+              </Select>
+            ) : (
+              // Fallback: 4-point maturity scale for questions without
+              // explicit options in the bank.
+              <Select value={resp.score ?? ""}
+                       onChange={(e) => onUpdate({ score: e.target.value === "" ? null : Number(e.target.value) })}>
+                <option value="">Score…</option>
+                {SCORE_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+              </Select>
+            )}
             <Input placeholder="Evidence (optional)" value={resp.evidence ?? ""}
                    onChange={(e) => onUpdate({ evidence: e.target.value })} />
           </div>

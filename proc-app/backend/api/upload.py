@@ -96,6 +96,22 @@ def list_seeds():
     return {"seeds": upload_service.list_available_seeds()}
 
 
+@router.post("/{engagement_id}/upload-all-seeds")
+def upload_all_seeds(engagement_id: str):
+    """One-click demo: load ALL 8 seed datasets (PO + PR + GRN + Invoice +
+    Vendor / Material / Org / Contract Masters) in one call. Auto-confirms
+    column mappings (seeds are known-good)."""
+    if not db.get_engagement(engagement_id):
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    result = upload_service.load_all_seeds(engagement_id)
+    # Advance engagement state to Stage 6 (next stop = User Validation)
+    db.set_stage_status(engagement_id, 4, "done", {"loaded_seeds": result["loaded"]})
+    db.set_stage_status(engagement_id, 5, "done", {"all_auto_confirmed": True})
+    db.set_stage_status(engagement_id, 6, "in_progress")
+    db.update_engagement_stage(engagement_id, 6)
+    return result
+
+
 # --------------------------------------------------------------------------
 # Blank-template downloads
 # --------------------------------------------------------------------------

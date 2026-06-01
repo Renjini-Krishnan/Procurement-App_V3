@@ -16,12 +16,15 @@ export function useIntel(engagement) {
         setLoading(true); setError(null);
         const uploads = await api.listUploads(engagement.id);
         if (uploads.length === 0) {
-          setError("No PO data uploaded. Go to Stage 4 first.");
+          setError("No data uploaded yet. Go to Stage 4 (Data Upload) and load a sample or upload your own files.");
           setLoading(false); return;
         }
-        // Intel pipeline operates on the PO file. With multi-file uploads,
-        // pick the most recent PO explicitly rather than uploads[0].
-        const poUpload = uploads.find((u) => u.file_type === "PO") || uploads[0];
+        // Intel pipeline operates on the PO file.
+        const poUpload = uploads.find((u) => u.file_type === "PO");
+        if (!poUpload) {
+          setError("No PO Dump uploaded. Go to Stage 4 (Data Upload) and load the PO sample (or upload your own PO file).");
+          setLoading(false); return;
+        }
         const r = await api.runIntel(engagement.id, poUpload.id, engagement.industry);
         if (!cancelled) setData(r);
       } catch (e) {
