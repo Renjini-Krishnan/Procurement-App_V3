@@ -182,6 +182,23 @@ const Upload = () => {
               })}
             </tbody>
           </table>
+
+          {/* Continue button — advances to Stage 5 AI Validation. Only shows
+              when at least one file uploaded successfully. */}
+          {batchResults.some((b) => b.status === "uploaded") && (
+            <div style={{ marginTop: 16, padding: "12px 16px", background: "var(--success-50)",
+                            borderRadius: "var(--r-md)", display: "flex",
+                            justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: "var(--fs-13)", color: "var(--success-700)" }}>
+                <strong>{batchResults.filter((b) => b.status === "uploaded").length} of {batchResults.length} file(s) uploaded.</strong>
+                {" "}Review the classifications above, then continue to AI Validation to confirm column mappings.
+              </div>
+              <Button onClick={() => navigate(`/engagement/${engagement.id}/ai-validation`)}
+                       iconRight={<I.Arrow size={14} />}>
+                Continue to AI Validation
+              </Button>
+            </div>
+          )}
         </Card>
       )}
 
