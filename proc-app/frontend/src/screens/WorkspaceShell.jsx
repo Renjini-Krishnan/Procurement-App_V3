@@ -47,6 +47,8 @@ const Rail = () => {
         top: 0,
         overflowY: "auto",
         padding: "20px 0",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* logo */}
@@ -164,6 +166,31 @@ const Rail = () => {
           </div>
         );
       })}
+
+      {/* KB editor — workflow-wide, not engagement-scoped */}
+      <div style={{ padding: "20px 20px 16px", marginTop: "auto",
+                       borderTop: "1px solid var(--border-subtle)" }}>
+        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)",
+                         textTransform: "uppercase", letterSpacing: "0.12em",
+                         marginBottom: 8 }}>
+          Knowledge Base
+        </div>
+        <Link to="/kb" style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 10px", borderRadius: "var(--r-md)",
+          background: "var(--brand-50)", color: "var(--brand-700)",
+          textDecoration: "none", fontSize: "var(--fs-13)", fontWeight: 600,
+        }}>
+          <span style={{ fontSize: 16 }}>📚</span>
+          <span>KB Editor</span>
+          <span style={{ marginLeft: "auto", fontSize: "var(--fs-10)",
+                           color: "var(--ink-500)", fontWeight: 400 }}>→</span>
+        </Link>
+        <div style={{ fontSize: "var(--fs-10)", color: "var(--ink-500)",
+                         marginTop: 6, lineHeight: 1.4 }}>
+          Edit benchmarks, scoring descriptors, taxonomies, QRE questions, and cleansing rules.
+        </div>
+      </div>
     </aside>
   );
 };

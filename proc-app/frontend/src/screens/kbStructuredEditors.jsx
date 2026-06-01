@@ -10,15 +10,54 @@ import yaml from "js-yaml";
 import { Card, Badge, Button, Callout, Input } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import CategoriesMasterView from "./kbCategoriesEditor.jsx";
+import SchemaEditor from "./kbSchemaEditor.jsx";
+import QreBankEditor from "./kbQreBankEditor.jsx";
+import RuleGridEditor from "./kbRuleGridEditor.jsx";
+import ScoringEditor from "./kbScoringEditor.jsx";
+import RcaRulesEditor from "./kbRcaRulesEditor.jsx";
+import KpiCalcEditor from "./kbKpiCalcEditor.jsx";
+import KeywordBucketEditor from "./kbKeywordBucketEditor.jsx";
 
 /* ============================================================
-   Registry — match file path to a view component
+   Registry — match file path to a view component.
+   Returns either a component or a wrapper that passes fileHint.
    ============================================================ */
 
+const KeywordBucketWrapper = (fileHint) => (props) =>
+  React.createElement(KeywordBucketEditor, { ...props, fileHint });
+
 export function pickStructuredView(rel_path) {
+  // 1. Exact-match special files
   if (rel_path === "_meta/kpi-rca-library.yml") return RcaLibraryView;
-  if (rel_path.endsWith("/benchmarks.yml")) return BenchmarksView;
+  if (rel_path === "_meta/kpi-calculation-rules.yml") return KpiCalcEditor;
+  if (rel_path === "_meta/cleansing-rules.yml") return RuleGridEditor;
+  if (rel_path === "data-quality-universal.yml") return RuleGridEditor;
+  if (rel_path === "qre/qre-bank.yml") return QreBankEditor;
+
+  // 2. Categories master (steel + future cement)
   if (rel_path.endsWith("categories-master.yml")) return CategoriesMasterView;
+
+  // 3. Data templates (po.yml, pr.yml, etc.) — own KB root "data-templates"
+  if (rel_path === "po.yml" || rel_path === "pr.yml" || rel_path === "vendor_master.yml" ||
+      rel_path === "material_master.yml" || rel_path === "org_structure.yml" ||
+      rel_path === "contract_master.yml" || rel_path === "grn.yml" || rel_path === "invoice.yml" ||
+      rel_path === "qre.yml") return SchemaEditor;
+
+  // 4. Pillar-specific files
+  if (rel_path.endsWith("/benchmarks.yml")) return BenchmarksView;
+  if (rel_path.endsWith("/scoring-descriptors.yml")) return ScoringEditor;
+  if (rel_path.endsWith("/rca-rules.yml")) return RcaRulesEditor;
+
+  // 5. Keyword bucket files (po-type, designation-tier, industry overlays)
+  if (rel_path.endsWith("/po-type-derivation-rules.yml"))
+    return KeywordBucketWrapper("po-type-derivation-rules.yml");
+  if (rel_path.endsWith("/designation-tier-seed.yml"))
+    return KeywordBucketWrapper("designation-tier-seed.yml");
+  if (rel_path.endsWith("/archetype-overrides.yml"))
+    return KeywordBucketWrapper("archetype-overrides.yml");
+  if (rel_path.match(/by-function\/procurement\/(op-model|org-structure)\/.+-filters\.yml$/))
+    return KeywordBucketWrapper("centralisation-filters.yml");
+
   return null;
 }
 
