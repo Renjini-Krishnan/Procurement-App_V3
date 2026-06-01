@@ -147,7 +147,9 @@ def _slide_exec_summary(prs, engagement, kp):
               size=26, bold=True)
 
     pillars = list(kp.get("pillar_summary", {}).items())
-    avg = (sum(p[1].get("pillar_score", {}).get("score", 0) for p in pillars) / len(pillars)) if pillars else 0
+    # Skip pillars where score is None (needs_qre stub, or otherwise unscored)
+    scored = [p for p in pillars if (p[1].get("pillar_score") or {}).get("score") is not None]
+    avg = (sum(p[1]["pillar_score"]["score"] for p in scored) / len(scored)) if scored else 0
     label = _maturity_label(avg)
 
     # Headline
