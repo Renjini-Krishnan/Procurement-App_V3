@@ -17,6 +17,7 @@ import ScoringEditor from "./kbScoringEditor.jsx";
 import RcaRulesEditor from "./kbRcaRulesEditor.jsx";
 import KpiCalcEditor from "./kbKpiCalcEditor.jsx";
 import KeywordBucketEditor from "./kbKeywordBucketEditor.jsx";
+import BenchmarksEditor from "./kbBenchmarksEditor.jsx";
 
 /* ============================================================
    Registry — match file path to a view component.
@@ -44,7 +45,7 @@ export function pickStructuredView(rel_path) {
       rel_path === "qre.yml") return SchemaEditor;
 
   // 4. Pillar-specific files
-  if (rel_path.endsWith("/benchmarks.yml")) return BenchmarksView;
+  if (rel_path.endsWith("/benchmarks.yml")) return BenchmarksEditor;
   if (rel_path.endsWith("/scoring-descriptors.yml")) return ScoringEditor;
   if (rel_path.endsWith("/rca-rules.yml")) return RcaRulesEditor;
 
@@ -183,124 +184,8 @@ const RcaLibraryView = ({ yamlText, onChange }) => {
 };
 
 /* ============================================================
-   View 2 — <pillar>/benchmarks.yml (numeric value + source)
-   ============================================================ */
-
-const BenchmarksView = ({ yamlText, onChange }) => {
-  const [data, setData] = useState(null);
-  const [parseError, setParseError] = useState(null);
-
-  useEffect(() => {
-    try {
-      setData(yaml.load(yamlText));
-      setParseError(null);
-    } catch (e) { setParseError(String(e)); }
-  }, [yamlText]);
-
-  const flush = (next) => {
-    setData(next);
-    try {
-      onChange(yaml.dump(next, { lineWidth: 120, noRefs: true, sortKeys: false }));
-    } catch (e) { setParseError(String(e)); }
-  };
-
-  if (parseError) return <Callout tone="danger" title="YAML parse error" icon={<I.X size={16} />}>{parseError}</Callout>;
-  if (!data) return <div style={{ color: "var(--ink-500)" }}>Parsing…</div>;
-
-  const benchmarks = data.benchmarks || {};
-  const entries = Object.entries(benchmarks);
-
-  return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <Callout tone="info" title="Structured editor — benchmarks.yml" icon={<I.Doc size={16} />}>
-        Numeric benchmarks for this pillar. Edit the value(s), source, year, and confidence.
-        These flow through the cascade (function default → industry overlay → engagement override).
-      </Callout>
-
-      <Card padding={20}>
-        <Label>Metadata</Label>
-        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <Field label="Pillar"><Input value={data.metadata?.pillar || ""} onChange={(e) =>
-            flush({ ...data, metadata: { ...(data.metadata || {}), pillar: e.target.value }})} /></Field>
-          <Field label="Version"><Input value={data.metadata?.version || ""} onChange={(e) =>
-            flush({ ...data, metadata: { ...(data.metadata || {}), version: e.target.value }})} /></Field>
-        </div>
-      </Card>
-
-      <Label>Benchmarks · {entries.length} total</Label>
-
-      {entries.map(([bId, b]) => {
-        const updateB = (patch) => {
-          const next = { ...data };
-          next.benchmarks[bId] = { ...b, ...patch };
-          flush(next);
-        };
-        const updatePrimary = (patch) => updateB({ primary: { ...(b.primary || {}), ...patch }});
-        const primary = b.primary || {};
-        return (
-          <Card key={bId} padding={20}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div>
-                <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{bId}</code>
-                <div style={{ fontSize: "var(--fs-15)", fontWeight: 600 }}>{b.name || bId}</div>
-              </div>
-              <Badge tone="neutral">{primary.unit || "—"}</Badge>
-            </div>
-
-            <SubLabel>Editable value(s)</SubLabel>
-            <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {primary.value !== undefined && (
-                <Field label="value" highlight>
-                  <Input value={primary.value ?? ""} onChange={(e) => {
-                    const v = e.target.value;
-                    const n = Number(v);
-                    updatePrimary({ value: isNaN(n) ? v : n });
-                  }} />
-                </Field>
-              )}
-              {Array.isArray(primary.value_range) && (
-                <>
-                  <Field label="value_range — low" highlight>
-                    <Input value={primary.value_range[0] ?? ""} onChange={(e) => {
-                      const v = Number(e.target.value);
-                      updatePrimary({ value_range: [isNaN(v) ? e.target.value : v, primary.value_range[1]] });
-                    }} />
-                  </Field>
-                  <Field label="value_range — high" highlight>
-                    <Input value={primary.value_range[1] ?? ""} onChange={(e) => {
-                      const v = Number(e.target.value);
-                      updatePrimary({ value_range: [primary.value_range[0], isNaN(v) ? e.target.value : v] });
-                    }} />
-                  </Field>
-                </>
-              )}
-              {primary.unit !== undefined && (
-                <Field label="unit"><Input value={primary.unit ?? ""} onChange={(e) => updatePrimary({ unit: e.target.value })} /></Field>
-              )}
-            </div>
-
-            <SubLabel style={{ marginTop: 12 }}>Citation</SubLabel>
-            <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8 }}>
-              <Field label="source" highlight><Input value={primary.source ?? ""} onChange={(e) => updatePrimary({ source: e.target.value })} /></Field>
-              <Field label="year"><Input value={primary.year ?? ""} onChange={(e) => updatePrimary({ year: Number(e.target.value) || e.target.value })} /></Field>
-              <Field label="confidence"><Input value={primary.confidence ?? ""} onChange={(e) => updatePrimary({ confidence: e.target.value })} /></Field>
-            </div>
-
-            {b.description && (
-              <details style={{ marginTop: 12 }}>
-                <summary style={{ cursor: "pointer", fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>Description (less commonly edited)</summary>
-                <Textarea value={b.description} onChange={(v) => updateB({ description: v })} rows={4} />
-              </details>
-            )}
-          </Card>
-        );
-      })}
-    </div>
-  );
-};
-
-/* ============================================================
-   Shared primitives
+   Shared primitives (used by RcaLibraryView only — other editors
+   use kbEditorPrimitives.jsx)
    ============================================================ */
 
 const Label = ({ children }) => (

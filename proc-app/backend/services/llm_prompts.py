@@ -179,8 +179,48 @@ Rules:
 # Pillar-wise RCA + insights + narrative (per-pillar storytelling)
 # ============================================================================
 
+def _fmt_benchmark_block(bench: dict | None) -> str:
+    """Render benchmark dict into a prompt-friendly citation block.
+    bench shape: {value_range:[lo,hi], unit, source, year, sample_size, confidence}"""
+    if not bench:
+        return ""
+    vr = bench.get("value_range")
+    band = (f"{vr[0]}-{vr[1]} {bench.get('unit','') or ''}".strip()
+            if vr and len(vr) == 2 else "")
+    src_bits = []
+    if bench.get("source"): src_bits.append(str(bench["source"]))
+    if bench.get("year"):   src_bits.append(str(bench["year"]))
+    if bench.get("sample_size"): src_bits.append(f"n={bench['sample_size']}")
+    if bench.get("confidence"):  src_bits.append(f"{bench['confidence']} confidence")
+    citation = " · ".join(src_bits)
+    if not band and not citation:
+        return ""
+    return f"\nIndustry benchmark band: {band}\nBenchmark source: {citation}"
+
+
+def _fmt_data_scope(scope: dict | None) -> str:
+    """Render data-scope dict into a prompt-friendly footer.
+    scope shape: {po_rows, vendor_count, qre_answered, qre_total, period_label, ...}"""
+    if not scope:
+        return ""
+    bits = []
+    if scope.get("po_rows"):
+        bits.append(f"{int(scope['po_rows']):,} PO lines")
+    if scope.get("vendor_count"):
+        bits.append(f"{int(scope['vendor_count']):,} vendors")
+    if scope.get("qre_total"):
+        bits.append(f"{scope.get('qre_answered', 0)}/{scope['qre_total']} QRE answered")
+    if scope.get("period_label"):
+        bits.append(str(scope["period_label"]))
+    if not bits:
+        return ""
+    return "\nData scope (engagement): " + " · ".join(bits)
+
+
 def rca_narrative(*, pillar: str, theme: str, severity: str, cause: str,
                     recommendation: str, metrics: dict,
+                    benchmark: dict | None = None,
+                    data_scope: dict | None = None,
                     industry: str = "steel") -> tuple[str, str]:
     """Generate a consultant-style narrative for an RCA card.
 
@@ -194,6 +234,7 @@ Pillar: {pillar}
 Theme: {theme}
 Severity: {severity}
 Industry: {industry}
+{_fmt_data_scope(data_scope)}{_fmt_benchmark_block(benchmark)}
 
 Computed metrics:
 {metric_lines or "  (no specific metrics)"}
@@ -206,41 +247,44 @@ Write a single paragraph (60-90 words) that:
 2. Diagnoses WHY it's happening (root cause — not just what's happening)
 3. Recommends one concrete action
 
-Avoid filler. Avoid "should consider". Use active voice. Cite numbers."""
+Cite the benchmark source by name (e.g. "vs APQC-2024 typical 2-4%") if a
+benchmark is provided. Avoid filler. Use active voice. Cite numbers."""
     fallback = f"{cause} {recommendation}".strip()
     return prompt, fallback
 
 
 def theme_insight(*, pillar: str, theme_id: str, theme_label: str,
                     score: float, band: str, metrics: dict,
-                    benchmark_low: float = None, benchmark_high: float = None,
+                    benchmark: dict | None = None,
+                    data_scope: dict | None = None,
                     industry: str = "steel") -> tuple[str, str]:
     """Per-theme interpretation paragraph. 1 paragraph (50-80 words) that
     explains what the theme score MEANS for maturity, ties to industry
-    context."""
+    context, and cites the benchmark source by name when available."""
     metric_lines = "\n".join(f"  - {k}: {v}" for k, v in (metrics or {}).items())
-    bench_clause = ""
-    if benchmark_low is not None and benchmark_high is not None:
-        bench_clause = f"\nIndustry benchmark band: {benchmark_low}-{benchmark_high}"
     prompt = f"""You are a senior procurement consultant. Write a 1-paragraph (50-80 words)
 interpretation of this theme score for the {industry} industry.
 
 Pillar: {pillar}
 Theme: {theme_label} ({theme_id})
-Computed score: {score} / 5 ({band}){bench_clause}
+Computed score: {score} / 5 ({band})
+{_fmt_data_scope(data_scope)}{_fmt_benchmark_block(benchmark)}
 
 Computed metrics:
 {metric_lines or "  (no metrics)"}
 
 Explain what this score means in plain language — what's working, what isn't,
 and what the team should focus on next. Be specific about the metrics. Cite
-the benchmark if provided. No bullet points; one short paragraph."""
+the benchmark source by name (e.g. "APQC-2024 typical 2-4%") if provided.
+No bullet points; one short paragraph."""
     fallback = f"{theme_label} sits in the {band} band (score {score}/5)."
     return prompt, fallback
 
 
 def pillar_narrative(*, pillar: str, pillar_label: str, pillar_score: float,
                        pillar_band: str, theme_summaries: list[dict],
+                       benchmarks: list[dict] | None = None,
+                       data_scope: dict | None = None,
                        industry: str = "steel") -> tuple[str, str]:
     """Pillar-level story stitching theme verdicts into one coherent paragraph
     for the dashboard / exec summary."""
@@ -249,12 +293,19 @@ def pillar_narrative(*, pillar: str, pillar_label: str, pillar_score: float,
         f"({t.get('band', '?')})"
         for t in (theme_summaries or [])
     )
+    bench_block = ""
+    if benchmarks:
+        srcs = sorted({f"{b.get('source')}-{b.get('year')}" for b in benchmarks
+                       if b.get("source")})
+        if srcs:
+            bench_block = f"\nBenchmark sources used: {', '.join(srcs)}"
     prompt = f"""You are a senior procurement consultant. Write a 2-3 sentence pillar
 verdict for an executive dashboard.
 
 Pillar: {pillar_label} ({pillar})
 Overall score: {pillar_score} / 5 ({pillar_band})
 Industry: {industry}
+{_fmt_data_scope(data_scope)}{bench_block}
 
 Theme breakdown:
 {theme_lines}

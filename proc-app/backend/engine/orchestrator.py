@@ -824,10 +824,95 @@ def run_supplier_pillar(engagement_id: str, upload_id: str, industry: str = "ste
 # AI is unavailable.
 # ============================================================================
 
+def _load_pillar_benchmarks(pillar: str, industry: str) -> dict:
+    """Load function-default + industry-overlay benchmarks for a pillar.
+    Returns a dict keyed by benchmark id (last segment after the final dot)
+    with the rolled-up attribution payload the LLM prompts expect:
+      {value_range, unit, source, year, sample_size, confidence}
+    Industry overlay takes precedence over function default on id collision."""
+    import yaml as _yaml
+    from .. import config
+
+    bench_files = []
+    fn_path = config.PROC_KB_ROOT / pillar / "benchmarks.yml"
+    if fn_path.exists():
+        bench_files.append(("function", fn_path))
+    ind_path = (config.INDUSTRIES_DIR / industry / "by-function" /
+                "procurement" / pillar / "benchmarks.yml")
+    if ind_path.exists():
+        bench_files.append(("industry", ind_path))
+
+    merged: dict[str, dict] = {}
+    for _layer, path in bench_files:
+        try:
+            doc = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue
+        for entry in (doc.get("benchmarks") or []):
+            bid = entry.get("id")
+            if not bid:
+                continue
+            primary = entry.get("primary") or {}
+            composite = entry.get("composite") or {}
+            value_range = composite.get("value_range") or primary.get("value_range")
+            if not value_range and primary.get("value") is not None:
+                value_range = [primary["value"], primary["value"]]
+            merged[bid] = {
+                "id": bid,
+                "name": entry.get("name") or bid,
+                "value_range": value_range,
+                "unit": entry.get("unit") or primary.get("unit"),
+                "source": primary.get("source_id") or primary.get("source"),
+                "year": primary.get("year"),
+                "sample_size": primary.get("sample_size"),
+                "confidence": primary.get("confidence"),
+            }
+    return merged
+
+
+def _benchmark_for_theme(benchmarks: dict, theme_id: str) -> dict | None:
+    """Pick the most-specific benchmark entry that matches a theme id.
+    Benchmark ids are dot-paths like 'opmodel.centralisation.savings_rate';
+    theme ids are usually the middle segment ('centralisation'). Match by
+    'in' on the bench id."""
+    if not benchmarks or not theme_id:
+        return None
+    tid = str(theme_id).lower().replace("-", "_")
+    candidates = [b for bid, b in benchmarks.items() if tid in bid.lower()]
+    if not candidates:
+        return None
+    # Prefer a savings_rate / primary metric when multiple match
+    for c in candidates:
+        if "savings" in (c.get("id") or "").lower():
+            return c
+    return candidates[0]
+
+
+def _data_scope_for_engagement(engagement_id: str) -> dict:
+    """Build the {po_rows, vendor_count, qre_answered, qre_total} payload
+    surfaced in every AI prompt + the source footer in the UI."""
+    scope: dict = {}
+    try:
+        with db.db_connection() as conn:
+            rows = conn.execute(
+                "SELECT file_type, row_count FROM uploads "
+                "WHERE engagement_id = ?", (engagement_id,)).fetchall()
+        po_rows = sum((r["row_count"] or 0) for r in rows if (r["file_type"] or "").upper() == "PO")
+        if po_rows:
+            scope["po_rows"] = po_rows
+    except Exception:
+        pass
+    qs = _qre_status(engagement_id)
+    if qs.get("total"):
+        scope["qre_total"] = qs["total"]
+        scope["qre_answered"] = qs.get("answered", 0)
+    return scope
+
+
 def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
-    """Mutate `result` in-place to attach AI narratives. Safe to call on any
-    pillar result shape. Skips when PROCVAULT_LLM_PILLAR_AI=0 or when the
-    pillar returned a needs_qre stub."""
+    """Mutate `result` in-place to attach AI narratives + attribution context.
+    Safe to call on any pillar result shape. Skips when PROCVAULT_LLM_PILLAR_AI=0
+    or when the pillar returned a needs_qre stub."""
     import os
     if os.environ.get("PROCVAULT_LLM_PILLAR_AI", "1") not in ("1", "true", "yes"):
         return result
@@ -844,16 +929,36 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
     }
     pillar_label = pillar_label_map.get(pillar, pillar)
 
+    benchmarks = _load_pillar_benchmarks(pillar, industry)
+    data_scope = _data_scope_for_engagement(engagement_id)
+
+    # Stamp attribution on the result so the UI can render a source footer
+    # without having to re-fetch the KB. The frontend reads
+    # `attribution.benchmarks_used` + `attribution.data_scope` to render
+    # the small grey "Benchmark: APQC-2024 · Data: 36k PO lines" line.
+    result["attribution"] = {
+        "benchmarks_used": [
+            {"id": b["id"], "name": b["name"], "source": b.get("source"),
+             "year": b.get("year"), "sample_size": b.get("sample_size"),
+             "value_range": b.get("value_range"), "unit": b.get("unit")}
+            for b in benchmarks.values()
+        ],
+        "data_scope": data_scope,
+        "industry": industry,
+    }
+
     # 1. RCA card narratives
     for card in (result.get("rca_cards") or []):
         if not isinstance(card, dict):
             continue
+        bench = _benchmark_for_theme(benchmarks, card.get("theme"))
         prompt, fallback = llm_prompts.rca_narrative(
             pillar=pillar_label, theme=card.get("theme", "?"),
             severity=card.get("severity", "medium"),
             cause=card.get("cause", ""),
             recommendation=card.get("recommendation", ""),
             metrics={k: v for k, v in (card.get("metrics") or {}).items()},
+            benchmark=bench, data_scope=data_scope,
             industry=industry,
         )
         narrative = llm.generate_text(prompt, fallback,
@@ -861,9 +966,18 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
                                          engagement_id=engagement_id,
                                          temperature=0.3)
         card["ai_narrative"] = narrative
+        if bench:
+            card["ai_attribution"] = {
+                "benchmark": {"name": bench["name"], "source": bench.get("source"),
+                              "year": bench.get("year"),
+                              "value_range": bench.get("value_range"),
+                              "unit": bench.get("unit")},
+                "data_scope": data_scope,
+            }
 
     # 2. Theme-level insight paragraphs
     theme_insights = {}
+    theme_attributions = {}
     themes = result.get("themes") or {}
     theme_scores = result.get("theme_scores") or {}
     for theme_id, theme_data in themes.items():
@@ -881,18 +995,31 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
                 metrics["value"] = f"{theme_data['metric_value']}{theme_data.get('metric_unit','')}"
             for k in ("po_count", "vendor_count", "total_spend_inr_cr", "row_count", "share_pct"):
                 if k in theme_data: metrics[k] = theme_data[k]
+        bench = _benchmark_for_theme(benchmarks, theme_id)
         prompt, fallback = llm_prompts.theme_insight(
             pillar=pillar_label, theme_id=theme_id,
             theme_label=(theme_data.get("label", theme_id) if isinstance(theme_data, dict) else theme_id),
-            score=score, band=band, metrics=metrics, industry=industry,
+            score=score, band=band, metrics=metrics,
+            benchmark=bench, data_scope=data_scope,
+            industry=industry,
         )
         narrative = llm.generate_text(prompt, fallback,
                                          call_site=f"theme_insight.{pillar}",
                                          engagement_id=engagement_id,
                                          temperature=0.3)
         theme_insights[theme_id] = narrative
+        if bench:
+            theme_attributions[theme_id] = {
+                "benchmark": {"name": bench["name"], "source": bench.get("source"),
+                              "year": bench.get("year"),
+                              "value_range": bench.get("value_range"),
+                              "unit": bench.get("unit")},
+                "data_scope": data_scope,
+            }
     if theme_insights:
         result["ai_theme_insights"] = theme_insights
+    if theme_attributions:
+        result["ai_theme_attributions"] = theme_attributions
 
     # 3. Pillar-level narrative
     ps = result.get("pillar_score") or {}
@@ -915,7 +1042,10 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
         prompt, fallback = llm_prompts.pillar_narrative(
             pillar=pillar, pillar_label=pillar_label,
             pillar_score=pillar_score, pillar_band=pillar_band,
-            theme_summaries=theme_summaries, industry=industry,
+            theme_summaries=theme_summaries,
+            benchmarks=list(benchmarks.values()),
+            data_scope=data_scope,
+            industry=industry,
         )
         narrative = llm.generate_text(prompt, fallback,
                                          call_site=f"pillar_narrative.{pillar}",

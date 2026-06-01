@@ -500,7 +500,7 @@ export const QreStatusChip = ({ qreStatus, engagementId }) => {
  * badge. Used for theme insights + pillar narrative + RCA narratives.
  * ======================================================================== */
 
-export const AiNarrativeBlock = ({ title, narrative, isLive = true }) => {
+export const AiNarrativeBlock = ({ title, narrative, isLive = true, attribution }) => {
   if (!narrative) return null;
   return (
     <div style={{
@@ -526,6 +526,102 @@ export const AiNarrativeBlock = ({ title, narrative, isLive = true }) => {
       <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-900)", lineHeight: 1.55 }}>
         {narrative}
       </div>
+      <AttributionFooter attribution={attribution} />
+    </div>
+  );
+};
+
+/* Small grey strip rendered under any AiNarrativeBlock when attribution
+   is available. Format: "Benchmark: APQC-2024 typical 2-4% (n=500+) ·
+   Data: 36,412 PO lines · 41/52 QRE answered". Renders nothing when no
+   benchmark + no data scope are passed. */
+const AttributionFooter = ({ attribution }) => {
+  if (!attribution) return null;
+  const bench = attribution.benchmark;
+  const scope = attribution.data_scope;
+  const parts = [];
+  if (bench && (bench.source || bench.value_range)) {
+    const band = Array.isArray(bench.value_range) && bench.value_range.length === 2
+      ? `${bench.value_range[0]}-${bench.value_range[1]}${bench.unit || ""}`
+      : null;
+    const srcBits = [];
+    if (bench.source) srcBits.push(bench.year ? `${bench.source}-${bench.year}` : bench.source);
+    if (bench.sample_size) srcBits.push(`n=${bench.sample_size}`);
+    const src = srcBits.join(" · ");
+    if (band && src) parts.push(`Benchmark: ${src} typical ${band}`);
+    else if (band) parts.push(`Benchmark: typical ${band}`);
+    else if (src) parts.push(`Benchmark: ${src}`);
+  }
+  if (scope) {
+    const dataBits = [];
+    if (scope.po_rows) dataBits.push(`${Number(scope.po_rows).toLocaleString("en-IN")} PO lines`);
+    if (scope.vendor_count) dataBits.push(`${Number(scope.vendor_count).toLocaleString("en-IN")} vendors`);
+    if (scope.qre_total) dataBits.push(`${scope.qre_answered ?? 0}/${scope.qre_total} QRE answered`);
+    if (dataBits.length) parts.push(`Data: ${dataBits.join(" · ")}`);
+  }
+  if (parts.length === 0) return null;
+  return (
+    <div style={{
+      marginTop: 10, paddingTop: 8,
+      borderTop: "1px dashed var(--brand-200, #d4d4f7)",
+      fontSize: "var(--fs-11)", color: "var(--ink-500)",
+      fontFamily: "var(--font-mono)", lineHeight: 1.5,
+    }}>
+      {parts.join(" · ")}
+    </div>
+  );
+};
+
+/* PillarAttributionStrip — shows the full benchmark list + data scope for
+   a pillar response on the maturity page. Distinct from the per-narrative
+   footer because it surfaces ALL benchmark sources used by the pillar,
+   not just the one the LLM cited in its paragraph. */
+export const PillarAttributionStrip = ({ attribution }) => {
+  if (!attribution) return null;
+  const benchmarks = attribution.benchmarks_used || [];
+  const scope = attribution.data_scope || {};
+  if (benchmarks.length === 0 && Object.keys(scope).length === 0) return null;
+  return (
+    <div style={{
+      marginTop: 12, padding: "10px 14px",
+      background: "var(--surface-sunk)", borderRadius: "var(--r-md)",
+      fontSize: "var(--fs-11)", color: "var(--ink-600)", lineHeight: 1.55,
+    }}>
+      <div style={{
+        fontSize: "var(--fs-10)", textTransform: "uppercase",
+        letterSpacing: "0.1em", color: "var(--ink-500)",
+        fontWeight: 600, marginBottom: 6,
+      }}>
+        Sources · industry: {attribution.industry || "—"}
+      </div>
+      {benchmarks.length > 0 && (
+        <div style={{ marginBottom: 4 }}>
+          <span style={{ fontWeight: 600 }}>Benchmarks: </span>
+          {benchmarks.slice(0, 6).map((b, i) => {
+            const src = b.source ? (b.year ? `${b.source}-${b.year}` : b.source) : "—";
+            const band = Array.isArray(b.value_range) && b.value_range.length === 2
+              ? ` ${b.value_range[0]}-${b.value_range[1]}${b.unit || ""}` : "";
+            return (
+              <span key={b.id || i} style={{ marginRight: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)" }}>{src}</span>
+                {band && <span style={{ color: "var(--ink-500)" }}>{band}</span>}
+                {i < Math.min(benchmarks.length, 6) - 1 ? "," : ""}
+              </span>
+            );
+          })}
+          {benchmarks.length > 6 && (
+            <span style={{ color: "var(--ink-500)" }}>+{benchmarks.length - 6} more</span>
+          )}
+        </div>
+      )}
+      {Object.keys(scope).length > 0 && (
+        <div>
+          <span style={{ fontWeight: 600 }}>Data scope: </span>
+          {scope.po_rows ? `${Number(scope.po_rows).toLocaleString("en-IN")} PO lines · ` : ""}
+          {scope.vendor_count ? `${Number(scope.vendor_count).toLocaleString("en-IN")} vendors · ` : ""}
+          {scope.qre_total ? `${scope.qre_answered ?? 0}/${scope.qre_total} QRE answered` : ""}
+        </div>
+      )}
     </div>
   );
 };

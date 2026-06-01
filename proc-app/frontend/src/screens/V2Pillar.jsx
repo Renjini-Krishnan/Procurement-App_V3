@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, AiNarrativeBlock } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, AiNarrativeBlock, PillarAttributionStrip } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
@@ -104,16 +104,25 @@ const V2Pillar = ({ pillarId }) => {
       {data.ai_pillar_narrative && (
         <div style={{ marginTop: 16 }}>
           <AiNarrativeBlock title={`AI verdict · ${meta.label}`}
-                              narrative={data.ai_pillar_narrative} />
+                              narrative={data.ai_pillar_narrative}
+                              attribution={{
+                                benchmark: null,
+                                data_scope: data.attribution?.data_scope,
+                              }} />
         </div>
       )}
+
+      {/* Pillar-level attribution strip — full benchmark list + data scope */}
+      <PillarAttributionStrip attribution={data.attribution} />
 
       {/* Theme cards + per-theme insights */}
       <div style={{ marginTop: 24 }}>
         <Label>Theme scores</Label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>
           {Object.entries(themes).map(([id, t]) => (
-            <ThemeCard key={id} id={id} t={t} insight={data.ai_theme_insights?.[id]} />
+            <ThemeCard key={id} id={id} t={t}
+                       insight={data.ai_theme_insights?.[id]}
+                       attribution={data.ai_theme_attributions?.[id]} />
           ))}
         </div>
       </div>
@@ -135,7 +144,9 @@ const V2Pillar = ({ pillarId }) => {
                 />
                 {card.ai_narrative && (
                   <div style={{ marginTop: 6, marginLeft: 16 }}>
-                    <AiNarrativeBlock title="AI consultant note" narrative={card.ai_narrative} />
+                    <AiNarrativeBlock title="AI consultant note"
+                                       narrative={card.ai_narrative}
+                                       attribution={card.ai_attribution} />
                   </div>
                 )}
               </div>
@@ -147,7 +158,7 @@ const V2Pillar = ({ pillarId }) => {
   );
 };
 
-const ThemeCard = ({ id, t, insight }) => {
+const ThemeCard = ({ id, t, insight, attribution }) => {
   const tone = t.score >= 3.5 ? "var(--success-500)" : t.score >= 2.5 ? "var(--brand-500)" : "var(--warn-500)";
   return (
     <Card padding={16} style={{ borderTop: `3px solid ${tone}` }}>
@@ -171,7 +182,7 @@ const ThemeCard = ({ id, t, insight }) => {
       )}
       {insight && (
         <div style={{ marginTop: 10 }}>
-          <AiNarrativeBlock title="AI insight" narrative={insight} />
+          <AiNarrativeBlock title="AI insight" narrative={insight} attribution={attribution} />
         </div>
       )}
     </Card>
