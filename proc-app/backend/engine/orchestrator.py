@@ -108,6 +108,7 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     db.set_stage_status(engagement_id, 12, "done", {"pillar_score": pillar_score})
     db.update_engagement_stage(engagement_id, 13)
 
+    _ai_enrich_pillar(result, engagement_id, industry)
     return result
 
 
@@ -454,6 +455,7 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     _record_run(engagement_id, "doa", result)
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
+    _ai_enrich_pillar(result, engagement_id, industry)
 
     return result
 
@@ -506,6 +508,7 @@ def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str 
     _record_run(engagement_id, "buying-channel", result)
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
+    _ai_enrich_pillar(result, engagement_id, industry)
     return result
 
 
@@ -551,6 +554,7 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     _record_run(engagement_id, "org-structure", result)
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
+    _ai_enrich_pillar(result, engagement_id, industry)
     return result
 
 
@@ -789,6 +793,7 @@ def _v2_run_pillar(engagement_id: str, upload_id: str, industry: str,
     result["industry"] = industry
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
+    _ai_enrich_pillar(result, engagement_id, industry)
     # Persist + advance not wired for V2 pillars (no specific stage_id mapping);
     # findings are persisted generically.
     _persist_findings_generic(engagement_id, result, pillar_kind)
@@ -810,3 +815,112 @@ def run_post_po_pillar(engagement_id: str, upload_id: str, industry: str = "stee
 
 def run_supplier_pillar(engagement_id: str, upload_id: str, industry: str = "steel") -> dict:
     return _v2_run_pillar(engagement_id, upload_id, industry, "supplier")
+
+
+# ============================================================================
+# AI narrative enrichment — adds 2-3 sentence LLM narratives to RCA cards +
+# theme insights + a pillar-level story. Gated by PROCVAULT_LLM_PILLAR_AI
+# (default '1' — on). Every call uses the deterministic fallback if Vertex
+# AI is unavailable.
+# ============================================================================
+
+def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
+    """Mutate `result` in-place to attach AI narratives. Safe to call on any
+    pillar result shape. Skips when PROCVAULT_LLM_PILLAR_AI=0 or when the
+    pillar returned a needs_qre stub."""
+    import os
+    if os.environ.get("PROCVAULT_LLM_PILLAR_AI", "1") not in ("1", "true", "yes"):
+        return result
+    if result.get("needs_qre"):
+        return result
+
+    from ..services import llm, llm_prompts
+
+    pillar = result.get("pillar", "pillar")
+    pillar_label_map = {
+        "op-model": "Op Model", "doa": "DoA", "buying-channel": "Buying Channel",
+        "org-structure": "Org Structure", "material-master": "Material Master",
+        "pr-to-po": "PR-to-PO", "post-po": "Post-PO", "supplier": "Supplier",
+    }
+    pillar_label = pillar_label_map.get(pillar, pillar)
+
+    # 1. RCA card narratives
+    for card in (result.get("rca_cards") or []):
+        if not isinstance(card, dict):
+            continue
+        prompt, fallback = llm_prompts.rca_narrative(
+            pillar=pillar_label, theme=card.get("theme", "?"),
+            severity=card.get("severity", "medium"),
+            cause=card.get("cause", ""),
+            recommendation=card.get("recommendation", ""),
+            metrics={k: v for k, v in (card.get("metrics") or {}).items()},
+            industry=industry,
+        )
+        narrative = llm.generate_text(prompt, fallback,
+                                         call_site=f"rca_narrative.{pillar}",
+                                         engagement_id=engagement_id,
+                                         temperature=0.3)
+        card["ai_narrative"] = narrative
+
+    # 2. Theme-level insight paragraphs
+    theme_insights = {}
+    themes = result.get("themes") or {}
+    theme_scores = result.get("theme_scores") or {}
+    for theme_id, theme_data in themes.items():
+        ts = theme_scores.get(theme_id) or {}
+        if isinstance(ts, dict):
+            score = ts.get("score")
+            band = ts.get("label", "?")
+        else:
+            score = ts; band = "?"
+        if score is None: continue
+        # Extract metric_value if present
+        metrics = {}
+        if isinstance(theme_data, dict):
+            if "metric_value" in theme_data:
+                metrics["value"] = f"{theme_data['metric_value']}{theme_data.get('metric_unit','')}"
+            for k in ("po_count", "vendor_count", "total_spend_inr_cr", "row_count", "share_pct"):
+                if k in theme_data: metrics[k] = theme_data[k]
+        prompt, fallback = llm_prompts.theme_insight(
+            pillar=pillar_label, theme_id=theme_id,
+            theme_label=(theme_data.get("label", theme_id) if isinstance(theme_data, dict) else theme_id),
+            score=score, band=band, metrics=metrics, industry=industry,
+        )
+        narrative = llm.generate_text(prompt, fallback,
+                                         call_site=f"theme_insight.{pillar}",
+                                         engagement_id=engagement_id,
+                                         temperature=0.3)
+        theme_insights[theme_id] = narrative
+    if theme_insights:
+        result["ai_theme_insights"] = theme_insights
+
+    # 3. Pillar-level narrative
+    ps = result.get("pillar_score") or {}
+    if isinstance(ps, dict):
+        pillar_score = ps.get("score")
+        pillar_band = ps.get("label", "?")
+    else:
+        pillar_score = ps; pillar_band = "?"
+    if pillar_score is not None:
+        theme_summaries = []
+        for tid, tdata in themes.items():
+            ts = theme_scores.get(tid) or {}
+            if isinstance(ts, dict): s, b = ts.get("score"), ts.get("label", "?")
+            else: s, b = ts, "?"
+            theme_summaries.append({
+                "id": tid,
+                "label": (tdata.get("label", tid) if isinstance(tdata, dict) else tid),
+                "score": s, "band": b,
+            })
+        prompt, fallback = llm_prompts.pillar_narrative(
+            pillar=pillar, pillar_label=pillar_label,
+            pillar_score=pillar_score, pillar_band=pillar_band,
+            theme_summaries=theme_summaries, industry=industry,
+        )
+        narrative = llm.generate_text(prompt, fallback,
+                                         call_site=f"pillar_narrative.{pillar}",
+                                         engagement_id=engagement_id,
+                                         temperature=0.3)
+        result["ai_pillar_narrative"] = narrative
+
+    return result

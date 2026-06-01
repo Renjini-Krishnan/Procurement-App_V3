@@ -35,6 +35,7 @@ export const STAGES = [
   { id: 31, phase: "Output",     name: "Run comparison",    slug: "comparison",        status: "todo" },
   { id: 32, phase: "Output",     name: "Export centre",     slug: "export-centre",     status: "todo" },
   { id: 33, phase: "Output",     name: "Background jobs",   slug: "jobs",              status: "todo" },
+  { id: 34, phase: "Output",     name: "Agent activity",    slug: "agent-trace",       status: "todo" },
 ];
 
 export const PHASE_ORDER = ["Diagnostic", "Analyze", "Output"];

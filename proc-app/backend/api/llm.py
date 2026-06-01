@@ -18,6 +18,24 @@ def llm_status():
     return llm.status()
 
 
+@router.get("/llm/trace")
+def llm_trace(limit: int = 100, engagement_id: str = None):
+    """Agentic trace — last N LLM calls with call_site, prompt preview,
+    response preview, latency, and whether fallback was used. Optionally
+    filtered by engagement_id."""
+    return {
+        "model": llm.status().get("model"),
+        "ai_enabled": llm.is_enabled(),
+        "entries": llm.get_trace(limit=limit, engagement_id=engagement_id),
+    }
+
+
+@router.delete("/llm/trace")
+def llm_trace_clear():
+    n = llm.clear_trace()
+    return {"cleared": n}
+
+
 class ClientAutofillRequest(BaseModel):
     client_name: str
 

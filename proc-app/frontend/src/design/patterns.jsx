@@ -493,3 +493,39 @@ export const QreStatusChip = ({ qreStatus, engagementId }) => {
     </Link>
   );
 };
+
+
+/* ===========================================================================
+ * AiNarrativeBlock — renders an LLM-generated paragraph with a clear "AI"
+ * badge. Used for theme insights + pillar narrative + RCA narratives.
+ * ======================================================================== */
+
+export const AiNarrativeBlock = ({ title, narrative, isLive = true }) => {
+  if (!narrative) return null;
+  return (
+    <div style={{
+      padding: 14, borderRadius: "var(--r-md)",
+      background: "var(--brand-50)", border: "1px solid var(--brand-200, #d4d4f7)",
+      borderLeft: "3px solid var(--brand-700)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div style={{ fontSize: "var(--fs-11)", textTransform: "uppercase",
+                        letterSpacing: "0.1em", color: "var(--brand-700)",
+                        fontWeight: 600 }}>
+          ✨ {title || "AI insight"}
+        </div>
+        <span style={{
+          fontSize: "var(--fs-10)",
+          background: isLive ? "var(--success-50)" : "var(--surface-card)",
+          color: isLive ? "var(--success-700)" : "var(--ink-500)",
+          padding: "1px 8px", borderRadius: "var(--r-pill)", fontWeight: 600,
+        }}>
+          {isLive ? "Gemini" : "Fallback"}
+        </span>
+      </div>
+      <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-900)", lineHeight: 1.55 }}>
+        {narrative}
+      </div>
+    </div>
+  );
+};

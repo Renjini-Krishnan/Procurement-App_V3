@@ -28,6 +28,7 @@ import KPIDashboard from "./screens/KPIDashboard.jsx";
 import Comparison from "./screens/Comparison.jsx";
 import Jobs from "./screens/Jobs.jsx";
 import ExportCenter from "./screens/ExportCenter.jsx";
+import AgentTrace from "./screens/AgentTrace.jsx";
 
 /* Map stage slug → real screen component (when one exists).
    Stages without a real component fall through to StagePlaceholder. */
@@ -58,6 +59,7 @@ const STAGE_SCREENS = {
   comparison: Comparison,
   jobs: Jobs,
   "export-centre": ExportCenter,
+  "agent-trace": AgentTrace,
 };
 
 const StageRouter = () => {

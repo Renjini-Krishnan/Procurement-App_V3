@@ -70,6 +70,10 @@ export const api = {
   uploadAllSeeds: (id) =>
     request(`/engagement/${id}/upload-all-seeds`, { method: "POST", body: "{}" }),
   combinedSampleXlsxUrl: () => `/api/upload-samples/combined.xlsx`,
+  llmStatus: () => request(`/llm/status`),
+  llmTrace: (engagementId, limit = 100) =>
+    request(`/llm/trace?limit=${limit}${engagementId ? `&engagement_id=${engagementId}` : ""}`),
+  llmTraceClear: () => request(`/llm/trace`, { method: "DELETE" }),
   listSeeds: () => request("/seeds"),
   uploadFile: async (id, file, fileType = "PO") => {
     const form = new FormData();

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, AiNarrativeBlock } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
@@ -100,11 +100,21 @@ const V2Pillar = ({ pillarId }) => {
         </div>
       </Card>
 
-      {/* Theme cards */}
+      {/* AI pillar narrative */}
+      {data.ai_pillar_narrative && (
+        <div style={{ marginTop: 16 }}>
+          <AiNarrativeBlock title={`AI verdict · ${meta.label}`}
+                              narrative={data.ai_pillar_narrative} />
+        </div>
+      )}
+
+      {/* Theme cards + per-theme insights */}
       <div style={{ marginTop: 24 }}>
         <Label>Theme scores</Label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>
-          {Object.entries(themes).map(([id, t]) => <ThemeCard key={id} id={id} t={t} />)}
+          {Object.entries(themes).map(([id, t]) => (
+            <ThemeCard key={id} id={id} t={t} insight={data.ai_theme_insights?.[id]} />
+          ))}
         </div>
       </div>
 
@@ -114,15 +124,21 @@ const V2Pillar = ({ pillarId }) => {
           <Label>Root-cause analysis · {rca.length}</Label>
           <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
             {rca.map((card, i) => (
-              <RCACard
-                key={i}
-                id={`${pillarId}-rca-${i}`}
-                title={card.headline}
-                theme={card.theme}
-                severity={card.severity}
-                cause={card.cause}
-                recommendation={card.recommendation}
-              />
+              <div key={i}>
+                <RCACard
+                  id={`${pillarId}-rca-${i}`}
+                  title={card.headline}
+                  theme={card.theme}
+                  severity={card.severity}
+                  cause={card.cause}
+                  recommendation={card.recommendation}
+                />
+                {card.ai_narrative && (
+                  <div style={{ marginTop: 6, marginLeft: 16 }}>
+                    <AiNarrativeBlock title="AI consultant note" narrative={card.ai_narrative} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -131,7 +147,7 @@ const V2Pillar = ({ pillarId }) => {
   );
 };
 
-const ThemeCard = ({ id, t }) => {
+const ThemeCard = ({ id, t, insight }) => {
   const tone = t.score >= 3.5 ? "var(--success-500)" : t.score >= 2.5 ? "var(--brand-500)" : "var(--warn-500)";
   return (
     <Card padding={16} style={{ borderTop: `3px solid ${tone}` }}>
@@ -152,6 +168,11 @@ const ThemeCard = ({ id, t }) => {
       )}
       {t.note && (
         <div style={{ marginTop: 8, fontSize: "var(--fs-12)", color: "var(--ink-700)", lineHeight: 1.45 }}>{t.note}</div>
+      )}
+      {insight && (
+        <div style={{ marginTop: 10 }}>
+          <AiNarrativeBlock title="AI insight" narrative={insight} />
+        </div>
       )}
     </Card>
   );

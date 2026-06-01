@@ -283,45 +283,41 @@ const Upload = () => {
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-        <Card padding={28}>
-          <Badge tone="gold">Demo (single file)</Badge>
-          <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>Load sample {selectedType}</h2>
-          <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 12px 0", lineHeight: 1.5 }}>
-            {currentSeed ? `${(currentSeed.row_count_estimate || 0).toLocaleString("en-IN")} rows · realistic synthetic data, consistent with PO universe.`
-                          : `No seed dataset available for ${selectedType}.`}
-          </p>
-          <Button size="md" onClick={() => handleSeedUpload(selectedType)} disabled={uploading || !currentSeed} iconRight={<I.Arrow size={14} />}>
-            {uploading ? "Loading…" : currentSeed ? `Load ${selectedType} sample` : "No seed available"}
-          </Button>
-        </Card>
-
-        <Card padding={28}>
-          <Badge tone="brand">Your data</Badge>
-          <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>
-            Upload {currentSchema?.label || selectedType}
-          </h2>
-          <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
-            CSV or Excel. Single file. Mapping happens in Stage 6.
-          </p>
-          <label style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "9px 16px", fontSize: "var(--fs-14)", fontWeight: 500,
-            background: "var(--surface-card)", border: "1px solid var(--border-default)",
-            borderRadius: "var(--r-md)", cursor: uploading ? "not-allowed" : "pointer",
-            opacity: uploading ? 0.55 : 1,
-          }}>
-            <I.Upload size={16} />
-            {uploading ? "Uploading…" : `Choose ${selectedType} file`}
-            <input type="file" accept=".csv,.tsv,.txt,.xls,.xlsx"
-                   style={{ display: "none" }} onChange={handleFileUpload} disabled={uploading} />
-          </label>
-        </Card>
-      </div>
+      <Card padding={24} style={{ marginBottom: 24 }}>
+        <Badge tone="brand">Your data — single file</Badge>
+        <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>
+          Upload {currentSchema?.label || selectedType}
+        </h2>
+        <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+          Pick the file type above, then choose one CSV or Excel file. For multiple files
+          at once, use the batch upload zone above. For a quick demo, use the gold card at the top.
+        </p>
+        <label style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "9px 16px", fontSize: "var(--fs-14)", fontWeight: 500,
+          background: "var(--surface-card)", border: "1px solid var(--border-default)",
+          borderRadius: "var(--r-md)", cursor: uploading ? "not-allowed" : "pointer",
+          opacity: uploading ? 0.55 : 1,
+        }}>
+          <I.Upload size={16} />
+          {uploading ? "Uploading…" : `Choose ${selectedType} file`}
+          <input type="file" accept=".csv,.tsv,.txt,.xls,.xlsx"
+                 style={{ display: "none" }} onChange={handleFileUpload} disabled={uploading} />
+        </label>
+      </Card>
 
       {/* Schemas table — with template download buttons per row */}
       <Card padding={20} style={{ marginBottom: 24 }}>
-        <SectionLabel>Supported file types · click to set + download client template</SectionLabel>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+          <SectionLabel>Supported file types · per-type templates · or grab all 8 as a single Excel</SectionLabel>
+          <a href={api.combinedSampleXlsxUrl()} download
+             style={{ background: "var(--gold-700, var(--brand-700))", color: "white",
+                       padding: "8px 14px", borderRadius: "var(--r-md)",
+                       fontSize: "var(--fs-13)", fontWeight: 600,
+                       textDecoration: "none", whiteSpace: "nowrap" }}>
+            ↓ Download all 8 tabs in one Excel
+          </a>
+        </div>
         <table style={{ width: "100%", marginTop: 12, fontSize: "var(--fs-13)", borderCollapse: "collapse" }}>
           <thead>
             <tr>{["File type", "Label", "Fields", "Required", "Template", "Schema YAML"].map((h) => (
