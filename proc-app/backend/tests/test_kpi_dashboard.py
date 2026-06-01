@@ -27,6 +27,16 @@ def fresh_kpi_engagement():
     conf = [{"raw_column": m["raw_column"], "canonical_field": m["suggested_field"]}
             for m in result["suggested_mapping"]]
     upload_service.confirm_mapping(upid, conf)
+    # Pre-fill QRE responses so QRE-dependent pillars (DoA, Org Structure)
+    # produce themes instead of the needs_qre stub.
+    import json as _json
+    from pathlib import Path as _Path
+    seed_path = _Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
+    if seed_path.exists():
+        d = _json.loads(seed_path.read_text())
+        answered = [r for r in d.get("responses", []) if r.get("score") is not None]
+        if answered:
+            db.upsert_qre_responses(eng["id"], answered)
     yield {"engagement_id": eng["id"], "upload_id": upid}
     if test_db.exists(): test_db.unlink()
 
