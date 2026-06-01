@@ -30,7 +30,7 @@ const Landing = () => {
   const resume = () => {
     if (engagements.length > 0) {
       const e = engagements[0];
-      const stage = STAGES.find((s) => s.id === e.current_stage_id) || STAGES.find((s) => s.slug === "upload");
+      const stage = STAGES.find((s) => s.id === e.current_stage_id) || STAGES.find((s) => s.slug === "client");
       navigate(`/engagement/${e.id}/${stage.slug}`);
     }
   };
@@ -223,7 +223,7 @@ const EngagementList = ({ engagements, navigate }) => (
         const stage = STAGES.find((s) => s.id === e.current_stage_id);
         return (
           <Card key={e.id} padding={20} style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/engagement/${e.id}/${stage?.slug || "upload"}`)}>
+                onClick={() => navigate(`/engagement/${e.id}/${stage?.slug || "client"}`)}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div style={{ fontSize: "var(--fs-16)", fontWeight: 600, color: "var(--ink-900)" }}>
                 {e.client_name}

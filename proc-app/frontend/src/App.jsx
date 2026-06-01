@@ -93,7 +93,7 @@ const App = () => (
 
       <Route path="/engagement/new" element={<NewEngagement />} />
       <Route path="/kb" element={<KBEditor />} />
-      <Route path="/engagement/:engagementId" element={<Navigate to="upload" replace />} />
+      <Route path="/engagement/:engagementId" element={<Navigate to="client" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
