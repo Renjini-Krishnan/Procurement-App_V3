@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS engagements (
     fte_count INTEGER,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    current_stage_id INTEGER DEFAULT 4,
+    current_stage_id INTEGER DEFAULT 1,
     status TEXT DEFAULT 'active'
 );
 
@@ -135,6 +135,20 @@ def _apply_idempotent_migrations(conn) -> None:
         if col not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
 
+    # The schema default for current_stage_id used to be 4 (Upload), causing
+    # every fresh engagement to skip Stages 1-3. Default is now 1. For dev DBs
+    # already created under the old default, reset any engagement that is
+    # still at stage 4 AND has never had a stage marked done back to Stage 1.
+    conn.execute(
+        """
+        UPDATE engagements SET current_stage_id = 1
+        WHERE current_stage_id = 4
+        AND id NOT IN (
+            SELECT DISTINCT engagement_id FROM stage_progress WHERE status = 'done'
+        )
+        """
+    )
+
 
 @contextmanager
 def db_connection():
@@ -175,12 +189,12 @@ def create_engagement(
             """
             INSERT INTO engagements
             (id, client_name, industry, sub_segment, plants, annual_spend_inr_cr,
-             annual_revenue_inr_cr, fte_count, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             annual_revenue_inr_cr, fte_count, created_at, updated_at, current_stage_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (eid, client_name, industry, sub_segment,
              json.dumps(plants or []),
-             annual_spend_inr_cr, annual_revenue_inr_cr, fte_count, ts, ts),
+             annual_spend_inr_cr, annual_revenue_inr_cr, fte_count, ts, ts, 1),
         )
     return get_engagement(eid)
 
