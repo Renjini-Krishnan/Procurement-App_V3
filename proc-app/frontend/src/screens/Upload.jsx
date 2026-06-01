@@ -144,7 +144,7 @@ const Upload = () => {
         onDrop={onDrop}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--brand-700)", marginBottom: 8 }}>
-            Batch upload — auto-classification
+            1 · Upload all data — batch + auto-classification
           </div>
           <div style={{ fontSize: "var(--fs-18)", fontWeight: 600, marginBottom: 4 }}>
             Drop multiple files here (CSV / Excel)
@@ -223,11 +223,18 @@ const Upload = () => {
         </Card>
       )}
 
-      {/* Single-file mode */}
-      <Card padding={20} style={{ marginBottom: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24, alignItems: "center" }}>
+      {/* 2 — Single-file upload (file-type selector + picker, combined) */}
+      <Card padding={24} style={{ marginBottom: 16 }}>
+        <Badge tone="brand">2 · Upload a single file</Badge>
+        <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>
+          Upload {currentSchema?.label || selectedType}
+        </h2>
+        <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+          Pick the file type, then choose one CSV or Excel file.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24, alignItems: "center", marginBottom: 16 }}>
           <div>
-            <SectionLabel>File type (single-file mode)</SectionLabel>
+            <SectionLabel>File type</SectionLabel>
             <Select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} style={{ marginTop: 6, width: "100%" }}>
               {schemas.map((s) => <option key={s.file_type} value={s.file_type}>{s.label}</option>)}
             </Select>
@@ -238,60 +245,16 @@ const Upload = () => {
               <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <a href={api.templateXlsxUrl(selectedType)} download
                    style={{ display: "inline-flex", gap: 6, padding: "4px 10px", border: "1px solid var(--border-default)", borderRadius: "var(--r-md)", fontSize: "var(--fs-12)", color: "var(--brand-700)", textDecoration: "none" }}>
-                  <I.Doc size={12} /> Download XLSX template
+                  <I.Doc size={12} /> XLSX template
                 </a>
                 <a href={api.templateCsvUrl(selectedType)} download
                    style={{ display: "inline-flex", gap: 6, padding: "4px 10px", border: "1px solid var(--border-default)", borderRadius: "var(--r-md)", fontSize: "var(--fs-12)", color: "var(--brand-700)", textDecoration: "none" }}>
                   <I.Doc size={12} /> CSV template
                 </a>
-                <a href="/kb" style={{ display: "inline-flex", gap: 6, padding: "4px 10px", fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
-                  Edit schema in KB
-                </a>
               </div>
             </div>
           )}
         </div>
-      </Card>
-
-      {/* Load all sample data — one click loads PO + PR + GRN + Invoice +
-          masters (8 files) and auto-confirms column mappings. */}
-      <Card padding={20} style={{ marginBottom: 16, background: "var(--gold-50)",
-                                     borderLeft: "3px solid var(--gold-500)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-          <div>
-            <Badge tone="gold">Quickest demo path</Badge>
-            <h2 style={{ fontSize: "var(--fs-18)", fontWeight: 600, margin: "8px 0 4px 0" }}>
-              Load ALL sample data in one click
-            </h2>
-            <p style={{ fontSize: "var(--fs-13)", color: "var(--ink-700)", margin: 0, lineHeight: 1.5 }}>
-              Loads PO + PR + GRN + Invoice + Vendor / Material / Org / Contract masters
-              (8 files, ~36k rows total). Column mappings auto-confirmed.
-              Skips straight to Stage 6 (User Validation).
-            </p>
-            <div style={{ marginTop: 10, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
-              Prefer a single Excel file with all 8 tabs?{" "}
-              <a href={api.combinedSampleXlsxUrl()} download
-                 style={{ color: "var(--brand-700)", textDecoration: "underline" }}>
-                Download combined sample workbook (.xlsx)
-              </a>
-              {" "}— share with clients, then upload back tab-by-tab via the file picker below.
-            </div>
-          </div>
-          <Button size="md" onClick={handleAllSeeds} disabled={uploading} iconRight={<I.Arrow size={14} />}>
-            {uploading ? "Loading…" : "Load all sample data"}
-          </Button>
-        </div>
-      </Card>
-
-      <Card padding={24} style={{ marginBottom: 24 }}>
-        <Badge tone="brand">Your data — single file</Badge>
-        <h2 style={{ fontSize: "var(--fs-20)", fontWeight: 600, margin: "12px 0 8px 0" }}>
-          Upload {currentSchema?.label || selectedType}
-        </h2>
-        <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
-          Pick the file type above, then choose one CSV or Excel file. For multiple files
-          at once, use the batch upload zone above. For a quick demo, use the gold card at the top.
-        </p>
         <label style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           padding: "9px 16px", fontSize: "var(--fs-14)", fontWeight: 500,
@@ -306,18 +269,34 @@ const Upload = () => {
         </label>
       </Card>
 
-      {/* Schemas table — with template download buttons per row */}
-      <Card padding={20} style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
-          <SectionLabel>Supported file types · per-type templates · or grab all 8 as a single Excel</SectionLabel>
+      {/* 3 — Combined Excel template (for mailing to the client) */}
+      <Card padding={20} style={{ marginBottom: 16, background: "var(--brand-50)",
+                                     borderLeft: "3px solid var(--brand-500)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div>
+            <Badge tone="brand">3 · Client-ready template</Badge>
+            <h2 style={{ fontSize: "var(--fs-18)", fontWeight: 600, margin: "8px 0 4px 0" }}>
+              Download all 8 templates in one Excel workbook
+            </h2>
+            <p style={{ fontSize: "var(--fs-13)", color: "var(--ink-700)", margin: 0, lineHeight: 1.5 }}>
+              Single .xlsx with one tab per file type (PO, PR, GRN, Invoice, Vendor, Material,
+              Org, Contract). Mail it to the client; they fill the tabs and send back.
+            </p>
+          </div>
           <a href={api.combinedSampleXlsxUrl()} download
-             style={{ background: "var(--gold-700, var(--brand-700))", color: "white",
-                       padding: "8px 14px", borderRadius: "var(--r-md)",
-                       fontSize: "var(--fs-13)", fontWeight: 600,
+             style={{ display: "inline-flex", alignItems: "center", gap: 8,
+                       background: "var(--brand-600)", color: "white",
+                       padding: "10px 18px", borderRadius: "var(--r-md)",
+                       fontSize: "var(--fs-14)", fontWeight: 600,
                        textDecoration: "none", whiteSpace: "nowrap" }}>
-            ↓ Download all 8 tabs in one Excel
+            <I.Doc size={14} /> Download combined .xlsx
           </a>
         </div>
+      </Card>
+
+      {/* 4 — Schemas table (per-type templates + V1/V2 status) */}
+      <Card padding={20} style={{ marginBottom: 16 }}>
+        <SectionLabel>4 · Supported file types · per-type templates</SectionLabel>
         <table style={{ width: "100%", marginTop: 12, fontSize: "var(--fs-13)", borderCollapse: "collapse" }}>
           <thead>
             <tr>{["File type", "Label", "Fields", "Required", "Template", "Schema YAML"].map((h) => (
@@ -353,6 +332,27 @@ const Upload = () => {
             ))}
           </tbody>
         </table>
+      </Card>
+
+      {/* 5 — Sample data (demo path) — kept at the bottom as a fallback for
+          consultants who don't have client data yet. */}
+      <Card padding={20} style={{ marginBottom: 24, background: "var(--surface-sunk)",
+                                     borderLeft: "3px solid var(--ink-400)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div>
+            <Badge tone="neutral">5 · No data yet? Use the demo dataset</Badge>
+            <h2 style={{ fontSize: "var(--fs-16)", fontWeight: 600, margin: "8px 0 4px 0" }}>
+              Load all 8 sample files in one click
+            </h2>
+            <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-600)", margin: 0, lineHeight: 1.5 }}>
+              Loads PO + PR + GRN + Invoice + Vendor / Material / Org / Contract masters
+              (~36k rows). Mappings auto-confirmed; routes straight to QRE.
+            </p>
+          </div>
+          <Button size="md" variant="outline" onClick={handleAllSeeds} disabled={uploading} iconRight={<I.Arrow size={14} />}>
+            {uploading ? "Loading…" : "Load sample data"}
+          </Button>
+        </div>
       </Card>
 
       {/* Uploads list */}

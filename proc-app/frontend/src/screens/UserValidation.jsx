@@ -149,7 +149,10 @@ const UserValidation = () => {
       setSaveResult(result);
       const t = await reloadTracker();
       if (result.all_ready_for_bronze) {
-        setTimeout(() => navigate(`/engagement/${engagement.id}/bronze-data`), 800);
+        // Route to QRE first — DoA + Org Structure pillars need it before
+        // Bronze processing is meaningful. Consultant can still navigate
+        // to Bronze from the left rail.
+        setTimeout(() => navigate(`/engagement/${engagement.id}/qre`), 800);
       } else if (t) {
         // Auto-jump to next unconfirmed file after a brief pause
         const next = t.uploads.find((u) => !u.is_confirmed && u.upload_id !== uploadId);
@@ -207,8 +210,9 @@ const UserValidation = () => {
 
       {saveResult && saveResult.all_ready_for_bronze && (
         <div style={{ marginBottom: 16 }}>
-          <Callout tone="success" title="All uploads mapped — proceeding to Bronze Data" icon={<I.Check size={16} />}>
+          <Callout tone="success" title="All uploads mapped — proceeding to QRE" icon={<I.Check size={16} />}>
             {saveResult.confirmed_count} of {saveResult.total_uploads} files confirmed.
+            Answer the 52 QRE questions next; Bronze + downstream pillars run after that.
           </Callout>
         </div>
       )}

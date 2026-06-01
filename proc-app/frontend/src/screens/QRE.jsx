@@ -176,37 +176,124 @@ const QRECard = ({ resp, onUpdate }) => {
               Guidance: {resp.guidance}
             </div>
           )}
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "260px 1fr", gap: 12 }}>
-            {resp.options && Array.isArray(resp.options) && resp.options.length > 0 ? (
-              // Per-question categorical options from the QRE bank.
-              // Save the index+1 as the score (1-based), and the chosen
-              // option label as evidence prefix for traceability.
-              <Select value={resp.score ?? ""}
-                       onChange={(e) => {
-                         const v = e.target.value === "" ? null : Number(e.target.value);
-                         onUpdate({ score: v });
-                       }}>
-                <option value="">Select an answer…</option>
-                {resp.options.map((opt, i) => (
-                  <option key={i} value={i + 1}>{opt}</option>
-                ))}
-              </Select>
-            ) : (
-              // Fallback: 4-point maturity scale for questions without
-              // explicit options in the bank.
-              <Select value={resp.score ?? ""}
-                       onChange={(e) => onUpdate({ score: e.target.value === "" ? null : Number(e.target.value) })}>
-                <option value="">Score…</option>
-                {SCORE_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
-              </Select>
-            )}
-            <Input placeholder="Evidence (optional)" value={resp.evidence ?? ""}
-                   onChange={(e) => onUpdate({ evidence: e.target.value })} />
+          <div style={{ marginTop: 12 }}>
+            <AnswerControl resp={resp} onUpdate={onUpdate} />
           </div>
         </div>
       </div>
     </Card>
   );
+};
+
+/* Per-question input control — picks the right widget based on
+   answer_type from the QRE bank. Multi-select stores the picked labels
+   in `evidence` (semicolon-joined) and derives a score from selection
+   count so DoA/Org-Structure engines that read .score still work. */
+const AnswerControl = ({ resp, onUpdate }) => {
+  const type = resp.answer_type;
+  const opts = Array.isArray(resp.options) ? resp.options : [];
+
+  if (type === "multi_categorical" && opts.length > 0) {
+    const selected = parseSelections(resp.evidence);
+    const toggle = (label) => {
+      const next = selected.includes(label)
+        ? selected.filter((x) => x !== label)
+        : [...selected, label];
+      onUpdate({
+        evidence: next.join("; "),
+        score: next.length === 0 ? null : Math.min(4, Math.max(1, Math.ceil(next.length * 4 / opts.length))),
+      });
+    };
+    return (
+      <div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {opts.map((opt, i) => {
+            const isOn = selected.includes(opt);
+            return (
+              <button key={i} type="button" onClick={() => toggle(opt)}
+                       style={{
+                         padding: "6px 12px", fontSize: "var(--fs-12)", fontWeight: 500,
+                         background: isOn ? "var(--brand-600)" : "var(--surface-card)",
+                         color: isOn ? "white" : "var(--ink-700)",
+                         border: "1px solid " + (isOn ? "var(--brand-700)" : "var(--border-default)"),
+                         borderRadius: "var(--r-pill)", cursor: "pointer",
+                       }}>
+                {isOn ? "✓ " : ""}{opt}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 8, fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+          {selected.length === 0 ? "Select all that apply." : `${selected.length} selected`}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "percentage") {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 12 }}>
+        <Input type="number" min="0" max="100" placeholder="0-100"
+               value={resp.evidence ?? ""}
+               onChange={(e) => {
+                 const raw = e.target.value;
+                 const n = raw === "" ? null : Math.max(0, Math.min(100, Number(raw)));
+                 const score = n === null ? null : (n <= 25 ? 1 : n <= 50 ? 2 : n <= 75 ? 3 : 4);
+                 onUpdate({ evidence: raw, score });
+               }} />
+        <span style={{ alignSelf: "center", fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
+          % — maps to score 1 (0-25) · 2 (26-50) · 3 (51-75) · 4 (76-100)
+        </span>
+      </div>
+    );
+  }
+
+  if (type === "free_text") {
+    return (
+      <textarea value={resp.evidence ?? ""}
+                onChange={(e) => onUpdate({ evidence: e.target.value, score: e.target.value.trim() ? 3 : null })}
+                rows={3}
+                placeholder="Free-text answer…"
+                style={{ width: "100%", padding: 10, resize: "vertical",
+                          fontFamily: "var(--font-sans)", fontSize: "var(--fs-13)",
+                          border: "1px solid var(--border-default)",
+                          borderRadius: "var(--r-md)", lineHeight: 1.5,
+                          background: "var(--surface-card)" }} />
+    );
+  }
+
+  // categorical, yes_no_partial, maturity_scale — single-select with options
+  if (opts.length > 0) {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
+        <Select value={resp.score ?? ""}
+                onChange={(e) => onUpdate({ score: e.target.value === "" ? null : Number(e.target.value) })}>
+          <option value="">Select an answer…</option>
+          {opts.map((opt, i) => <option key={i} value={i + 1}>{opt}</option>)}
+        </Select>
+        <Input placeholder="Evidence (optional)" value={resp.evidence ?? ""}
+               onChange={(e) => onUpdate({ evidence: e.target.value })} />
+      </div>
+    );
+  }
+
+  // No options — generic 1-4 maturity scale
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 12 }}>
+      <Select value={resp.score ?? ""}
+              onChange={(e) => onUpdate({ score: e.target.value === "" ? null : Number(e.target.value) })}>
+        <option value="">Score…</option>
+        {SCORE_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+      </Select>
+      <Input placeholder="Evidence (optional)" value={resp.evidence ?? ""}
+             onChange={(e) => onUpdate({ evidence: e.target.value })} />
+    </div>
+  );
+};
+
+const parseSelections = (evidence) => {
+  if (!evidence || typeof evidence !== "string") return [];
+  return evidence.split(";").map((s) => s.trim()).filter(Boolean);
 };
 
 const Header = () => (
