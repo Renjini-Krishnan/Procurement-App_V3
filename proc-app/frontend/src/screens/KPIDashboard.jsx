@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Card, Badge, Callout, Input, Select, Button } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { MaturityGauge, DataQualityContext, KpiSummaryStrip } from "../design/patterns.jsx";
+import { MaturityGauge, DataQualityContext, KpiSummaryStrip, NeedsQreBanner, QreStatusChip } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import { useIntel } from "../hooks/useIntel.js";
@@ -129,11 +129,27 @@ const KPIDashboard = () => {
   }
   if (!data) return null;
 
+  // Surface QRE-missing pillars at the top so the consultant knows why
+  // some KPIs are absent. The pillar runners return needs_qre=true when
+  // zero QRE answers exist.
+  const needsQrePillars = Object.entries(data.pillar_results || data.pillar_summary || {})
+    .filter(([, r]) => r && r.needs_qre)
+    .map(([pid]) => pid);
+
   return (
     <div>
       <Header />
       <DataQualityContext intel={intel} />
       <PortfolioHero data={data} />
+
+      {needsQrePillars.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <NeedsQreBanner engagementId={engagement.id}
+                            pillarLabel={needsQrePillars.join(" + ")}
+                            message={`The following pillar(s) require QRE responses before KPIs can compute: ${needsQrePillars.join(", ")}. Until you answer the QRE, KPIs sourced from these pillars are hidden from the dashboard.`}
+                            qreStatus={data.qre_status} />
+        </div>
+      )}
 
       {intel?.methodology_kpis && (
         <div style={{ marginTop: 16 }}>

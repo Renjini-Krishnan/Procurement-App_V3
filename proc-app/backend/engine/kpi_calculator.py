@@ -400,6 +400,12 @@ def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame,
 
     kpis = []
     for d in KPI_DEFINITIONS:
+        # Skip KPIs sourced from pillars that returned a needs_qre stub —
+        # the stub has no themes / values, and showing a fake "—" KPI card
+        # is misleading. Frontend renders the NeedsQreBanner in their place.
+        pres = pillar_results.get(d["pillar"]) or {}
+        if pres.get("needs_qre"):
+            continue
         try:
             value = d["extract"](pillar_results[d["pillar"]])
         except (KeyError, TypeError, IndexError):

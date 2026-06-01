@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Button, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { MaturityGauge, DataQualityContext, KpiSummaryStrip } from "../design/patterns.jsx";
+import { MaturityGauge, DataQualityContext, KpiSummaryStrip, NeedsQreBanner } from "../design/patterns.jsx";
 import { api, postDownload } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import { useIntel } from "../hooks/useIntel.js";
@@ -51,7 +51,15 @@ const ExecSummary = () => {
   if (error) return <div><Header /><Callout tone="danger" title="Exec summary failed" icon={<I.X size={16} />}>{error}</Callout></div>;
   if (!data) return null;
 
-  const overall = avgScore(Object.values(data.pillar_summary));
+  // Identify pillars that need QRE so we can degrade gracefully — avoid
+  // computing avgScore on pillar_score=None which would render NaN.
+  const needsQrePillars = Object.entries(data.pillar_results || {})
+    .filter(([, r]) => r && r.needs_qre)
+    .map(([pid]) => pid);
+  const scorablePillars = Object.entries(data.pillar_summary || {})
+    .filter(([pid]) => !needsQrePillars.includes(pid))
+    .map(([, s]) => s);
+  const overall = avgScore(scorablePillars);
   const overBand = data.kpis.filter((k) => k.status === "over");
   const underBand = data.kpis.filter((k) => k.status === "under");
   const topAlerts = [...overBand, ...underBand].slice(0, 5);
@@ -60,6 +68,15 @@ const ExecSummary = () => {
     <div>
       <Header />
       <DataQualityContext intel={intel} />
+
+      {needsQrePillars.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <NeedsQreBanner engagementId={engagement.id}
+                            pillarLabel={needsQrePillars.join(" + ")}
+                            message={`Exec summary is incomplete — ${needsQrePillars.join(", ")} require QRE responses. Overall maturity reflects only the ${scorablePillars.length} pillar(s) with sufficient data.`}
+                            qreStatus={data.qre_status} />
+        </div>
+      )}
 
       {/* Methodology KPI strip */}
       {intel?.methodology_kpis && (

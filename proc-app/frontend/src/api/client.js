@@ -69,6 +69,7 @@ export const api = {
     request(`/engagement/${id}/upload-seed?file_type=${fileType}`, { method: "POST", body: "{}" }),
   uploadAllSeeds: (id) =>
     request(`/engagement/${id}/upload-all-seeds`, { method: "POST", body: "{}" }),
+  combinedSampleXlsxUrl: () => `/api/upload-samples/combined.xlsx`,
   listSeeds: () => request("/seeds"),
   uploadFile: async (id, file, fileType = "PO") => {
     const form = new FormData();

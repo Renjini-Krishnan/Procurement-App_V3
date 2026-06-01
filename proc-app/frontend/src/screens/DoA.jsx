@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Button, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
@@ -69,6 +69,21 @@ const DoA = () => {
     { id: "system-enforcement", label: `System Enforcement · ${data.theme_scores["system-enforcement"].score}` },
     { id: "bucket-optimisation", label: `Bucket Optimisation · ${data.theme_scores["bucket-optimisation"].score}` },
   ];
+
+  // Honest early-return: if engine returned needs_qre, render the banner
+  // instead of fake maturity scores.
+  if (data.needs_qre) {
+    return (
+      <div>
+        <Header />
+        <DataQualityContext intel={data.intel_context} />
+        <NeedsQreBanner engagementId={engagement.id}
+                          pillarLabel="DoA"
+                          message={data.message}
+                          qreStatus={data.qre_status} />
+      </div>
+    );
+  }
 
   return (
     <div>

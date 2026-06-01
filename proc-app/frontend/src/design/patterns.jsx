@@ -420,3 +420,76 @@ export const KpiSummaryStrip = ({ kpis }) => {
     </div>
   );
 };
+
+
+/* ===========================================================================
+ * NeedsQreBanner — pillar screens render this when the engine returns
+ * needs_qre=true. Replaces fake/default maturity scores with a clear
+ * "answer QRE first" message + link.
+ * ======================================================================== */
+
+import { Link } from "react-router-dom";
+
+export const NeedsQreBanner = ({ engagementId, pillarLabel, message, qreStatus }) => {
+  const answered = qreStatus?.answered ?? 0;
+  const total = qreStatus?.total ?? 52;
+  return (
+    <div style={{
+      padding: "20px 24px",
+      background: "var(--warn-50)",
+      border: "1px solid var(--warn-500)",
+      borderLeft: "4px solid var(--warn-500)",
+      borderRadius: "var(--r-lg)",
+      marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em",
+                          color: "var(--warn-700)", fontWeight: 700, marginBottom: 6 }}>
+            QRE responses required
+          </div>
+          <div style={{ fontSize: "var(--fs-15)", color: "var(--ink-900)", fontWeight: 500, lineHeight: 1.45 }}>
+            {message || `The ${pillarLabel} pillar needs QRE responses to produce a maturity score.`}
+          </div>
+          <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-700)", marginTop: 8 }}>
+            Currently answered: <strong>{answered}</strong> of {total} questions
+          </div>
+        </div>
+        {engagementId && (
+          <Link to={`/engagement/${engagementId}/qre`}
+                 style={{ background: "var(--warn-700)", color: "white",
+                           padding: "10px 18px", borderRadius: "var(--r-md)",
+                           fontSize: "var(--fs-13)", fontWeight: 600,
+                           textDecoration: "none", whiteSpace: "nowrap" }}>
+            Answer QRE →
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+/* ===========================================================================
+ * QreStatusChip — shows compact "X of 52 QRE answered" pill on any pillar.
+ * Use alongside DataQualityContext to keep the data-quality story honest.
+ * ======================================================================== */
+
+export const QreStatusChip = ({ qreStatus, engagementId }) => {
+  if (!qreStatus) return null;
+  const answered = qreStatus.answered ?? 0;
+  const total = qreStatus.total ?? 52;
+  const pct = total ? Math.round(100 * answered / total) : 0;
+  const tone = answered === 0 ? { bg: "var(--danger-50)", fg: "var(--danger-700)" }
+              : answered < 10 ? { bg: "var(--warn-50)", fg: "var(--warn-700)" }
+              : { bg: "var(--success-50)", fg: "var(--success-700)" };
+  return (
+    <Link to={engagementId ? `/engagement/${engagementId}/qre` : "#"}
+           style={{ display: "inline-flex", alignItems: "center", gap: 6,
+                     background: tone.bg, color: tone.fg, padding: "4px 10px",
+                     borderRadius: "var(--r-pill)", fontSize: "var(--fs-12)",
+                     fontWeight: 600, textDecoration: "none" }}>
+      QRE: {answered}/{total} ({pct}%)
+    </Link>
+  );
+};

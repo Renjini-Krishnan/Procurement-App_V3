@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
@@ -60,6 +60,20 @@ const OrgStructure = () => {
     );
   }
   if (!data) return null;
+
+  // Render the "needs QRE" stub before any computed-data assumptions
+  if (data.needs_qre) {
+    return (
+      <div>
+        <Header />
+        <DataQualityContext intel={data.intel_context} />
+        <NeedsQreBanner engagementId={engagement.id}
+                          pillarLabel="Org Structure"
+                          message={data.message}
+                          qreStatus={data.qre_status} />
+      </div>
+    );
+  }
 
   const themes = [
     { id: "organisation-posture",        title: "Organisation Posture", weight: 0.20 },

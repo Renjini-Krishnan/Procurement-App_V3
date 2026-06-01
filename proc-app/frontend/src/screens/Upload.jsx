@@ -268,6 +268,14 @@ const Upload = () => {
               (8 files, ~36k rows total). Column mappings auto-confirmed.
               Skips straight to Stage 6 (User Validation).
             </p>
+            <div style={{ marginTop: 10, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
+              Prefer a single Excel file with all 8 tabs?{" "}
+              <a href={api.combinedSampleXlsxUrl()} download
+                 style={{ color: "var(--brand-700)", textDecoration: "underline" }}>
+                Download combined sample workbook (.xlsx)
+              </a>
+              {" "}— share with clients, then upload back tab-by-tab via the file picker below.
+            </div>
           </div>
           <Button size="md" onClick={handleAllSeeds} disabled={uploading} iconRight={<I.Arrow size={14} />}>
             {uploading ? "Loading…" : "Load all sample data"}

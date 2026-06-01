@@ -143,6 +143,16 @@ def template_xlsx(file_type: str):
         headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
+@meta_router.get("/upload-samples/combined.xlsx")
+def combined_sample_xlsx():
+    """ONE Excel workbook with all 8 sample datasets as separate tabs.
+    Cover sheet (README) + 8 data sheets keyed by file_type."""
+    body = upload_service.combined_sample_xlsx_all_tabs()
+    return StreamingResponse(_io.BytesIO(body),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="procvault-combined-sample.xlsx"'})
+
+
 # --------------------------------------------------------------------------
 # Batch upload with auto-classification
 # --------------------------------------------------------------------------

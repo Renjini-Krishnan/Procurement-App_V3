@@ -85,6 +85,7 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     result = {
         "engagement_id": engagement_id,
         "intel_context": intel_context,
+        "qre_status": _qre_status(engagement_id),
         "upload_id": upload_id,
         "pillar": "op-model",
         "industry": industry,
@@ -287,15 +288,54 @@ def _load_scope_lookback(engagement_id: str) -> Optional[int]:
 
 
 def _load_qre(engagement_id: str) -> dict:
-    """Return QRE for engagement: DB-stored if any, else seed template."""
+    """Return QRE responses for this engagement, ONLY if the consultant has
+    actually answered questions. Returns {"responses": []} when no real
+    answers exist — the engines must then degrade gracefully ("QRE not
+    answered, theme skipped") rather than silently use demo seed data.
+
+    Previous behaviour (silently load demo seed when no answers) caused
+    Op Model + DoA + others to display fake maturity scores on fresh
+    engagements with no QRE input.
+    """
     stored = db.get_qre_responses(engagement_id)
-    if stored and any(r.get("score") is not None for r in stored):
-        return {"responses": [r for r in stored if r.get("score") is not None]}
-    from pathlib import Path
-    seed = Path(__file__).resolve().parents[1] / "data" / "seed" / "demo_qre_responses.json"
-    if seed.exists():
-        return json.loads(seed.read_text())
+    answered = [r for r in (stored or []) if r.get("score") is not None]
+    if answered:
+        return {"responses": answered}
     return {"responses": []}
+
+
+def _qre_status(engagement_id: str) -> dict:
+    """Compute QRE completion status — count answered vs total.
+    Used by pillar responses + frontend warning banners."""
+    stored = db.get_qre_responses(engagement_id) or []
+    answered = sum(1 for r in stored if r.get("score") is not None)
+    # Total is the seed template length (52 questions)
+    total = 52
+    return {
+        "answered": answered,
+        "total": total,
+        "coverage_pct": round(100 * answered / total, 1) if total else 0,
+        "complete_enough_to_score": answered >= 10,  # arbitrary minimum
+    }
+
+
+def _empty_qre_stub(pillar: str, label: str, engagement_id: str, industry: str) -> dict:
+    """Returned by QRE-dependent pillars when QRE has zero answers. Frontend
+    renders a 'needs QRE' banner instead of a fake maturity score."""
+    return {
+        "engagement_id": engagement_id,
+        "industry": industry,
+        "pillar": pillar,
+        "needs_qre": True,
+        "pillar_score": {"score": None, "label": "QRE required"},
+        "theme_scores": {},
+        "themes": {},
+        "rca_cards": [],
+        "qre_status": _qre_status(engagement_id),
+        "message": (f"The {label} pillar requires QRE responses to produce a "
+                     f"maturity score. Go to Stage 15 (QRE) and answer the relevant "
+                     f"questions before running this assessment."),
+    }
 
 
 def _build_intel_context(df_classified: 'pd.DataFrame', industry: str,
@@ -386,9 +426,14 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     timings["stage10_kpis"] = round(time.time() - t2, 2)
     t3 = time.time()
 
-    # Default QRE: prefer DB, fall back to seed
     if qre_responses is None:
         qre_responses = _load_qre(engagement_id)
+
+    # DoA is heavily QRE-dependent. If the consultant hasn't answered ANY
+    # questions, return a stub that the frontend renders as "needs QRE"
+    # rather than compute a fake maturity score from defaults.
+    if not (qre_responses.get("responses") or []):
+        return _empty_qre_stub("doa", "DoA", engagement_id, industry)
 
     result = run_doa(df_classified, df_mg, qre_responses)
     timings["stage14_doa"] = round(time.time() - t3, 2)
@@ -405,6 +450,7 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     _persist_findings_doa(engagement_id, result)
     _record_run(engagement_id, "doa", result)
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
+    result["qre_status"] = _qre_status(engagement_id)
 
     return result
 
@@ -456,6 +502,7 @@ def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str 
     _persist_findings_generic(engagement_id, result, "buying-channel")
     _record_run(engagement_id, "buying-channel", result)
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
+    result["qre_status"] = _qre_status(engagement_id)
     return result
 
 
@@ -473,9 +520,13 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
     timings["stage10_kpis"] = round(time.time() - t2, 2)
 
-    # Load QRE: prefer DB, fall back to seed
     if qre_responses is None:
         qre_responses = _load_qre(engagement_id)
+
+    # Org Structure is heavily QRE-dependent in V1 (no Org file consumed yet).
+    # Return a "needs QRE" stub when zero answers exist.
+    if not (qre_responses.get("responses") or []):
+        return _empty_qre_stub("org-structure", "Org Structure", engagement_id, industry)
 
     engagement = db.get_engagement(engagement_id) or {}
 
@@ -494,6 +545,7 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     _persist_findings_generic(engagement_id, result, "org-structure")
     _record_run(engagement_id, "org-structure", result)
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
+    result["qre_status"] = _qre_status(engagement_id)
     return result
 
 
@@ -539,19 +591,25 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     bc_result = run_buying_channel(df_classified, df_mg, industry=industry)
     timings["buying_channel"] = round(time.time() - t4, 2)
 
-    # Load QRE: prefer DB, fall back to seed
     if qre_responses is None:
         qre_responses = _load_qre(engagement_id)
     engagement = db.get_engagement(engagement_id) or {}
+    has_qre_answers = bool(qre_responses.get("responses") or [])
 
-    # Org Structure
+    # Org Structure + DoA — both heavily QRE-dependent. If zero responses,
+    # surface stubs instead of computing fake scores from defaults.
     t5 = time.time()
-    org_result = run_org_structure(df_mg, df_gold, engagement, qre_responses=qre_responses)
+    if has_qre_answers:
+        org_result = run_org_structure(df_mg, df_gold, engagement, qre_responses=qre_responses)
+    else:
+        org_result = _empty_qre_stub("org-structure", "Org Structure", engagement_id, industry)
     timings["org_structure"] = round(time.time() - t5, 2)
 
-    # DoA
     t6 = time.time()
-    doa_result = run_doa(df_classified, df_mg, qre_responses)
+    if has_qre_answers:
+        doa_result = run_doa(df_classified, df_mg, qre_responses)
+    else:
+        doa_result = _empty_qre_stub("doa", "DoA", engagement_id, industry)
     timings["doa"] = round(time.time() - t6, 2)
 
     # Assemble unified KPI list
@@ -725,6 +783,7 @@ def _v2_run_pillar(engagement_id: str, upload_id: str, industry: str,
     result["upload_id"] = upload_id
     result["industry"] = industry
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
+    result["qre_status"] = _qre_status(engagement_id)
     # Persist + advance not wired for V2 pillars (no specific stage_id mapping);
     # findings are persisted generically.
     _persist_findings_generic(engagement_id, result, pillar_kind)

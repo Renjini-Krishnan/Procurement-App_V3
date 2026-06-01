@@ -712,3 +712,79 @@ def blank_template_xlsx(file_type: str) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+def combined_sample_xlsx_all_tabs() -> bytes:
+    """Return ONE Excel workbook with ALL 8 sample datasets as separate tabs.
+    Useful for a single-file demo download: clients receive one file, drop
+    it in Stage 4 for any sheet, and re-upload separately for the others.
+    Each tab is the seed CSV converted to a worksheet."""
+    import io as _io
+    import pandas as pd
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+    header_fill = PatternFill(start_color="1A1F36", end_color="1A1F36", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    # Cover sheet
+    cover = wb.create_sheet("README")
+    cover_lines = [
+        ["Procvault — Combined Sample Data"],
+        [""],
+        ["This workbook contains 8 procurement data templates as separate tabs."],
+        ["Each tab corresponds to one file_type the app expects."],
+        [""],
+        ["Tab", "File type", "Rows"],
+    ]
+    for r_idx, row in enumerate(cover_lines, start=1):
+        for c_idx, val in enumerate(row, start=1):
+            cover.cell(row=r_idx, column=c_idx, value=val)
+    cover["A1"].font = Font(bold=True, size=14)
+
+    file_types = ["PO", "PR", "GRN", "INVOICE", "VENDOR_MASTER",
+                   "MATERIAL_MASTER", "ORG_STRUCTURE", "CONTRACT_MASTER"]
+    cover_row = len(cover_lines) + 1
+    for ft in file_types:
+        try:
+            path = get_seed_dataset_path(ft)
+            if not path.exists():
+                cover.cell(row=cover_row, column=1, value=ft)
+                cover.cell(row=cover_row, column=2, value=ft)
+                cover.cell(row=cover_row, column=3, value="(missing)")
+                cover_row += 1
+                continue
+            df = pd.read_csv(path, low_memory=False)
+            sheet_name = ft[:31]  # Excel max sheet name = 31 chars
+            ws = wb.create_sheet(sheet_name)
+            # Headers
+            for c_idx, col in enumerate(df.columns, start=1):
+                cell = ws.cell(row=1, column=c_idx, value=str(col))
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = Alignment(horizontal="center")
+                ws.column_dimensions[openpyxl.utils.get_column_letter(c_idx)].width = 18
+            # Data — cap at 5000 rows per sheet to keep file size reasonable
+            for r_idx, row in enumerate(df.head(5000).itertuples(index=False), start=2):
+                for c_idx, val in enumerate(row, start=1):
+                    if pd.isna(val): val = ""
+                    ws.cell(row=r_idx, column=c_idx, value=val)
+            ws.freeze_panes = "A2"
+            # Cover row
+            cover.cell(row=cover_row, column=1, value=sheet_name)
+            cover.cell(row=cover_row, column=2, value=ft)
+            cover.cell(row=cover_row, column=3, value=min(len(df), 5000))
+            cover_row += 1
+        except Exception as e:
+            cover.cell(row=cover_row, column=1, value=ft)
+            cover.cell(row=cover_row, column=3, value=f"error: {e}")
+            cover_row += 1
+    cover.column_dimensions["A"].width = 20
+    cover.column_dimensions["B"].width = 22
+    cover.column_dimensions["C"].width = 14
+
+    buf = _io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
