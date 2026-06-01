@@ -9,6 +9,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import yaml from "js-yaml";
 import { Card, Badge, Button, Callout, Input } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
+import CategoriesMasterView from "./kbCategoriesEditor.jsx";
 
 /* ============================================================
    Registry — match file path to a view component
@@ -17,6 +18,7 @@ import { I } from "../design/icons.jsx";
 export function pickStructuredView(rel_path) {
   if (rel_path === "_meta/kpi-rca-library.yml") return RcaLibraryView;
   if (rel_path.endsWith("/benchmarks.yml")) return BenchmarksView;
+  if (rel_path.endsWith("categories-master.yml")) return CategoriesMasterView;
   return null;
 }
 
