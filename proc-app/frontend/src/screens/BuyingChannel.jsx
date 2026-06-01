@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout, Tabs, DataTable } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, AiNarrativeBlock, PillarAttributionStrip } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
+import BenchmarkOverridePanel from "./BenchmarkOverridePanel.jsx";
 
 /* Stage 16 — Buying Channel pillar (single theme, 13 components) */
 
@@ -83,6 +84,7 @@ const BuyingChannel = () => {
     { id: "migrations",    label: "Migrations" },
     { id: "sole-source",   label: `Sole Source · ${comp.bc8_sole_source_risk.sole_source_count}` },
     { id: "per-mg",        label: "Per Category" },
+    { id: "settings",      label: "Benchmarks & criteria" },
   ];
 
   return (
@@ -91,27 +93,64 @@ const BuyingChannel = () => {
       <DataQualityContext intel={data.intel_context} />
       <PillarHero data={data} />
 
+      {/* AI pillar verdict */}
+      {data.ai_pillar_narrative && (
+        <div style={{ marginTop: 16 }}>
+          <AiNarrativeBlock title="AI verdict · Buying Channel"
+                              narrative={data.ai_pillar_narrative}
+                              attribution={{ benchmark: null, data_scope: data.attribution?.data_scope }} />
+        </div>
+      )}
+      <PillarAttributionStrip attribution={data.attribution} />
+
       <div style={{ marginTop: 32, marginBottom: 24 }}>
         <Tabs items={tabs} value={activeTab} onChange={setActiveTab} />
       </div>
 
-      {activeTab === "overview" && <OverviewView theme={theme} />}
+      {activeTab === "overview" && (
+        <>
+          <OverviewView theme={theme} />
+          {data.ai_theme_insights?.["buying-channel-strategy"] && (
+            <div style={{ marginTop: 16 }}>
+              <AiNarrativeBlock title="AI insight · buying-channel-strategy"
+                                  narrative={data.ai_theme_insights["buying-channel-strategy"]}
+                                  attribution={data.ai_theme_attributions?.["buying-channel-strategy"]} />
+            </div>
+          )}
+        </>
+      )}
       {activeTab === "mix" && <MixView bc1={comp.bc1_portfolio_channel_mix} bc3={comp.bc3_archetype_channel_heatmap} bc13={comp.bc13_contract_coverage_lift} />}
       {activeTab === "match-status" && <MatchStatusView bc5={comp.bc5_match_status} bc6={comp.bc6_migration_opportunities} />}
       {activeTab === "migrations" && <MigrationsView bc6={comp.bc6_migration_opportunities} />}
       {activeTab === "sole-source" && <SoleSourceView bc8={comp.bc8_sole_source_risk} bc7={comp.bc7_cross_plant_aggregation} />}
       {activeTab === "per-mg" && <PerMGView rows={theme.per_mg_table} />}
+      {activeTab === "settings" && (
+        <BenchmarkOverridePanel
+          engagementId={engagement.id}
+          pillar="buying-channel"
+          title="Buying Channel benchmarks"
+          kbHref="/kb?root=function&file=buying-channel/benchmarks.yml" />
+      )}
 
       {data.rca_cards.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h3 style={sectionHeader}>Root cause analysis · {data.rca_cards.length} rules fired</h3>
           <div style={{ display: "grid", gap: 12 }}>
             {data.rca_cards.map((r) => (
-              <RCACard key={r.rule_id} id={r.rule_id} theme={r.theme}
-                       severity={r.confidence === "high" ? "high" : "medium"}
-                       cause={(r.root_causes || [])[0]}
-                       evidence={(r.root_causes || []).slice(1, 4)}
-                       recommendation={r.references?.recommendation} />
+              <div key={r.rule_id}>
+                <RCACard id={r.rule_id} theme={r.theme}
+                         severity={r.confidence === "high" ? "high" : "medium"}
+                         cause={(r.root_causes || [])[0]}
+                         evidence={(r.root_causes || []).slice(1, 4)}
+                         recommendation={r.references?.recommendation} />
+                {r.ai_narrative && (
+                  <div style={{ marginTop: 6, marginLeft: 16 }}>
+                    <AiNarrativeBlock title="AI consultant note"
+                                        narrative={r.ai_narrative}
+                                        attribution={r.ai_attribution} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

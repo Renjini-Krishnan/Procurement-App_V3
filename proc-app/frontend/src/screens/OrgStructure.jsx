@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner, AiNarrativeBlock, PillarAttributionStrip } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
+import BenchmarkOverridePanel from "./BenchmarkOverridePanel.jsx";
 
 /* Stage 13 — Org Structure pillar (4 themes, V1 QRE-driven). */
 
@@ -85,6 +86,7 @@ const OrgStructure = () => {
   const tabItems = [
     { id: "overview", label: "Overview" },
     ...themes.map((t) => ({ id: t.id, label: `${t.title} · ${data.theme_scores[t.id].score}` })),
+    { id: "settings", label: "Benchmarks & criteria" },
   ];
 
   return (
@@ -92,6 +94,15 @@ const OrgStructure = () => {
       <Header />
       <DataQualityContext intel={data.intel_context} />
       <PillarHero data={data} />
+
+      {data.ai_pillar_narrative && (
+        <div style={{ marginTop: 16 }}>
+          <AiNarrativeBlock title="AI verdict · Org Structure"
+                              narrative={data.ai_pillar_narrative}
+                              attribution={{ benchmark: null, data_scope: data.attribution?.data_scope }} />
+        </div>
+      )}
+      <PillarAttributionStrip attribution={data.attribution} />
 
       <Callout tone="info" title="V1 limitation" icon={<I.Doc size={16} />}>
         Full Org Structure analysis requires Employee Master + Org Chart uploads (planned for Build 2).
@@ -103,8 +114,24 @@ const OrgStructure = () => {
       </div>
 
       {activeTheme === "overview" && <Overview data={data} themes={themes} setActiveTheme={setActiveTheme} />}
-      {activeTheme !== "overview" && (
-        <ThemeView theme={data.themes[activeTheme]} score={data.theme_scores[activeTheme]} themeId={activeTheme} />
+      {activeTheme !== "overview" && activeTheme !== "settings" && (
+        <>
+          <ThemeView theme={data.themes[activeTheme]} score={data.theme_scores[activeTheme]} themeId={activeTheme} />
+          {data.ai_theme_insights?.[activeTheme] && (
+            <div style={{ marginTop: 16 }}>
+              <AiNarrativeBlock title={`AI insight · ${activeTheme}`}
+                                  narrative={data.ai_theme_insights[activeTheme]}
+                                  attribution={data.ai_theme_attributions?.[activeTheme]} />
+            </div>
+          )}
+        </>
+      )}
+      {activeTheme === "settings" && (
+        <BenchmarkOverridePanel
+          engagementId={engagement.id}
+          pillar="org-structure"
+          title="Org Structure benchmarks"
+          kbHref="/kb?root=function&file=org-structure/benchmarks.yml" />
       )}
 
       {data.rca_cards.length > 0 && (
@@ -112,10 +139,19 @@ const OrgStructure = () => {
           <h3 style={sectionHeader}>Root cause analysis · {data.rca_cards.length} rules fired</h3>
           <div style={{ display: "grid", gap: 12 }}>
             {data.rca_cards.map((r) => (
-              <RCACard key={r.rule_id} id={r.rule_id} theme={r.theme}
-                       severity={r.confidence === "high" ? "high" : "medium"}
-                       cause={(r.root_causes || [])[0]}
-                       evidence={(r.root_causes || []).slice(1)} />
+              <div key={r.rule_id}>
+                <RCACard id={r.rule_id} theme={r.theme}
+                         severity={r.confidence === "high" ? "high" : "medium"}
+                         cause={(r.root_causes || [])[0]}
+                         evidence={(r.root_causes || []).slice(1)} />
+                {r.ai_narrative && (
+                  <div style={{ marginTop: 6, marginLeft: 16 }}>
+                    <AiNarrativeBlock title="AI consultant note"
+                                        narrative={r.ai_narrative}
+                                        attribution={r.ai_attribution} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

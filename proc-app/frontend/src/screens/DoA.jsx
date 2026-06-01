@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, Button, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner, AiNarrativeBlock, PillarAttributionStrip } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
+import BenchmarkOverridePanel from "./BenchmarkOverridePanel.jsx";
 
 /* Stage 14 — Delegation of Authority pillar */
 
@@ -68,6 +69,7 @@ const DoA = () => {
     { id: "po-compliance",      label: `PO Compliance · ${data.theme_scores["po-compliance"].score}` },
     { id: "system-enforcement", label: `System Enforcement · ${data.theme_scores["system-enforcement"].score}` },
     { id: "bucket-optimisation", label: `Bucket Optimisation · ${data.theme_scores["bucket-optimisation"].score}` },
+    { id: "settings", label: "Benchmarks & criteria" },
   ];
 
   // Honest early-return: if engine returned needs_qre, render the banner
@@ -91,27 +93,59 @@ const DoA = () => {
       <DataQualityContext intel={data.intel_context} />
       <PillarHero data={data} />
 
+      {data.ai_pillar_narrative && (
+        <div style={{ marginTop: 16 }}>
+          <AiNarrativeBlock title="AI verdict · DoA"
+                              narrative={data.ai_pillar_narrative}
+                              attribution={{ benchmark: null, data_scope: data.attribution?.data_scope }} />
+        </div>
+      )}
+      <PillarAttributionStrip attribution={data.attribution} />
+
       <div style={{ marginTop: 32, marginBottom: 24 }}>
         <Tabs items={tabItems} value={activeTheme} onChange={setActiveTheme} />
       </div>
 
       {activeTheme === "overview" && <Overview data={data} setActiveTheme={setActiveTheme} />}
-      {activeTheme !== "overview" && <ThemeView theme={data.themes[activeTheme]} score={data.theme_scores[activeTheme]} themeId={activeTheme} />}
+      {activeTheme !== "overview" && activeTheme !== "settings" && (
+        <>
+          <ThemeView theme={data.themes[activeTheme]} score={data.theme_scores[activeTheme]} themeId={activeTheme} />
+          {data.ai_theme_insights?.[activeTheme] && (
+            <div style={{ marginTop: 16 }}>
+              <AiNarrativeBlock title={`AI insight · ${activeTheme}`}
+                                  narrative={data.ai_theme_insights[activeTheme]}
+                                  attribution={data.ai_theme_attributions?.[activeTheme]} />
+            </div>
+          )}
+        </>
+      )}
+      {activeTheme === "settings" && (
+        <BenchmarkOverridePanel
+          engagementId={engagement.id}
+          pillar="doa"
+          title="Delegation of Authority benchmarks"
+          kbHref="/kb?root=function&file=doa/benchmarks.yml" />
+      )}
 
       {data.rca_cards.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h3 style={sectionHeaderStyle}>Root cause analysis · {data.rca_cards.length} rules fired</h3>
           <div style={{ display: "grid", gap: 12 }}>
             {data.rca_cards.map((r) => (
-              <RCACard
-                key={r.rule_id}
-                id={r.rule_id}
-                theme={r.theme || "doa"}
-                severity={r.confidence === "high" ? "high" : r.confidence === "medium" ? "medium" : "low"}
-                cause={(r.root_causes || [])[0]}
-                evidence={(r.root_causes || []).slice(1, 4)}
-                recommendation={r.references?.recommendation}
-              />
+              <div key={r.rule_id}>
+                <RCACard id={r.rule_id} theme={r.theme || "doa"}
+                  severity={r.confidence === "high" ? "high" : r.confidence === "medium" ? "medium" : "low"}
+                  cause={(r.root_causes || [])[0]}
+                  evidence={(r.root_causes || []).slice(1, 4)}
+                  recommendation={r.references?.recommendation} />
+                {r.ai_narrative && (
+                  <div style={{ marginTop: 6, marginLeft: 16 }}>
+                    <AiNarrativeBlock title="AI consultant note"
+                                        narrative={r.ai_narrative}
+                                        attribution={r.ai_attribution} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

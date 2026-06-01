@@ -86,6 +86,34 @@ def delete_override(engagement_id: str, key: str):
     return {"status": "deleted", "key": key}
 
 
+@router.get("/{engagement_id}/benchmarks/{pillar}")
+def list_pillar_benchmarks(engagement_id: str, pillar: str):
+    """Returns the rolled-up benchmark list for a pillar with cascade
+    visibility — each entry reports which layer (function / industry /
+    engagement) supplied the active value, so the UI can render
+    "Function default", "Steel overlay", "Override for this engagement"
+    badges and a quick "Reset to default" action."""
+    eng = db.get_engagement(engagement_id)
+    if not eng:
+        raise HTTPException(404, f"Engagement {engagement_id} not found")
+    from ..engine.orchestrator import _load_pillar_benchmarks
+    industry = eng.get("industry") or "steel"
+    merged = _load_pillar_benchmarks(pillar, industry, engagement_id=engagement_id)
+    # Re-load WITHOUT the engagement layer so the UI can show the
+    # underlying cascade value behind any override (for "reset" preview).
+    base = _load_pillar_benchmarks(pillar, industry, engagement_id=None)
+    payload = []
+    for bid, b in merged.items():
+        entry = {**b, "base": base.get(bid)}
+        payload.append(entry)
+    return {
+        "engagement_id": engagement_id,
+        "pillar": pillar,
+        "industry": industry,
+        "benchmarks": payload,
+    }
+
+
 @router.get("/{engagement_id}/stages")
 def get_stages(engagement_id: str):
     eng = db.get_engagement(engagement_id)

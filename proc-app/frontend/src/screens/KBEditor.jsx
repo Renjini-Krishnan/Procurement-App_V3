@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, Badge, Button, Callout, Input } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { Logo } from "../design/Logo.jsx";
@@ -30,6 +31,7 @@ const KBEditor = () => {
   const [saveError, setSaveError] = useState(null);
   const [saveMsg, setSaveMsg] = useState(null);
   const [viewMode, setViewMode] = useState("structured");  // 'structured' | 'raw'
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     (async () => {
@@ -41,6 +43,18 @@ const KBEditor = () => {
       }
     })();
   }, []);
+
+  // Deep-link support: /kb?root=function&file=op-model/benchmarks.yml lets
+  // pillar pages link straight to the relevant editor.
+  useEffect(() => {
+    const root = searchParams.get("root");
+    const file = searchParams.get("file");
+    if (root && file && !selected) {
+      setActiveRoot(root);
+      openFile(root, file);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, tree]);
 
   // Default to structured view if a renderer is available for this file
   useEffect(() => {

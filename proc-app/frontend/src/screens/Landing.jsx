@@ -210,9 +210,42 @@ const Landing = () => {
       <div style={{ maxWidth: 1200, margin: "48px auto" }}>
         <Principles />
       </div>
+
+      {/* KB editor — prominent home-page entry. Anyone editing benchmarks,
+          QRE bank, scoring descriptors, or rules lands here. */}
+      <div style={{ maxWidth: 1200, margin: "48px auto 32px auto" }}>
+        <KBEditorCard navigate={navigate} />
+      </div>
     </div>
   );
 };
+
+const KBEditorCard = ({ navigate }) => (
+  <Card padding={28} style={{
+    background: "linear-gradient(135deg, var(--brand-50) 0%, var(--surface-card) 100%)",
+    border: "1px solid var(--brand-200, #d4d4f7)",
+    cursor: "pointer",
+  }} onClick={() => navigate("/kb")}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "center" }}>
+      <div>
+        <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em",
+                        color: "var(--brand-700)", fontWeight: 700, marginBottom: 8 }}>
+          Knowledge base editor
+        </div>
+        <h3 style={{ fontSize: "var(--fs-24)", fontWeight: 600, margin: "0 0 8px 0",
+                       letterSpacing: "-0.01em" }}>
+          Edit benchmarks, QRE questions, scoring rules + 8 more file types
+        </h3>
+        <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-600)", lineHeight: 1.55, margin: 0, maxWidth: "70ch" }}>
+          Structured editors for the most-edited KB files (benchmarks refreshes every year,
+          QRE bank as questions evolve, scoring descriptors per industry overlay).
+          Raw YAML view available for everything else. Changes flow into every engagement instantly.
+        </p>
+      </div>
+      <Button iconRight={<I.Arrow size={14} />} size="md">Open editor</Button>
+    </div>
+  </Card>
+);
 
 const EngagementList = ({ engagements, navigate }) => (
   <div>

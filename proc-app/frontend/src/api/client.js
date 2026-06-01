@@ -60,6 +60,8 @@ export const api = {
     request(`/engagement/${id}/overrides`, { method: "POST", body: JSON.stringify({ key, value, override_type }) }),
   deleteOverride: (id, key) =>
     request(`/engagement/${id}/overrides/${encodeURIComponent(key)}`, { method: "DELETE" }),
+  listPillarBenchmarks: (id, pillar) =>
+    request(`/engagement/${id}/benchmarks/${pillar}`),
   getStages: (id) => request(`/engagement/${id}/stages`),
   setStageStatus: (id, stageId, payload) =>
     request(`/engagement/${id}/stages/${stageId}`, { method: "POST", body: JSON.stringify(payload) }),

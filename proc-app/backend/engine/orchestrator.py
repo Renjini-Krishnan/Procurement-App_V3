@@ -824,12 +824,15 @@ def run_supplier_pillar(engagement_id: str, upload_id: str, industry: str = "ste
 # AI is unavailable.
 # ============================================================================
 
-def _load_pillar_benchmarks(pillar: str, industry: str) -> dict:
-    """Load function-default + industry-overlay benchmarks for a pillar.
-    Returns a dict keyed by benchmark id (last segment after the final dot)
-    with the rolled-up attribution payload the LLM prompts expect:
-      {value_range, unit, source, year, sample_size, confidence}
-    Industry overlay takes precedence over function default on id collision."""
+def _load_pillar_benchmarks(pillar: str, industry: str,
+                              engagement_id: Optional[str] = None) -> dict:
+    """Load function-default + industry-overlay + engagement-override
+    benchmarks for a pillar (most-specific wins). Returns a dict keyed by
+    benchmark id with the rolled-up attribution payload the LLM prompts
+    expect: {value_range, unit, source, year, sample_size, confidence,
+    layer, overridden}. The `layer` field reports which layer supplied
+    the active value ("function" / "industry" / "engagement"); `overridden`
+    is true when an engagement override exists."""
     import yaml as _yaml
     from .. import config
 
@@ -843,7 +846,7 @@ def _load_pillar_benchmarks(pillar: str, industry: str) -> dict:
         bench_files.append(("industry", ind_path))
 
     merged: dict[str, dict] = {}
-    for _layer, path in bench_files:
+    for layer, path in bench_files:
         try:
             doc = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         except Exception:
@@ -866,7 +869,34 @@ def _load_pillar_benchmarks(pillar: str, industry: str) -> dict:
                 "year": primary.get("year"),
                 "sample_size": primary.get("sample_size"),
                 "confidence": primary.get("confidence"),
+                "layer": layer,
+                "overridden": False,
             }
+
+    # Engagement-level overrides win over both. Stored via the existing
+    # /overrides API with override_type='benchmark' and key=<benchmark_id>.
+    # Value shape: {value_range, source, year, notes} — partial; missing
+    # fields fall through to the cascade value.
+    if engagement_id:
+        try:
+            rows = db.get_overrides(engagement_id)
+        except Exception:
+            rows = []
+        for row in rows:
+            if row.get("override_type") != "benchmark":
+                continue
+            bid = row.get("key")
+            val = row.get("value") or {}
+            if not bid or not isinstance(val, dict):
+                continue
+            base = merged.get(bid, {"id": bid, "name": bid})
+            patched = {**base, "overridden": True, "layer": "engagement"}
+            if "value_range" in val and val["value_range"]:
+                patched["value_range"] = val["value_range"]
+            for k in ("source", "year", "sample_size", "confidence", "unit", "notes"):
+                if val.get(k) not in (None, ""):
+                    patched[k] = val[k]
+            merged[bid] = patched
     return merged
 
 
@@ -929,7 +959,7 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
     }
     pillar_label = pillar_label_map.get(pillar, pillar)
 
-    benchmarks = _load_pillar_benchmarks(pillar, industry)
+    benchmarks = _load_pillar_benchmarks(pillar, industry, engagement_id=engagement_id)
     data_scope = _data_scope_for_engagement(engagement_id)
 
     # Stamp attribution on the result so the UI can render a source footer

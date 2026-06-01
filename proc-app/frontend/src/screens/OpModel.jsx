@@ -4,11 +4,12 @@ import { I } from "../design/icons.jsx";
 import {
   ScoreBadge, MaturityGauge, RCACard, CitationChip,
   BenchmarkCascade, VolumeValueQuadrant, PerCategoryMatrix,
-  DataQualityContext,
+  DataQualityContext, AiNarrativeBlock, PillarAttributionStrip,
 } from "../design/patterns.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
+import BenchmarkOverridePanel from "./BenchmarkOverridePanel.jsx";
 
 /* Stage 12 — Op Model. Auto-runs the pillar on first visit if findings
    don't exist, then renders all 4 themes. */
@@ -78,6 +79,7 @@ const OpModel = () => {
     { id: "shared-services", label: `Shared Services · ${data.theme_scores["shared-services"].score}` },
     { id: "coe", label: `CoE · ${data.theme_scores.coe.score}` },
     { id: "tail-spend", label: `Tail Spend · ${data.theme_scores["tail-spend"].score}` },
+    { id: "settings", label: "Benchmarks & criteria" },
   ];
 
   return (
@@ -89,6 +91,15 @@ const OpModel = () => {
       {/* Hero row: pillar score + key metrics */}
       <PillarHero data={data} />
 
+      {data.ai_pillar_narrative && (
+        <div style={{ marginTop: 16 }}>
+          <AiNarrativeBlock title="AI verdict · Op Model"
+                              narrative={data.ai_pillar_narrative}
+                              attribution={{ benchmark: null, data_scope: data.attribution?.data_scope }} />
+        </div>
+      )}
+      <PillarAttributionStrip attribution={data.attribution} />
+
       <div style={{ marginTop: 32, marginBottom: 24 }}>
         <Tabs items={tabItems} value={activeTheme} onChange={setActiveTheme} />
       </div>
@@ -98,6 +109,23 @@ const OpModel = () => {
       {activeTheme === "shared-services" && <SharedServicesView data={data.themes["shared-services"]} score={data.theme_scores["shared-services"]} portfolio={data.portfolio} />}
       {activeTheme === "coe" && <CoEView data={data.themes.coe} score={data.theme_scores.coe} />}
       {activeTheme === "tail-spend" && <TailSpendView data={data.themes["tail-spend"]} score={data.theme_scores["tail-spend"]} />}
+      {activeTheme === "settings" && (
+        <BenchmarkOverridePanel
+          engagementId={engagement.id}
+          pillar="op-model"
+          title="Op Model benchmarks"
+          kbHref="/kb?root=function&file=op-model/benchmarks.yml" />
+      )}
+
+      {/* Per-theme AI insight (when a theme tab is active) */}
+      {activeTheme !== "overview" && activeTheme !== "settings" &&
+       data.ai_theme_insights?.[activeTheme] && (
+        <div style={{ marginTop: 16 }}>
+          <AiNarrativeBlock title={`AI insight · ${activeTheme}`}
+                              narrative={data.ai_theme_insights[activeTheme]}
+                              attribution={data.ai_theme_attributions?.[activeTheme]} />
+        </div>
+      )}
 
       {/* RCA panel (always visible) */}
       <RCAPanel rca={data.rca_cards} themeFilter={activeTheme === "overview" ? null : activeTheme} />
@@ -447,16 +475,24 @@ const RCAPanel = ({ rca, themeFilter }) => {
       <SectionHeader title={`Root cause analysis · ${filtered.length} ${filtered.length === 1 ? "rule" : "rules"} fired`} />
       <div style={{ display: "grid", gap: 12 }}>
         {filtered.map((r) => (
-          <RCACard
-            key={r.rule_id}
-            id={r.rule_id}
-            theme={r.theme || "op-model"}
-            severity={r.confidence === "high" ? "high" : r.confidence === "medium" ? "medium" : "low"}
-            cause={(r.root_causes || [])[0]}
-            evidence={(r.root_causes || []).slice(1, 4)}
-            recommendation={(r.diagnostic_actions || []).join(" · ")}
-            citations={[]}
-          />
+          <div key={r.rule_id}>
+            <RCACard
+              id={r.rule_id}
+              theme={r.theme || "op-model"}
+              severity={r.confidence === "high" ? "high" : r.confidence === "medium" ? "medium" : "low"}
+              cause={(r.root_causes || [])[0]}
+              evidence={(r.root_causes || []).slice(1, 4)}
+              recommendation={(r.diagnostic_actions || []).join(" · ")}
+              citations={[]}
+            />
+            {r.ai_narrative && (
+              <div style={{ marginTop: 6, marginLeft: 16 }}>
+                <AiNarrativeBlock title="AI consultant note"
+                                    narrative={r.ai_narrative}
+                                    attribution={r.ai_attribution} />
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>
