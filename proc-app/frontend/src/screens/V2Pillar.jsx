@@ -71,7 +71,7 @@ const V2Pillar = ({ pillarId }) => {
   if (error) return <div><Header meta={meta} /><Callout tone="danger" title="Pillar run failed" icon={<I.X size={16} />}>{error}</Callout></div>;
   if (!data) return null;
 
-  const score = data.pillar_score?.score ?? 0;
+  const score = data.pillar_score?.score;  // null when no themes available
   const themes = data.themes || {};
   const rca = data.rca_cards || [];
 
@@ -159,17 +159,28 @@ const V2Pillar = ({ pillarId }) => {
 };
 
 const ThemeCard = ({ id, t, insight, attribution }) => {
-  const tone = t.score >= 3.5 ? "var(--success-500)" : t.score >= 2.5 ? "var(--brand-500)" : "var(--warn-500)";
+  const unavailable = t.score === null || t.score === undefined;
+  const tone = unavailable
+    ? "var(--ink-300)"
+    : t.score >= 3.5 ? "var(--success-500)"
+      : t.score >= 2.5 ? "var(--brand-500)" : "var(--warn-500)";
   return (
-    <Card padding={16} style={{ borderTop: `3px solid ${tone}` }}>
+    <Card padding={16} style={{ borderTop: `3px solid ${tone}`,
+                                   background: unavailable ? "var(--surface-sunk)" : undefined }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{id}</div>
           <div style={{ fontSize: "var(--fs-14)", fontWeight: 600, marginTop: 4 }}>{t.label}</div>
         </div>
-        <ScoreBadge value={t.score} size="sm" />
+        <ScoreBadge value={t.score} size="sm" missingInputs={t.missing_inputs} />
       </div>
-      {t.metric_value !== undefined && t.metric_value !== null && (
+      {unavailable && t.note && (
+        <div style={{ marginTop: 8, fontSize: "var(--fs-12)", color: "var(--ink-600)",
+                        fontStyle: "italic", lineHeight: 1.5 }}>
+          {t.note}
+        </div>
+      )}
+      {!unavailable && t.metric_value !== undefined && t.metric_value !== null && (
         <div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontSize: "var(--fs-22)", fontWeight: 600, color: "var(--ink-900)" }}>
             {typeof t.metric_value === "number" ? t.metric_value.toLocaleString("en-IN", { maximumFractionDigits: 1 }) : t.metric_value}

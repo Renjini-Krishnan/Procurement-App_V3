@@ -170,27 +170,45 @@ const Header = () => (
   </div>
 );
 
-const PillarHero = ({ data }) => (
-  <Card padding={28}>
-    <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 24, alignItems: "center" }}>
-      <div style={{ textAlign: "center" }}>
-        <MaturityGauge value={data.pillar_score.score} max={5} size={140} />
-        <div style={{ marginTop: 12, fontSize: "var(--fs-14)", color: "var(--ink-600)" }}>
-          {data.pillar_score.label}
+const PillarHero = ({ data }) => {
+  const ps = data.pillar_score || {};
+  const cov = ps.coverage_pct;
+  return (
+    <Card padding={28}>
+      <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 24, alignItems: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <MaturityGauge value={ps.score} max={5} size={140}
+                          missingInputs={ps.missing_themes} />
+          <div style={{ marginTop: 12, fontSize: "var(--fs-14)", color: "var(--ink-600)" }}>
+            {ps.label || "—"}
+          </div>
+          {cov !== undefined && cov < 99 && cov > 0 && (
+            <div style={{ marginTop: 4, fontSize: "var(--fs-11)", color: "var(--warn-700)" }}>
+              {ps.themes_available}/{ps.themes_total} themes computed
+            </div>
+          )}
+        </div>
+        <div>
+          <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
+            DoA pillar score · weighted (DocAudit 0.20 · Robust 0.25 · POCompl 0.25 · Sys 0.15 · Bucket 0.15)
+          </div>
+          <div style={{ fontSize: "var(--fs-14)", color: "var(--ink-700)", lineHeight: 1.5 }}>
+            Governance, control, and compliance assessment of the procurement approval matrix.
+            Outputs are maturity scores + diagnostics — no ₹ savings.
+          </div>
+          {Array.isArray(ps.missing_themes) && ps.missing_themes.length > 0 && (
+            <div style={{ marginTop: 10, fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>
+              Themes without inputs: {ps.missing_themes.map((t, i) => (
+                <code key={i} style={{ fontFamily: "var(--font-mono)", background: "var(--surface-sunk)",
+                                          padding: "1px 6px", borderRadius: 3, marginRight: 4 }}>{t}</code>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-      <div>
-        <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--ink-500)", marginBottom: 8 }}>
-          DoA pillar score · weighted (DocAudit 0.20 · Robust 0.25 · POCompl 0.25 · Sys 0.15 · Bucket 0.15)
-        </div>
-        <div style={{ fontSize: "var(--fs-14)", color: "var(--ink-700)", lineHeight: 1.5 }}>
-          Governance, control, and compliance assessment of the procurement approval matrix.
-          Outputs are maturity scores + diagnostics — no ₹ savings.
-        </div>
-      </div>
-    </div>
-  </Card>
-);
+    </Card>
+  );
+};
 
 const Overview = ({ data, setActiveTheme }) => {
   const themes = [
@@ -216,13 +234,14 @@ const Overview = ({ data, setActiveTheme }) => {
                   Score
                 </h3>
               </div>
-              <ScoreBadge value={score.score} size="lg" showLabel />
+              <ScoreBadge value={score?.score} size="lg" showLabel
+                            missingInputs={td?.missing_inputs} />
             </div>
             <p style={{ fontSize: "var(--fs-14)", color: "var(--ink-700)", lineHeight: 1.5, margin: 0 }}>
-              {td.headline}
+              {td?.headline || td?.note || "—"}
             </p>
             <div style={{ marginTop: 12, fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
-              {score.rationale}
+              {score?.rationale}
             </div>
           </Card>
         );
@@ -231,45 +250,63 @@ const Overview = ({ data, setActiveTheme }) => {
   );
 };
 
-const ThemeView = ({ theme, score, themeId }) => (
-  <div>
-    <Card padding={22} style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 24 }}>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ fontSize: "var(--fs-24)", fontWeight: 600, margin: "0 0 8px 0", letterSpacing: "-0.015em" }}>
-            {themeId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-          </h2>
-          <p style={{ fontSize: "var(--fs-15)", lineHeight: 1.55, color: "var(--ink-700)", margin: 0 }}>
-            {theme.headline}
-          </p>
-          <div style={{ marginTop: 12, fontSize: "var(--fs-13)", color: "var(--ink-500)" }}>
-            {score.rationale}
+const ThemeView = ({ theme, score, themeId }) => {
+  const unavailable = theme?.available === false || score?.score == null;
+  return (
+    <div>
+      <Card padding={22} style={{ marginBottom: 20,
+                                     background: unavailable ? "var(--surface-sunk)" : undefined }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 24 }}>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: "var(--fs-24)", fontWeight: 600, margin: "0 0 8px 0", letterSpacing: "-0.015em" }}>
+              {themeId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+            </h2>
+            <p style={{ fontSize: "var(--fs-15)", lineHeight: 1.55, color: "var(--ink-700)", margin: 0 }}>
+              {theme?.headline || theme?.note || "—"}
+            </p>
+            {unavailable && Array.isArray(theme?.missing_inputs) && theme.missing_inputs.length > 0 && (
+              <div style={{ marginTop: 12, fontSize: "var(--fs-13)", color: "var(--ink-600)" }}>
+                Required inputs not provided:{" "}
+                {theme.missing_inputs.map((m, i) => (
+                  <code key={i} style={{ fontFamily: "var(--font-mono)", marginRight: 6,
+                                            background: "var(--surface-card)", padding: "1px 6px",
+                                            borderRadius: 3 }}>{m}</code>
+                ))}
+              </div>
+            )}
+            {!unavailable && (
+              <div style={{ marginTop: 12, fontSize: "var(--fs-13)", color: "var(--ink-500)" }}>
+                {score?.rationale}
+              </div>
+            )}
           </div>
+          <ScoreBadge value={score?.score} size="lg" showLabel missingInputs={theme?.missing_inputs} />
         </div>
-        <ScoreBadge value={score.score} size="lg" showLabel />
-      </div>
-    </Card>
-    <Card padding={20}>
-      <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-500)", marginBottom: 12 }}>
-        Metrics
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
-        <tbody>
-          {Object.entries(theme.metrics || {}).map(([k, v]) => (
-            <tr key={k}>
-              <td style={{ padding: "8px 0", color: "var(--ink-600)", width: "40%" }}>
-                <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{k}</code>
-              </td>
-              <td style={{ padding: "8px 0", color: "var(--ink-900)", fontWeight: 500 }}>
-                {typeof v === "object" ? JSON.stringify(v) : String(v)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
-  </div>
-);
+      </Card>
+      {!unavailable && (
+        <Card padding={20}>
+          <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-500)", marginBottom: 12 }}>
+            Metrics
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+            <tbody>
+              {Object.entries(theme.metrics || {}).map(([k, v]) => (
+                <tr key={k}>
+                  <td style={{ padding: "8px 0", color: "var(--ink-600)", width: "40%" }}>
+                    <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{k}</code>
+                  </td>
+                  <td style={{ padding: "8px 0", color: "var(--ink-900)", fontWeight: 500 }}>
+                    {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  );
+};
 
 const sectionHeaderStyle = {
   fontSize: "var(--fs-14)", fontWeight: 600, letterSpacing: 0.4,

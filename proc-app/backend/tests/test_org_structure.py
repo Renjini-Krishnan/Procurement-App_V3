@@ -20,7 +20,12 @@ def fresh_os_engagement():
     from backend import config, db
     importlib.reload(config); importlib.reload(db)
     db.init_db()
-    eng = db.create_engagement(client_name="OS Test", industry="steel")
+    # fte_count + annual_spend_inr_cr are required by the FTE-Sizing theme;
+    # leaving them None would correctly render that theme as "Data not
+    # available" but breaks the legacy 1-5 range assertion in the smoke
+    # test below.
+    eng = db.create_engagement(client_name="OS Test", industry="steel",
+                                  fte_count=50, annual_spend_inr_cr=250)
     from backend.services import upload_service
     result = upload_service.use_seed_dataset(eng["id"])
     upid = result["upload_id"]
@@ -62,6 +67,16 @@ def test_org_structure_score_in_range(fresh_os_engagement):
         industry="steel",
     )
     ps = r["pillar_score"]
-    assert 1 <= ps["score"] <= 5
+    # When inputs are present the pillar score must be a real number in
+    # the 1-5 band. When inputs are missing the value must be None
+    # (NEVER a fabricated default).
+    if ps["score"] is None:
+        assert ps["label"].startswith("Data not available")
+    else:
+        assert 1 <= ps["score"] <= 5
     for ts in r["theme_scores"].values():
-        assert 1 <= ts["score"] <= 5
+        sc = ts.get("score")
+        if sc is None:
+            assert ts.get("label") == "Data not available"
+        else:
+            assert 1 <= sc <= 5

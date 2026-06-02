@@ -12,8 +12,34 @@ export const MATURITY_DESCRIPTORS = [
   { v: 5, label: "Optimised",  desc: "Best in class." },
 ];
 
-/* ScoreBadge — 1-5 maturity */
-export const ScoreBadge = ({ value, size = "md", showLabel = true }) => {
+/* UnavailableBadge — shown wherever a score / metric is null because
+   the required inputs (QRE answers, file, column) weren't provided.
+   Replaces every silent fallback that used to show "0" or "Initial". */
+export const UnavailableBadge = ({ size = "md", missingInputs }) => {
+  const sizes = {
+    sm: { fs: "var(--fs-11)", pad: "2px 8px" },
+    md: { fs: "var(--fs-12)", pad: "4px 10px" },
+    lg: { fs: "var(--fs-13)", pad: "6px 14px" },
+  };
+  const s = sizes[size];
+  const title = Array.isArray(missingInputs) && missingInputs.length
+    ? `Missing inputs: ${missingInputs.join(", ")}` : undefined;
+  return (
+    <span title={title} style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      padding: s.pad, fontSize: s.fs, fontWeight: 600,
+      background: "var(--surface-sunk)", color: "var(--ink-500)",
+      border: "1px dashed var(--border-default)",
+      borderRadius: "var(--r-md)", letterSpacing: "0.02em",
+    }}>— Data not available</span>
+  );
+};
+
+/* ScoreBadge — 1-5 maturity. Renders UnavailableBadge when value is null. */
+export const ScoreBadge = ({ value, size = "md", showLabel = true, missingInputs }) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return <UnavailableBadge size={size} missingInputs={missingInputs} />;
+  }
   const idx = Math.max(1, Math.min(5, Math.round(value)));
   const color = `var(--m${idx})`;
   const lbl = MATURITY_DESCRIPTORS[idx - 1].label;
@@ -39,8 +65,30 @@ export const ScoreBadge = ({ value, size = "md", showLabel = true }) => {
   );
 };
 
-/* MaturityGauge — radial donut, 3/4 arc */
-export const MaturityGauge = ({ value = 2.8, max = 5, size = 132, tone = "brand" }) => {
+/* MaturityGauge — radial donut, 3/4 arc. Renders an unavailable placeholder
+   when value is null. */
+export const MaturityGauge = ({ value, max = 5, size = 132, tone = "brand", missingInputs }) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    const subColor = tone === "light" ? "rgba(255,255,255,0.7)" : "var(--ink-500)";
+    const textColor = tone === "light" ? "white" : "var(--ink-500)";
+    return (
+      <div style={{ position: "relative", width: size, height: size,
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center",
+                      borderRadius: "50%",
+                      border: `2px dashed ${tone === "light" ? "rgba(255,255,255,0.4)" : "var(--ink-300)"}` }}
+            title={Array.isArray(missingInputs) && missingInputs.length
+                   ? `Missing inputs: ${missingInputs.join(", ")}` : undefined}>
+        <div style={{ fontSize: size * 0.13, color: textColor, fontWeight: 600,
+                        textAlign: "center", lineHeight: 1.3 }}>
+          Data not<br/>available
+        </div>
+        <div style={{ fontSize: "var(--fs-10)", color: subColor, marginTop: 4, letterSpacing: 0.4 }}>
+          / {max}
+        </div>
+      </div>
+    );
+  }
   const stroke = 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

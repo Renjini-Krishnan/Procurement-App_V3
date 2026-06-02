@@ -410,6 +410,11 @@ def assemble_kpis(pillar_results: dict, df_gold: pd.DataFrame,
             value = d["extract"](pillar_results[d["pillar"]])
         except (KeyError, TypeError, IndexError):
             continue
+        # Skip KPIs whose source theme was unavailable (extracted value is
+        # None). Rendering a "0" or "—" card is misleading; the consultant
+        # should see no card when no data exists.
+        if value is None:
+            continue
         # Apply engagement override if present
         band = dict(d["band"])
         band_overridden = False

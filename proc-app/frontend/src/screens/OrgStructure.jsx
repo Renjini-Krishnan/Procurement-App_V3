@@ -228,45 +228,64 @@ const Overview = ({ data, themes, setActiveTheme }) => (
   </div>
 );
 
-const ThemeView = ({ theme, score, themeId }) => (
+const ThemeView = ({ theme, score, themeId }) => {
+  const unavailable = theme?.available === false || score?.score == null;
+  return (
   <div>
-    <Card padding={22} style={{ marginBottom: 20 }}>
+    <Card padding={22} style={{ marginBottom: 20,
+                                   background: unavailable ? "var(--surface-sunk)" : undefined }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 24 }}>
         <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: "var(--fs-24)", fontWeight: 600, margin: "0 0 8px 0", letterSpacing: "-0.015em" }}>
             {themeId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
           </h2>
           <p style={{ fontSize: "var(--fs-15)", lineHeight: 1.55, color: "var(--ink-700)", margin: 0 }}>
-            {theme.headline}
+            {theme?.headline || theme?.note || "—"}
           </p>
-          <div style={{ marginTop: 12, fontSize: "var(--fs-13)", color: "var(--ink-500)" }}>
-            {score.rationale}
-          </div>
+          {unavailable && Array.isArray(theme?.missing_inputs) && theme.missing_inputs.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: "var(--fs-13)", color: "var(--ink-600)" }}>
+              Required inputs not provided:{" "}
+              {theme.missing_inputs.map((m, i) => (
+                <code key={i} style={{ fontFamily: "var(--font-mono)", marginRight: 6,
+                                          background: "var(--surface-card)", padding: "1px 6px",
+                                          borderRadius: 3 }}>{m}</code>
+              ))}
+            </div>
+          )}
+          {!unavailable && (
+            <div style={{ marginTop: 12, fontSize: "var(--fs-13)", color: "var(--ink-500)" }}>
+              {score?.rationale}
+            </div>
+          )}
         </div>
-        <ScoreBadge value={score.score} size="lg" showLabel />
+        <ScoreBadge value={score?.score} size="lg" showLabel
+                    missingInputs={theme?.missing_inputs} />
       </div>
     </Card>
-    <Card padding={20}>
-      <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-500)", marginBottom: 12 }}>
-        Metrics
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
-        <tbody>
-          {Object.entries(theme.metrics || {}).map(([k, v]) => (
-            <tr key={k}>
-              <td style={{ padding: "8px 0", color: "var(--ink-600)", width: "40%" }}>
-                <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{k}</code>
-              </td>
-              <td style={{ padding: "8px 0", color: "var(--ink-900)", fontWeight: 500 }}>
-                {v === null || v === undefined ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
+    {!unavailable && (
+      <Card padding={20}>
+        <div style={{ fontSize: "var(--fs-12)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-500)", marginBottom: 12 }}>
+          Metrics
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+          <tbody>
+            {Object.entries(theme.metrics || {}).map(([k, v]) => (
+              <tr key={k}>
+                <td style={{ padding: "8px 0", color: "var(--ink-600)", width: "40%" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)" }}>{k}</code>
+                </td>
+                <td style={{ padding: "8px 0", color: "var(--ink-900)", fontWeight: 500 }}>
+                  {v === null || v === undefined ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    )}
   </div>
-);
+  );
+};
 
 const sectionHeader = {
   fontSize: "var(--fs-14)", fontWeight: 600, letterSpacing: 0.4,

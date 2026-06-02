@@ -63,7 +63,59 @@ def _theme_result(label: str, score: float, **metrics) -> dict:
         "label": label,
         "score": round(score, 1),
         "band": _band_label(score),
+        "available": True,
         **metrics,
+    }
+
+
+def _unavailable(label: str, *, required: list[str], reason: str = "input",
+                   note: Optional[str] = None) -> dict:
+    """V2-shape 'data not available' theme — score=None, band tells the
+    UI to render a missing-data badge instead of fabricating a 1.0.
+    `required` lists the missing inputs (column names, file types, QRE ids)."""
+    if note is None:
+        if reason == "file":
+            note = f"Required file(s) not uploaded: {', '.join(required)}"
+        elif reason == "columns":
+            note = f"Required column(s) missing: {', '.join(required)}"
+        elif reason == "rows":
+            note = f"No rows available for this metric ({', '.join(required)})."
+        else:
+            note = f"Required inputs missing: {', '.join(required)}"
+    return {
+        "label": label,
+        "score": None,
+        "band": "Data not available",
+        "available": False,
+        "missing_inputs": list(required),
+        "missing_reason": reason,
+        "metric_value": None,
+        "note": note,
+    }
+
+
+def _v2_pillar_score(themes: dict, weights: dict) -> dict:
+    """Weighted average over AVAILABLE themes only. Returns
+    {score, label, coverage_pct, ...} — same shape as the V1 aggregator."""
+    total_w = sum(weights.values())
+    available = {k: v for k, v in themes.items() if v.get("score") is not None}
+    if not available:
+        return {
+            "score": None, "label": "Data not available",
+            "coverage_pct": 0,
+            "themes_available": 0, "themes_total": len(themes),
+            "missing_themes": list(themes.keys()),
+        }
+    avail_w = sum(weights.get(k, 0) for k in available) or total_w
+    score = sum(themes[k]["score"] * weights.get(k, 0) for k in available) / avail_w
+    cov = round(100 * avail_w / total_w, 1) if total_w else 100
+    suffix = "" if cov >= 99 else f" (partial · {cov}% computed)"
+    return {
+        "score": round(score, 1), "label": _band_label(score) + suffix,
+        "coverage_pct": cov,
+        "themes_available": len(available),
+        "themes_total": len(themes),
+        "missing_themes": [k for k in themes if themes[k].get("score") is None],
     }
 
 
@@ -98,10 +150,9 @@ def run_material_master(po_df: pd.DataFrame, mm_df: Optional[pd.DataFrame],
                 "recommendation": "Implement minimum 80% material_number coverage as a P-card / e-procurement gate.",
             })
     else:
-        themes["mm1_coverage"] = _theme_result(
-            "PO coverage of material_number", 0.5,
-            metric_value=None, note="material_number column not in PO file.",
-        )
+        themes["mm1_coverage"] = _unavailable(
+            "PO coverage of material_number",
+            required=["material_number"], reason="columns")
 
     # mm2 — Master quality (duplicate descriptions + active flag)
     if mm_df is not None and len(mm_df) > 0:
@@ -129,10 +180,9 @@ def run_material_master(po_df: pd.DataFrame, mm_df: Optional[pd.DataFrame],
                 "recommendation": "Run quarterly dedup sweep + add fuzzy-match gate at material creation.",
             })
     else:
-        themes["mm2_master_quality"] = _theme_result(
-            "Master quality", 1.0, metric_value=None,
-            note="Material Master file not uploaded.",
-        )
+        themes["mm2_master_quality"] = _unavailable(
+            "Master quality",
+            required=["Material Master file"], reason="file")
 
     # mm3 — Canonical classification rate
     cc_stats = (canonical_classification or {}).get("stats") or {}
@@ -154,10 +204,10 @@ def run_material_master(po_df: pd.DataFrame, mm_df: Optional[pd.DataFrame],
 
     theme_scores = {k: {"score": v["score"], "label": v["band"]} for k, v in themes.items()}
     weights = {"mm1_coverage": 0.40, "mm2_master_quality": 0.30, "mm3_classification": 0.30}
-    pillar_score = round(sum(themes[k]["score"] * w for k, w in weights.items()), 1)
+    pillar_score = _v2_pillar_score(themes, weights)
     return {
         "pillar": "material-master",
-        "pillar_score": {"score": pillar_score, "label": _band_label(pillar_score)},
+        "pillar_score": pillar_score,
         "themes": themes, "theme_scores": theme_scores,
         "rca_cards": rca_cards,
     }
@@ -172,22 +222,36 @@ def run_pr_to_po(po_df: pd.DataFrame, pr_df: Optional[pd.DataFrame]) -> dict:
     rca_cards: list[dict] = []
 
     if pr_df is None or len(pr_df) == 0:
-        themes["pr1_conversion"] = _theme_result("PR→PO conversion rate", 1.0, metric_value=None, note="PR file not uploaded.")
-        themes["pr2_tat"]        = _theme_result("Mean PR→PO TAT", 1.0, metric_value=None, note="PR file not uploaded.")
-        themes["pr3_value_consistency"] = _theme_result("PR estimate vs PO actual", 1.0, metric_value=None, note="PR file not uploaded.")
+        themes["pr1_conversion"]         = _unavailable("PR→PO conversion rate", required=["PR file"], reason="file")
+        themes["pr2_tat"]                = _unavailable("Mean PR→PO TAT", required=["PR file"], reason="file")
+        themes["pr3_value_consistency"]  = _unavailable("PR estimate vs PO actual", required=["PR file"], reason="file")
     else:
-        # pr1 — Conversion rate
-        pr_keys = set(pr_df["pr_number"].dropna().astype(str)) if "pr_number" in pr_df.columns else set()
-        po_refs = set(po_df["pr_reference"].dropna().astype(str)) if "pr_reference" in po_df.columns else set()
-        linked = pr_keys & po_refs
-        conv_pct = _pct(len(linked), len(pr_keys))
-        themes["pr1_conversion"] = _theme_result(
-            "PR→PO conversion rate", _score_from_pct(conv_pct),
-            metric_value=conv_pct, metric_unit="%",
-            converted=len(linked), total_prs=len(pr_keys),
-            note=f"{len(linked):,} of {len(pr_keys):,} PRs converted to a PO ({conv_pct}%).",
-        )
-        if conv_pct < 70:
+        # pr1 — Conversion rate (needs pr_number on PR file + pr_reference on PO file)
+        if "pr_number" not in pr_df.columns or "pr_reference" not in po_df.columns:
+            missing = [c for c in [("pr_number", "PR file"), ("pr_reference", "PO file")]
+                        if c[0] not in (pr_df if c[1] == "PR file" else po_df).columns]
+            themes["pr1_conversion"] = _unavailable(
+                "PR→PO conversion rate",
+                required=[c[0] for c in missing], reason="columns")
+        else:
+            pr_keys = set(pr_df["pr_number"].dropna().astype(str))
+            po_refs = set(po_df["pr_reference"].dropna().astype(str))
+            if len(pr_keys) == 0:
+                themes["pr1_conversion"] = _unavailable(
+                    "PR→PO conversion rate", required=["non-empty pr_number values"],
+                    reason="rows")
+            else:
+                linked = pr_keys & po_refs
+                conv_pct = _pct(len(linked), len(pr_keys))
+                themes["pr1_conversion"] = _theme_result(
+                    "PR→PO conversion rate", _score_from_pct(conv_pct),
+                    metric_value=conv_pct, metric_unit="%",
+                    converted=len(linked), total_prs=len(pr_keys),
+                    note=f"{len(linked):,} of {len(pr_keys):,} PRs converted to a PO ({conv_pct}%).",
+                )
+        # RCA fires only when pr1_conversion produced a real score
+        if themes["pr1_conversion"].get("score") is not None and themes["pr1_conversion"].get("metric_value", 100) < 70:
+            conv_pct = themes["pr1_conversion"]["metric_value"]
             rca_cards.append({
                 "theme": "pr1_conversion", "severity": "high",
                 "headline": f"{100-conv_pct:.0f}% of PRs never became POs",
@@ -210,7 +274,7 @@ def run_pr_to_po(po_df: pd.DataFrame, pr_df: Optional[pd.DataFrame]) -> dict:
                     if 0 <= diff <= 365: tats.append(diff)
             mean_tat = round(sum(tats) / len(tats), 1) if tats else None
             if mean_tat is None:
-                themes["pr2_tat"] = _theme_result("Mean PR→PO TAT", 1.0, metric_value=None, note="Could not compute TAT (no linked pairs).")
+                themes["pr2_tat"] = _unavailable("Mean PR→PO TAT", required=["linked PR-PO rows"], reason="rows")
             else:
                 # Lower is better; <=7 → 5, <=14 → 4, <=21 → 3, <=30 → 2, else 1
                 score = 5.0 if mean_tat <= 7 else 4.0 if mean_tat <= 14 else 3.0 if mean_tat <= 21 else 2.0 if mean_tat <= 30 else 1.0
@@ -228,7 +292,8 @@ def run_pr_to_po(po_df: pd.DataFrame, pr_df: Optional[pd.DataFrame]) -> dict:
                         "recommendation": "Parallelise tier 1+2 approvals; introduce 48h SLA per tier with auto-escalation.",
                     })
         else:
-            themes["pr2_tat"] = _theme_result("Mean PR→PO TAT", 1.0, metric_value=None, note="Missing pr_reference / pr_creation_date column.")
+            themes["pr2_tat"] = _unavailable("Mean PR→PO TAT",
+                required=["pr_reference", "pr_creation_date"], reason="columns")
 
         # pr3 — Value consistency
         if all(c in pr_df.columns for c in ("pr_number", "pr_total_value")) and \
@@ -251,16 +316,16 @@ def run_pr_to_po(po_df: pd.DataFrame, pr_df: Optional[pd.DataFrame]) -> dict:
                 note=f"{devs:,} of {checked:,} linked PR-PO pairs deviate by >20% ({dev_pct}%).",
             )
         else:
-            themes["pr3_value_consistency"] = _theme_result(
-                "PR estimate vs PO actual", 1.0, metric_value=None,
-                note="Missing pr_total_value / net_value column.")
+            themes["pr3_value_consistency"] = _unavailable(
+                "PR estimate vs PO actual",
+                required=["pr_total_value", "net_value"], reason="columns")
 
     theme_scores = {k: {"score": v["score"], "label": v["band"]} for k, v in themes.items()}
     weights = {"pr1_conversion": 0.40, "pr2_tat": 0.40, "pr3_value_consistency": 0.20}
-    pillar_score = round(sum(themes[k]["score"] * w for k, w in weights.items()), 1)
+    pillar_score = _v2_pillar_score(themes, weights)
     return {
         "pillar": "pr-to-po",
-        "pillar_score": {"score": pillar_score, "label": _band_label(pillar_score)},
+        "pillar_score": pillar_score,
         "themes": themes, "theme_scores": theme_scores, "rca_cards": rca_cards,
     }
 
@@ -294,7 +359,8 @@ def run_post_po(po_df: pd.DataFrame, grn_df: Optional[pd.DataFrame],
                 "recommendation": "Tag GRN-required POs explicitly; enforce 7-day GRN SLA post receipt.",
             })
     else:
-        themes["pp1_grn_coverage"] = _theme_result("PO → GRN coverage", 1.0, metric_value=None, note="GRN file not uploaded.")
+        themes["pp1_grn_coverage"] = _unavailable("PO → GRN coverage",
+            required=["GRN file"], reason="file")
 
     # pp2 — Three-way match
     if grn_df is not None and inv_df is not None and \
@@ -318,9 +384,9 @@ def run_post_po(po_df: pd.DataFrame, grn_df: Optional[pd.DataFrame],
                 "recommendation": "Enforce 3-way match before payment release; investigate top vendors with mismatches.",
             })
     else:
-        themes["pp2_three_way_match"] = _theme_result(
-            "PO ↔ GRN ↔ Invoice match rate", 1.0, metric_value=None,
-            note="GRN or Invoice file not uploaded.")
+        themes["pp2_three_way_match"] = _unavailable(
+            "PO ↔ GRN ↔ Invoice match rate",
+            required=["GRN file", "Invoice file"], reason="file")
 
     # pp3 — OTD %
     if all(c in po_df.columns for c in ("delivery_date", "gr_date")):
@@ -346,18 +412,21 @@ def run_post_po(po_df: pd.DataFrame, grn_df: Optional[pd.DataFrame],
                         "recommendation": "Vendor scorecard with OTD penalty clauses; review top 10 worst-performing vendors.",
                     })
             else:
-                themes["pp3_otd"] = _theme_result("On-Time Delivery %", 1.0, metric_value=None, note="No rows with both dates after parsing.")
+                themes["pp3_otd"] = _unavailable("On-Time Delivery %",
+                    required=["delivery_date", "gr_date"], reason="rows")
         else:
-            themes["pp3_otd"] = _theme_result("On-Time Delivery %", 1.0, metric_value=None, note="No rows with both dates.")
+            themes["pp3_otd"] = _unavailable("On-Time Delivery %",
+                required=["delivery_date", "gr_date"], reason="rows")
     else:
-        themes["pp3_otd"] = _theme_result("On-Time Delivery %", 1.0, metric_value=None, note="Missing delivery_date / gr_date.")
+        themes["pp3_otd"] = _unavailable("On-Time Delivery %",
+            required=["delivery_date", "gr_date"], reason="columns")
 
     theme_scores = {k: {"score": v["score"], "label": v["band"]} for k, v in themes.items()}
     weights = {"pp1_grn_coverage": 0.35, "pp2_three_way_match": 0.35, "pp3_otd": 0.30}
-    pillar_score = round(sum(themes[k]["score"] * w for k, w in weights.items()), 1)
+    pillar_score = _v2_pillar_score(themes, weights)
     return {
         "pillar": "post-po",
-        "pillar_score": {"score": pillar_score, "label": _band_label(pillar_score)},
+        "pillar_score": pillar_score,
         "themes": themes, "theme_scores": theme_scores, "rca_cards": rca_cards,
     }
 
@@ -451,19 +520,22 @@ def run_supplier(po_df: pd.DataFrame, vm_df: Optional[pd.DataFrame]) -> dict:
                     "recommendation": "MSME vendor development programme; aggregator partnerships for indirect categories.",
                 })
     if "sup3_msme" not in themes:
-        themes["sup3_msme"] = _theme_result("MSME spend share", 1.0, metric_value=None, note="Vendor Master / msme_flag not present.")
+        themes["sup3_msme"] = _unavailable("MSME spend share",
+            required=["Vendor Master file", "msme_flag column"], reason="file")
 
     # Ensure all 3 themes present
     if "sup1_concentration" not in themes:
-        themes["sup1_concentration"] = _theme_result("Vendor concentration", 1.0, metric_value=None, note="vendor_id / net_value missing.")
+        themes["sup1_concentration"] = _unavailable("Vendor concentration",
+            required=["vendor_id", "net_value"], reason="columns")
     if "sup2_master_utilization" not in themes:
-        themes["sup2_master_utilization"] = _theme_result("Vendor master utilization", 1.0, metric_value=None, note="Vendor Master not uploaded.")
+        themes["sup2_master_utilization"] = _unavailable("Vendor master utilization",
+            required=["Vendor Master file"], reason="file")
 
     theme_scores = {k: {"score": v["score"], "label": v["band"]} for k, v in themes.items()}
     weights = {"sup1_concentration": 0.45, "sup2_master_utilization": 0.30, "sup3_msme": 0.25}
-    pillar_score = round(sum(themes[k]["score"] * w for k, w in weights.items()), 1)
+    pillar_score = _v2_pillar_score(themes, weights)
     return {
         "pillar": "supplier",
-        "pillar_score": {"score": pillar_score, "label": _band_label(pillar_score)},
+        "pillar_score": pillar_score,
         "themes": themes, "theme_scores": theme_scores, "rca_cards": rca_cards,
     }

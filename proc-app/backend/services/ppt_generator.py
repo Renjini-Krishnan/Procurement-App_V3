@@ -199,15 +199,21 @@ def _slide_pillar_overview(prs, kp):
     for i, (pid, summary) in enumerate(pillars):
         x = 0.7 + i * col_w
         s = summary.get("pillar_score", {})
-        score = s.get("score", 0)
+        score = s.get("score")
         lbl = s.get("label", "")
-        _add_rect(slide, x, 2.0, col_w - 0.3, 3.4, fill=INDIGO_50)
+        is_unavailable = score is None
+        fill = RGBColor(0xF3, 0xF3, 0xF6) if is_unavailable else INDIGO_50
+        _add_rect(slide, x, 2.0, col_w - 0.3, 3.4, fill=fill)
         _add_text(slide, x + 0.2, 2.1, col_w - 0.5, 0.4,
                   PILLAR_LABELS.get(pid, pid), size=12, bold=True, color=INK_600)
-        _add_text(slide, x + 0.2, 2.6, col_w - 0.5, 1.4,
-                  f"{score:.1f}" if isinstance(score, (int, float)) else str(score),
-                  size=56, bold=True, color=INDIGO_700)
-        _add_text(slide, x + 0.2, 4.1, col_w - 0.5, 0.4, lbl, size=12, color=INK_600)
+        if is_unavailable:
+            _add_text(slide, x + 0.2, 2.8, col_w - 0.5, 1.0,
+                      "Data not\navailable", size=18, bold=True, color=INK_400)
+        else:
+            _add_text(slide, x + 0.2, 2.6, col_w - 0.5, 1.4,
+                      f"{score:.1f}", size=56, bold=True, color=INDIGO_700)
+        _add_text(slide, x + 0.2, 4.1, col_w - 0.5, 0.4,
+                  lbl if lbl else "—", size=12, color=INK_600)
         kc = summary.get("kpi_count", 0)
         ib = summary.get("in_band", 0)
         un = summary.get("under", 0)
@@ -225,12 +231,15 @@ def _slide_pillar_detail(prs, pid, kp):
     slide = _blank(prs)
     label = PILLAR_LABELS.get(pid, pid)
     summary = kp.get("pillar_summary", {}).get(pid, {})
-    score = summary.get("pillar_score", {})
+    score = summary.get("pillar_score", {}) or {}
 
     _add_text(slide, 0.5, 0.4, 12, 0.5, label.upper(), size=11, color=INK_600)
-    _add_text(slide, 0.5, 0.85, 12, 0.8,
-              f"{label} — maturity {score.get('score', '—')} ({score.get('label', '')})",
-              size=24, bold=True)
+    score_val = score.get("score")
+    headline = (f"{label} — maturity {score_val} ({score.get('label','')})"
+                  if score_val is not None
+                  else f"{label} — data not available "
+                       f"({', '.join(score.get('missing_themes', []) or []) or 'inputs missing'})")
+    _add_text(slide, 0.5, 0.85, 12, 0.8, headline, size=24, bold=True)
 
     # Top 6 KPIs sorted: outliers first
     sev_rank = {"over": 0, "under": 1, "unknown": 2, "in": 3}

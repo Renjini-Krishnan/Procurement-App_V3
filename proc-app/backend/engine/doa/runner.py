@@ -15,6 +15,8 @@ from typing import Any, Optional
 import pandas as pd
 
 from ... import kb_loader
+from ..availability import (require_qre, unavailable_theme, unavailable_score,
+                              aggregate_pillar_score)
 
 
 # --------------------------------------------------------------------------
@@ -43,23 +45,18 @@ def run_doa(df_gold: pd.DataFrame, df_mg: pd.DataFrame, qre_responses: Optional[
         "system-enforcement": _score_system_enforcement(t4, benchmarks),
         "bucket-optimisation": _score_bucket_optimisation(t5),
     }
-
     weights = {"document-audit": 0.20, "robustness": 0.25, "po-compliance": 0.25,
                 "system-enforcement": 0.15, "bucket-optimisation": 0.15}
-    pillar_score = sum(theme_scores[k]["score"] * w for k, w in weights.items())
-    pillar_label = _pillar_label(pillar_score)
+    pillar_score = aggregate_pillar_score(theme_scores, weights)
 
     return {
         "pillar": "doa",
         "themes": {
-            "document-audit": t1,
-            "robustness": t2,
-            "po-compliance": t3,
-            "system-enforcement": t4,
-            "bucket-optimisation": t5,
+            "document-audit": t1, "robustness": t2, "po-compliance": t3,
+            "system-enforcement": t4, "bucket-optimisation": t5,
         },
         "theme_scores": theme_scores,
-        "pillar_score": {"score": round(pillar_score, 1), "label": pillar_label},
+        "pillar_score": pillar_score,
         "rca_cards": _evaluate_rca(theme_scores, t1, t3, t4, t5),
     }
 
@@ -69,18 +66,21 @@ def run_doa(df_gold: pd.DataFrame, df_mg: pd.DataFrame, qre_responses: Optional[
 # --------------------------------------------------------------------------
 
 def _theme1_document_audit(qre: dict, df_mg: pd.DataFrame, reference: dict) -> dict:
-    # D2.4 → DoA framework type. Score 1-4
-    doa_score = qre.get("D2.4", {}).get("score", 0)
+    """Document Audit + Coverage — fully QRE-driven (D2.4 + D9.2 + D10.2).
+    Returns 'data not available' if any required answer is missing — does
+    NOT fall back to a default score."""
+    vals, missing = require_qre(qre, ["D2.4", "D9.2", "D10.2"])
+    if missing:
+        return unavailable_theme("Document Audit + Coverage",
+                                   required=missing, reason="qre",
+                                   theme_id="document-audit")
+
+    doa_score = vals["D2.4"]
     doa_present = doa_score >= 2
-
-    # Coverage estimate: assume coverage = QRE score / 4 × 100 (rough heuristic for V1)
-    coverage_pct = round(doa_score / 4 * 100, 1) if doa_score else 0
-
-    # Indian special cases — check D9.2 (audit findings) + D10.2 (policy framework)
-    indian_cases_score = (qre.get("D9.2", {}).get("score", 1) + qre.get("D10.2", {}).get("score", 1)) / 2
+    coverage_pct = round(doa_score / 4 * 100, 1)
+    indian_cases_score = (vals["D9.2"] + vals["D10.2"]) / 2
     indian_cases_covered_pct = round(indian_cases_score / 4 * 100, 1)
 
-    # Categories present in PO data
     archetypes = (df_mg["archetype"].value_counts().to_dict()) if "archetype" in df_mg.columns else {}
 
     headline = (
@@ -88,9 +88,9 @@ def _theme1_document_audit(qre: dict, df_mg: pd.DataFrame, reference: dict) -> d
         f"Estimated coverage: {coverage_pct}%. "
         f"Indian regulatory cases covered ~{indian_cases_covered_pct}%."
     )
-
     return {
         "theme": "document-audit",
+        "available": True,
         "headline": headline,
         "metrics": {
             "doa_document_present": doa_present,
@@ -113,19 +113,20 @@ def _theme1_document_audit(qre: dict, df_mg: pd.DataFrame, reference: dict) -> d
 # --------------------------------------------------------------------------
 
 def _theme2_robustness(qre: dict, reference: dict) -> dict:
-    # Reference template has standard_tier_structure, mandatory_cases, regulatory_anchors
+    """Robustness vs Reference — fully QRE-driven (D2.4 + D9.2 + D10.2)."""
+    vals, missing = require_qre(qre, ["D2.4", "D9.2", "D10.2"])
+    if missing:
+        return unavailable_theme("Robustness vs Reference",
+                                   required=missing, reason="qre",
+                                   theme_id="robustness")
+
     mandatory_cases = reference.get("mandatory_cases") or []
     if isinstance(mandatory_cases, dict):
         n_mandatory_cases = sum(len(v) if isinstance(v, list) else 1 for v in mandatory_cases.values())
     else:
         n_mandatory_cases = len(mandatory_cases)
 
-    # QRE D9.2 (audit findings — proxy for ambiguity / robustness)
-    audit_score = qre.get("D9.2", {}).get("score", 1)
-    policy_score = qre.get("D10.2", {}).get("score", 1)
-    doa_score = qre.get("D2.4", {}).get("score", 1)
-
-    # Approximate mandatory cases covered = avg of audit + policy + doa score / 4 × 100
+    audit_score = vals["D9.2"]; policy_score = vals["D10.2"]; doa_score = vals["D2.4"]
     mandatory_covered_pct = round((audit_score + policy_score + doa_score) / 12 * 100, 1)
     ambiguity_rate = round(100 - mandatory_covered_pct, 1)
 
@@ -133,9 +134,9 @@ def _theme2_robustness(qre: dict, reference: dict) -> dict:
         f"{mandatory_covered_pct}% of {n_mandatory_cases} reference-mandatory cases estimated covered. "
         f"Ambiguity rate: {ambiguity_rate}%."
     )
-
     return {
         "theme": "robustness",
+        "available": True,
         "headline": headline,
         "metrics": {
             "reference_mandatory_cases_count": n_mandatory_cases,
@@ -225,10 +226,15 @@ def _theme3_po_compliance(df_gold: pd.DataFrame) -> dict:
 # --------------------------------------------------------------------------
 
 def _theme4_system_enforcement(qre: dict) -> dict:
-    d52 = qre.get("D5.2", {}).get("score", 1)   # System compliance
-    d121 = qre.get("D12.1", {}).get("score", 1)  # Application landscape
+    """System Enforcement — fully QRE-driven (D5.2 + D12.1)."""
+    vals, missing = require_qre(qre, ["D5.2", "D12.1"])
+    if missing:
+        return unavailable_theme("System Enforcement",
+                                   required=missing, reason="qre",
+                                   theme_id="system-enforcement")
+
+    d52 = vals["D5.2"]; d121 = vals["D12.1"]
     erp_workflow_present = d52 >= 2 or d121 >= 2
-    # Automation % = roughly D5.2 score / 4 × 100
     automation_pct = round(d52 / 4 * 100, 1)
     paper_pct = round(100 - automation_pct, 1)
 
@@ -236,9 +242,9 @@ def _theme4_system_enforcement(qre: dict) -> dict:
         f"ERP workflow {'present' if erp_workflow_present else 'absent'}. "
         f"Automation: {automation_pct}% · Paper/manual: {paper_pct}%."
     )
-
     return {
         "theme": "system-enforcement",
+        "available": True,
         "headline": headline,
         "metrics": {
             "erp_workflow_present": erp_workflow_present,
@@ -318,6 +324,8 @@ def _bucket_fit_score(current: list[float], recommended: list[float]) -> int:
 # --------------------------------------------------------------------------
 
 def _score_document_audit(t: dict, benchmarks: dict) -> dict:
+    if not t.get("available", True):
+        return unavailable_score("qre", t.get("missing_inputs", []))
     m = t["metrics"]
     if not m.get("doa_document_present"):
         return {"score": 1, "label": "Initial", "rationale": "No formal DoA in place."}
@@ -330,6 +338,8 @@ def _score_document_audit(t: dict, benchmarks: dict) -> dict:
 
 
 def _score_robustness(t: dict, benchmarks: dict) -> dict:
+    if not t.get("available", True):
+        return unavailable_score("qre", t.get("missing_inputs", []))
     m = t["metrics"]
     cov = m.get("mandatory_cases_covered_pct", 0)
     if cov < 30: return {"score": 1, "label": "Initial", "rationale": "Structural weakness in DoA design."}
@@ -355,6 +365,8 @@ def _score_po_compliance(t: dict, benchmarks: dict) -> dict:
 
 
 def _score_system_enforcement(t: dict, benchmarks: dict) -> dict:
+    if not t.get("available", True):
+        return unavailable_score("qre", t.get("missing_inputs", []))
     m = t["metrics"]
     if not m.get("erp_workflow_present"):
         return {"score": 1, "label": "Initial", "rationale": "DoA is paper-only."}
@@ -388,26 +400,33 @@ def _pillar_label(score: float) -> str:
 # --------------------------------------------------------------------------
 
 def _evaluate_rca(theme_scores: dict, t1: dict, t3: dict, t4: dict, t5: dict) -> list[dict]:
+    """Fire RCA rules only against themes that produced real metrics.
+    Rules tied to unavailable themes are skipped so we don't fabricate
+    findings."""
     rules = kb_loader.get_pillar_rca_rules("doa").get("rules", [])
     rule_index = {r["id"]: r for r in rules}
     fired = []
 
-    if not t1["metrics"]["doa_document_present"]:
+    t1_ok = t1.get("available", True)
+    t3_ok = t3.get("available", True)
+    t4_ok = t4.get("available", True)
+    t5_ok = t5.get("available", True)
+
+    if t1_ok and not t1["metrics"]["doa_document_present"]:
         fired.append(_card(rule_index.get("rca.doa.r01_no_formal_doa")))
-    if t1["metrics"]["coverage_pct"] < 60:
+    if t1_ok and t1["metrics"]["coverage_pct"] < 60:
         fired.append(_card(rule_index.get("rca.doa.r02_partial_coverage")))
-    if t1["metrics"]["indian_cases_covered_pct"] < 70:
+    if t1_ok and t1["metrics"]["indian_cases_covered_pct"] < 70:
         fired.append(_card(rule_index.get("rca.doa.r03_indian_cases_missing")))
-    if t3["metrics"].get("cap_breach_pct", 0) > 10:
+    if t3_ok and t3["metrics"].get("cap_breach_pct", 0) > 10:
         fired.append(_card(rule_index.get("rca.doa.r04_high_breach_rate")))
-    if not t4["metrics"]["erp_workflow_present"]:
+    if t4_ok and not t4["metrics"]["erp_workflow_present"]:
         fired.append(_card(rule_index.get("rca.doa.r05_paper_only")))
-    if t3["metrics"].get("seventy_rule_pct", 0) < 60:
+    if t3_ok and t3["metrics"].get("seventy_rule_pct", 0) < 60:
         fired.append(_card(rule_index.get("rca.doa.r06_low_seventy_rule")))
-    if t5["metrics"].get("bucket_fit_score", 5) < 2:
+    if t5_ok and t5["metrics"].get("bucket_fit_score", 5) < 2:
         fired.append(_card(rule_index.get("rca.doa.r07_bucket_misfit")))
 
-    # Filter out None entries (rule not found)
     return [c for c in fired if c is not None]
 
 
