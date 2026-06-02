@@ -147,17 +147,21 @@
     {
       "id": "D2.5",
       "area": "Shared Services",
-      "question": "Is there a shared service centre for procurement? What processes does it handle?",
+      "question": "Is there a shared service centre for procurement? If yes, which processes does it handle?",
       "required": false,
-      "score": 3,
+      "score": null,
       "evidence": "Documented process consistently applied; partial digitisation in place.",
       "options": [
-        "Yes \u2014 formal / documented",
-        "Partial \u2014 informal or in some areas",
-        "No \u2014 not done",
-        "Don't know"
+        "No SSC exists",
+        "P2P / transactional (PR/PO/invoice processing)",
+        "Vendor master maintenance",
+        "Catalogue management",
+        "Contract administration",
+        "Helpdesk / supplier query handling",
+        "Reporting & analytics",
+        "Other (please note in evidence)"
       ],
-      "answer_type": "yes_no_partial"
+      "answer_type": "multi_categorical"
     },
     {
       "id": "D3.1",
@@ -342,10 +346,18 @@
       "area": "Digital Roadmap",
       "question": "What is the timeline for planned ERP or procurement system upgrades?",
       "required": false,
-      "score": 3,
+      "score": null,
       "evidence": "Documented process consistently applied; partial digitisation in place.",
-      "options": [],
-      "answer_type": "free_text"
+      "options": [
+        "No upgrade planned",
+        "Next 6 months",
+        "6\u201312 months",
+        "12\u201324 months",
+        "2\u20133 years",
+        ">3 years",
+        "Don't know"
+      ],
+      "answer_type": "categorical"
     },
     {
       "id": "D5.5",
@@ -555,32 +567,39 @@
     {
       "id": "D9.1",
       "area": "Regulatory Requirements",
-      "question": "Are there specific regulatory requirements governing procurement?",
+      "question": "Which regulatory requirements govern your procurement function?",
       "required": false,
-      "score": 2,
+      "score": null,
       "evidence": "Process defined but not consistently applied across plants/BUs.",
       "options": [
-        "Yes \u2014 formal / documented",
-        "Partial \u2014 informal or in some areas",
-        "No \u2014 not done",
-        "Don't know"
+        "MSME Act / Public Procurement Policy",
+        "GST compliance (e-invoicing, e-way bill)",
+        "Companies Act \u2014 related-party / connected-party rules",
+        "SEBI listing obligations (LODR Reg. 23)",
+        "Sector-specific (DPIIT / MoP / MoS)",
+        "Anti-bribery / anti-corruption code",
+        "Data protection / DPDP Act",
+        "Environmental / extended producer responsibility",
+        "None applicable"
       ],
-      "answer_type": "yes_no_partial"
+      "answer_type": "multi_categorical"
     },
     {
       "id": "D9.2",
       "area": "Audit Findings",
-      "question": "Are there recent internal audit observations on procurement?",
+      "question": "Are there recent internal audit observations on procurement, and how severe?",
       "required": true,
-      "score": 1,
+      "score": null,
       "evidence": "No formal process documented; ad-hoc handling reported.",
       "options": [
-        "Yes \u2014 formal / documented",
-        "Partial \u2014 informal or in some areas",
-        "No \u2014 not done",
-        "Don't know"
+        "No findings in last 2 years",
+        "Minor observations only (process gaps)",
+        "Moderate findings (control weaknesses)",
+        "Material findings (control failures, repeat)",
+        "Active investigation / qualified opinion",
+        "Don't know / not yet audited"
       ],
-      "answer_type": "yes_no_partial"
+      "answer_type": "categorical"
     },
     {
       "id": "D9.3",

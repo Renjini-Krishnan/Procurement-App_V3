@@ -24,6 +24,7 @@ const QRE = () => {
   const [savedMsg, setSavedMsg] = useState(null);
   const [activeArea, setActiveArea] = useState("All");
   const [hideAnswered, setHideAnswered] = useState(false);
+  const [requiredOnly, setRequiredOnly] = useState(false);  // "show only questions consumed by a pillar engine"
 
   useEffect(() => {
     if (!engagement) return;
@@ -75,8 +76,21 @@ const QRE = () => {
     let list = data.responses;
     if (activeArea !== "All") list = list.filter((r) => r.area === activeArea);
     if (hideAnswered) list = list.filter((r) => r.score === null || r.score === undefined);
+    if (requiredOnly) {
+      list = list.filter((r) => Array.isArray(r.required_by_pillars) && r.required_by_pillars.length > 0);
+    }
     return list;
-  }, [data, activeArea, hideAnswered]);
+  }, [data, activeArea, hideAnswered, requiredOnly]);
+
+  // Count of questions actually consumed by pillar engines (for the toggle label)
+  const requiredCount = useMemo(
+    () => (data?.responses || []).filter((r) => Array.isArray(r.required_by_pillars) && r.required_by_pillars.length > 0).length,
+    [data]
+  );
+  const requiredAnswered = useMemo(
+    () => (data?.responses || []).filter((r) => Array.isArray(r.required_by_pillars) && r.required_by_pillars.length > 0 && r.score != null).length,
+    [data]
+  );
 
   if (engLoading || !engagement) return <div>Loading…</div>;
   if (loading) return <div><Header />Loading QRE…</div>;
@@ -130,10 +144,30 @@ const QRE = () => {
             </button>
           );
         })}
-        <span style={{ marginLeft: "auto", fontSize: "var(--fs-13)", color: "var(--ink-600)", display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="checkbox" checked={hideAnswered} onChange={(e) => setHideAnswered(e.target.checked)} />
-          Hide answered
-        </span>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
+          {/* Required-only toggle — surfaces only the ~12 questions that pillar
+              engines actually consume (D2.1, D2.4, D5.2, D9.2, D10.1, etc.).
+              These are the answers that unlock DoA + Org Structure scores. */}
+          {requiredCount > 0 && (
+            <button onClick={() => setRequiredOnly((v) => !v)}
+                    style={{
+                      padding: "5px 12px",
+                      background: requiredOnly ? "var(--warn-600, #c08800)" : "var(--surface-raised)",
+                      color: requiredOnly ? "white" : "var(--ink-700)",
+                      border: "1px solid " + (requiredOnly ? "var(--warn-700, #a07400)" : "var(--border-default)"),
+                      borderRadius: "var(--r-pill)",
+                      fontSize: "var(--fs-12)", fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                    title="Show only the questions that pillar engines need to compute scores">
+              {requiredOnly ? "✓ " : ""}Required for pillars · {requiredAnswered}/{requiredCount}
+            </button>
+          )}
+          <span style={{ fontSize: "var(--fs-13)", color: "var(--ink-600)", display: "flex", alignItems: "center", gap: 6 }}>
+            <input type="checkbox" checked={hideAnswered} onChange={(e) => setHideAnswered(e.target.checked)} />
+            Hide answered
+          </span>
+        </div>
       </div>
 
       {/* Question list */}
@@ -160,9 +194,23 @@ const QRECard = ({ resp, onUpdate }) => {
   return (
     <Card padding={18} style={{ borderLeft: `3px solid ${answered ? "var(--success-500)" : "var(--ink-300)"}` }}>
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-        <div style={{ minWidth: 60, fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
+        <div style={{ minWidth: 88, fontFamily: "var(--font-mono)", fontSize: "var(--fs-12)", color: "var(--ink-500)" }}>
           {resp.id}
           {resp.required && <div style={{ fontSize: "var(--fs-10)", color: "var(--warn-700)", marginTop: 2 }}>required</div>}
+          {Array.isArray(resp.required_by_pillars) && resp.required_by_pillars.length > 0 && (
+            <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 2 }}
+                 title={`Pillar engines consume this answer: ${resp.required_by_pillars.join(", ")}`}>
+              {resp.required_by_pillars.map((t) => (
+                <span key={t} style={{
+                  fontSize: "var(--fs-10)", fontWeight: 600, letterSpacing: "0.04em",
+                  background: "var(--warn-50, #fff5e6)", color: "var(--warn-700, #a07400)",
+                  border: "1px solid var(--warn-200, #f0d9a8)",
+                  borderRadius: "var(--r-pill)", padding: "1px 6px",
+                  textAlign: "center",
+                }}>{_pillarLabel(t)}</span>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: "var(--fs-11)", textTransform: "uppercase", color: "var(--ink-500)", letterSpacing: "0.1em", marginBottom: 4 }}>
@@ -289,6 +337,17 @@ const AnswerControl = ({ resp, onUpdate }) => {
              onChange={(e) => onUpdate({ evidence: e.target.value })} />
     </div>
   );
+};
+
+/* Map a theme id like 'organisation-posture' / 'system-enforcement' to a
+   short, scannable pillar tag for the QRE card chips. */
+const _pillarLabel = (themeId) => {
+  const t = String(themeId || "");
+  if (t.startsWith("organisation-") || t.startsWith("fte-") || t.startsWith("spend-fte") || t === "hierarchy-span") return "ORG-STR";
+  if (t === "document-audit" || t === "robustness" || t === "system-enforcement" || t === "po-compliance" || t === "bucket-optimisation") return "DoA";
+  if (t.startsWith("centralisation") || t.startsWith("shared-") || t.startsWith("coe") || t.startsWith("tail-")) return "OP-MODEL";
+  if (t.startsWith("buying-")) return "BUY-CH";
+  return t.slice(0, 8).toUpperCase();
 };
 
 const parseSelections = (evidence) => {

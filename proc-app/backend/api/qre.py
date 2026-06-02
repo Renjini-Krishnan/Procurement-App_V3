@@ -56,8 +56,29 @@ def _load_template() -> list[dict]:
                         q["answer_type"] = bq["answer_type"]
                     if "guidance" in bq:
                         q["guidance"] = bq["guidance"]
+                    # Surface the pillar.theme.component IDs this question feeds
+                    # so the UI can filter to "only required by pillars".
+                    if "used_by" in bq:
+                        q["used_by"] = list(bq["used_by"]) if isinstance(bq["used_by"], (list, tuple)) else [bq["used_by"]]
     except Exception:
         pass  # silent — keep base template if enrichment fails
+
+    # Stamp `required_by_pillars` on each D-series question that any pillar
+    # engine actually consumes. Pulled from explain.THEME_METHOD so it stays
+    # in sync with the engine code, not the (legacy) qre-bank used_by field
+    # which is on a different ID convention.
+    try:
+        from ..engine.explain import THEME_METHOD
+        required_map: dict[str, list[str]] = {}  # qid → [theme1, theme2, ...]
+        for theme_id, spec in THEME_METHOD.items():
+            for qid in (spec.get("qre_required") or []):
+                required_map.setdefault(qid, []).append(theme_id)
+        for q in template:
+            qid = q.get("id")
+            if qid in required_map:
+                q["required_by_pillars"] = required_map[qid]
+    except Exception:
+        pass
 
     return template
 
