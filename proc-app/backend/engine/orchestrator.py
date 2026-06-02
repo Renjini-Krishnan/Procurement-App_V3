@@ -109,6 +109,7 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     db.update_engagement_stage(engagement_id, 13)
 
     _ai_enrich_pillar(result, engagement_id, industry)
+    _attach_explainability(result, engagement_id, industry)
     return result
 
 
@@ -456,6 +457,7 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
     _ai_enrich_pillar(result, engagement_id, industry)
+    _attach_explainability(result, engagement_id, industry)
 
     return result
 
@@ -509,6 +511,7 @@ def run_buying_channel_pillar(engagement_id: str, upload_id: str, industry: str 
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
     _ai_enrich_pillar(result, engagement_id, industry)
+    _attach_explainability(result, engagement_id, industry)
     return result
 
 
@@ -555,6 +558,7 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
     _ai_enrich_pillar(result, engagement_id, industry)
+    _attach_explainability(result, engagement_id, industry)
     return result
 
 
@@ -794,6 +798,7 @@ def _v2_run_pillar(engagement_id: str, upload_id: str, industry: str,
     result["intel_context"] = _build_intel_context(df_classified, industry, engagement_id)
     result["qre_status"] = _qre_status(engagement_id)
     _ai_enrich_pillar(result, engagement_id, industry)
+    _attach_explainability(result, engagement_id, industry)
     # Persist + advance not wired for V2 pillars (no specific stage_id mapping);
     # findings are persisted generically.
     _persist_findings_generic(engagement_id, result, pillar_kind)
@@ -823,6 +828,46 @@ def run_supplier_pillar(engagement_id: str, upload_id: str, industry: str = "ste
 # (default '1' — on). Every call uses the deterministic fallback if Vertex
 # AI is unavailable.
 # ============================================================================
+
+def _attach_explainability(result: dict, engagement_id: str, industry: str) -> dict:
+    """Stamp a structured `explainability` payload on every theme + RCA +
+    KPI in the result. Lets the UI render a 'How was this computed?' block
+    with inputs, method, thresholds, benchmark citation, derivation chain
+    + pending inputs. Safe to call on any pillar shape — silently no-ops
+    on needs_qre stubs."""
+    if result.get("needs_qre"):
+        return result
+    try:
+        from . import explain as _explain
+        benchmarks = _load_pillar_benchmarks(
+            result.get("pillar", ""), industry, engagement_id=engagement_id)
+        engagement = db.get_engagement(engagement_id) or {}
+        qre_status = _qre_status(engagement_id) if engagement_id else {}
+
+        themes = result.get("themes") or {}
+        theme_scores = result.get("theme_scores") or {}
+        theme_explain = {}
+        for tid, tdata in themes.items():
+            sc = theme_scores.get(tid) or {}
+            theme_explain[tid] = _explain.explain_theme(
+                tid, tdata, sc, benchmark_map=benchmarks,
+                industry=industry, qre_status=qre_status,
+                engagement=engagement)
+        if theme_explain:
+            result["theme_explainability"] = theme_explain
+
+        # Add explainability to each RCA card in-place
+        for card in (result.get("rca_cards") or []):
+            if isinstance(card, dict):
+                card["explainability"] = _explain.explain_rca(card)
+    except Exception as e:
+        # Explainability is decorative — never let it break the run.
+        import logging
+        logging.getLogger("procvault.orchestrator").warning(
+            "Explainability attach failed for pillar %s: %s",
+            result.get("pillar"), e)
+    return result
+
 
 def _load_pillar_benchmarks(pillar: str, industry: str,
                               engagement_id: Optional[str] = None) -> dict:
