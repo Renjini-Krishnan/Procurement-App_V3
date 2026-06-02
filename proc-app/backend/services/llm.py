@@ -119,6 +119,7 @@ _JSON_BLOCK = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
 
 def generate_json(prompt: str, fallback: Any, *, temperature: float = 0.2,
                     call_site: str = "generate_json",
+                    max_output_tokens: int = 4096,
                     engagement_id: Optional[str] = None) -> Any:
     """Ask Gemini for JSON. Parses the first JSON object/array in the response.
 
@@ -136,7 +137,7 @@ def generate_json(prompt: str, fallback: Any, *, temperature: float = 0.2,
             prompt,
             generation_config={
                 "temperature": temperature,
-                "max_output_tokens": 1500,
+                "max_output_tokens": max_output_tokens,
                 "response_mime_type": "application/json",
             },
         )
