@@ -1,10 +1,58 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, Badge, Button, Callout, Input } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
 import { Logo } from "../design/Logo.jsx";
 import { api } from "../api/client.js";
 import { pickStructuredView } from "./kbStructuredEditors.jsx";
+
+
+/* Resolve where the "Back" button should go:
+   1. ?return=<url-encoded path> takes priority (set by pillar deep-links)
+   2. sessionStorage.kb_return — set whenever a pillar opens /kb
+   3. document.referrer if same-origin and not /kb itself
+   4. fallback: "/" (landing) */
+const resolveReturnTarget = (returnParam) => {
+  if (returnParam) {
+    try {
+      const decoded = decodeURIComponent(returnParam);
+      if (decoded.startsWith("/")) return { href: decoded, label: _labelFor(decoded) };
+    } catch {}
+  }
+  try {
+    const stored = sessionStorage.getItem("kb_return");
+    if (stored && stored.startsWith("/") && !stored.startsWith("/kb")) {
+      return { href: stored, label: _labelFor(stored) };
+    }
+  } catch {}
+  if (typeof document !== "undefined" && document.referrer) {
+    try {
+      const u = new URL(document.referrer);
+      if (u.origin === window.location.origin && !u.pathname.startsWith("/kb")) {
+        return { href: u.pathname + u.search, label: _labelFor(u.pathname) };
+      }
+    } catch {}
+  }
+  return { href: "/", label: "home" };
+};
+
+const _labelFor = (path) => {
+  // Best-effort human label from /engagement/:id/:stage
+  const m = path.match(/^\/engagement\/[^/]+\/([^/?#]+)/);
+  if (m) {
+    const stage = m[1];
+    const labels = {
+      "op-model": "Op Model", "doa": "DoA", "buying-channel": "Buying Channel",
+      "org-structure": "Org Structure", "material-master": "Material Master",
+      "pr-to-po": "PR-to-PO", "post-po": "Post-PO", "supplier": "Supplier",
+      "kpi-dashboard": "KPI Dashboard", "client": "Engagement",
+      "bronze-data": "Bronze data", "qre": "QRE",
+    };
+    return labels[stage] || stage.replace(/-/g, " ");
+  }
+  if (path === "/") return "home";
+  return "assessment";
+};
 
 /* KB Editor — in-app browser + editor for YAML + Markdown files.
    Left pane: file tree (grouped by root: function / standards / references / industries).
@@ -32,6 +80,18 @@ const KBEditor = () => {
   const [saveMsg, setSaveMsg] = useState(null);
   const [viewMode, setViewMode] = useState("structured");  // 'structured' | 'raw'
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const returnTarget = useMemo(
+    () => resolveReturnTarget(searchParams.get("return")),
+    [searchParams]
+  );
+  const handleBack = () => {
+    if (dirty) {
+      const ok = window.confirm("You have unsaved changes. Discard and leave the KB editor?");
+      if (!ok) return;
+    }
+    navigate(returnTarget.href);
+  };
 
   useEffect(() => {
     (async () => {
@@ -112,6 +172,24 @@ const KBEditor = () => {
       {/* Sidebar */}
       <aside style={{ width: 340, background: "var(--surface-card)", borderRight: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", maxHeight: "100vh", position: "sticky", top: 0 }}>
         <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--border-subtle)" }}>
+          {/* Back-to-assessment button — pillar deep-links pass ?return=<path>
+              so this navigates back to where the user came from.
+              Falls back to landing page if no context. */}
+          <button type="button" onClick={handleBack}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px", marginBottom: 14,
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-md)",
+                    fontSize: "var(--fs-12)", fontWeight: 500,
+                    color: "var(--ink-700)", cursor: "pointer",
+                  }}
+                  title={`Return to ${returnTarget.href}`}>
+            <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block",
+                            transform: "translateY(-1px)" }}>←</span>
+            Back to {returnTarget.label}
+          </button>
           <a href="/" style={{ textDecoration: "none" }}><Logo /></a>
           <div style={{ marginTop: 12, fontSize: "var(--fs-12)", color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
             KB Editor

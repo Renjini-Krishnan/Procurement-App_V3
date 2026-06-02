@@ -124,7 +124,7 @@ const DoA = () => {
           engagementId={engagement.id}
           pillar="doa"
           title="Delegation of Authority benchmarks"
-          kbHref="/kb?root=function&file=doa/benchmarks.yml" />
+          kbHref={`/kb?root=function&file=doa/benchmarks.yml&return=${encodeURIComponent(`/engagement/${engagement.id}/doa`)}`} />
       )}
 
       {data.rca_cards.length > 0 && (

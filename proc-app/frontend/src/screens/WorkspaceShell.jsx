@@ -175,7 +175,8 @@ const Rail = () => {
                          marginBottom: 8 }}>
           Knowledge Base
         </div>
-        <Link to="/kb" style={{
+        <Link to={`/kb?return=${encodeURIComponent(loc.pathname + (loc.search || ""))}`}
+              style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "8px 10px", borderRadius: "var(--r-md)",
           background: "var(--brand-50)", color: "var(--brand-700)",

@@ -114,7 +114,7 @@ const OpModel = () => {
           engagementId={engagement.id}
           pillar="op-model"
           title="Op Model benchmarks"
-          kbHref="/kb?root=function&file=op-model/benchmarks.yml" />
+          kbHref={`/kb?root=function&file=op-model/benchmarks.yml&return=${encodeURIComponent(`/engagement/${engagement.id}/op-model`)}`} />
       )}
 
       {/* Per-theme AI insight (when a theme tab is active) */}

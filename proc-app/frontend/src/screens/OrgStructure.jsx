@@ -131,7 +131,7 @@ const OrgStructure = () => {
           engagementId={engagement.id}
           pillar="org-structure"
           title="Org Structure benchmarks"
-          kbHref="/kb?root=function&file=org-structure/benchmarks.yml" />
+          kbHref={`/kb?root=function&file=org-structure/benchmarks.yml&return=${encodeURIComponent(`/engagement/${engagement.id}/org-structure`)}`} />
       )}
 
       {data.rca_cards.length > 0 && (

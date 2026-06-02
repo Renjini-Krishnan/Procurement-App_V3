@@ -129,7 +129,7 @@ const BuyingChannel = () => {
           engagementId={engagement.id}
           pillar="buying-channel"
           title="Buying Channel benchmarks"
-          kbHref="/kb?root=function&file=buying-channel/benchmarks.yml" />
+          kbHref={`/kb?root=function&file=buying-channel/benchmarks.yml&return=${encodeURIComponent(`/engagement/${engagement.id}/buying-channel`)}`} />
       )}
 
       {data.rca_cards.length > 0 && (
