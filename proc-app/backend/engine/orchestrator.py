@@ -276,6 +276,26 @@ def _run_multi_upload_bronze(engagement_id: str, lookback_months: Optional[int] 
     return per_upload, cross_file_report
 
 
+def _load_doa_tier_thresholds(engagement_id: str) -> Optional[list]:
+    """Pull DoA tier thresholds from engagement overrides. None when the
+    consultant hasn't uploaded / entered the client's actual DoA matrix —
+    in that case po-compliance theme renders 'data not available' instead
+    of fabricating a default tier structure.
+
+    Value shape under override key 'doa.tier_thresholds_inr':
+      [{"label": "Tier 1 — Manager", "max_inr": 500000}, ...]
+    The last tier's max_inr should be null (open-ended)."""
+    try:
+        for o in db.get_overrides(engagement_id):
+            if o.get("key") == "doa.tier_thresholds_inr":
+                v = o.get("value")
+                if isinstance(v, list) and len(v) >= 2:
+                    return v
+    except Exception:
+        pass
+    return None
+
+
 def _load_scope_lookback(engagement_id: str) -> Optional[int]:
     """Pull scope.lookback_months from engagement_overrides. None if unset."""
     try:
@@ -440,7 +460,8 @@ def run_doa_pillar(engagement_id: str, upload_id: str, industry: str = "steel", 
         _record_run(engagement_id, "doa", stub)
         return stub
 
-    result = run_doa(df_classified, df_mg, qre_responses)
+    result = run_doa(df_classified, df_mg, qre_responses,
+                       doa_tier_thresholds=_load_doa_tier_thresholds(engagement_id))
     timings["stage14_doa"] = round(time.time() - t3, 2)
     timings["total"] = round(time.time() - t0, 2)
 
@@ -620,7 +641,8 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
 
     t6 = time.time()
     if has_qre_answers:
-        doa_result = run_doa(df_classified, df_mg, qre_responses)
+        doa_result = run_doa(df_classified, df_mg, qre_responses,
+                                doa_tier_thresholds=_load_doa_tier_thresholds(engagement_id))
     else:
         doa_result = _empty_qre_stub("doa", "DoA", engagement_id, industry)
     timings["doa"] = round(time.time() - t6, 2)

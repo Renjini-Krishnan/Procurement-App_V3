@@ -64,11 +64,17 @@ Cross-theme synthesis happens at the end (see `cross-theme-synthesis.md`).
 - **Boundary:** Reference template is the function-default benchmark; industry overlays may adjust
 
 ### Theme 3 — DoA-vs-PO Compliance & Distribution
-- **Question:** Does the PO data show the DoA being followed? What's the spend distribution across tiers?
+- **Question:** Does the PO data show the DoA being followed? What's the volume distribution across tiers?
 - **Components:** C0 Current state → C1 Breach detection → C2 Distribution analysis → C3 Concentration / workload → C4 Tier-jumping → C5 Reconciliation
-- **Output:** Breach % + breach value % + distribution chart + concentration alerts + top breaching approvers/plants/categories + tier-jump rate + maturity score
-- **Feasibility:** Requires PO data with po_approver_id + po_approver_designation; if missing, theme runs at reduced confidence
-- **Boundary:** No ₹ savings; control gap quantification only
+- **Output:** Volume distribution by tier + tier 5 spend concentration + maturity score + RCA on under-delegated volume
+- **Key metric — `seventy_rule_pct`:**
+  - **Volume-based, not spend-based.** It is the **% of POs (count)** that fall in operational tiers 1-3, not the % of spend.
+  - Rationale: healthy DoA delegates *transactional load* — most COUNT of POs should be approved at operational tiers, freeing senior management for strategic decisions. A spend-weighted version inverts this: a handful of large strategic POs at Tier 4/5 would always push the spend-weighted metric down even when 95% of transactions are correctly delegated.
+  - Bands: Initial < 40% · Developing < 60% · Defined < 75% · Managed < 90% · Optimised ≥ 90%.
+  - Side metric `operational_spend_share_pct` is also computed (spend-weighted) so the consultant can see both views in the explainability drawer.
+- **Cap-breach metric:** % of **spend** in the top tier (board level). Captures how much value is approved at the most senior level. High = potential over-concentration of strategic decisions; low (single digit) = healthy.
+- **Feasibility:** **Requires the client's actual DoA tier matrix** — supplied via engagement override key `doa.tier_thresholds_inr` (list of `{label, max_inr}`) or DoA document upload. When absent the theme returns **Data not available** instead of using placeholder thresholds. (V1 previously used hard-coded illustrative tiers — that was removed in the no-fabrication refactor.)
+- **Boundary:** No ₹ savings; control-gap quantification only.
 
 ### Theme 4 — DoA System Enforcement Maturity [QRE-ONLY]
 - **Question:** Is the DoA wired into the ERP workflow, or only on paper?

@@ -222,13 +222,16 @@ def rca_narrative(*, pillar: str, theme: str, severity: str, cause: str,
                     benchmark: dict | None = None,
                     data_scope: dict | None = None,
                     industry: str = "steel") -> tuple[str, str]:
-    """Generate a consultant-style narrative for an RCA card.
+    """Generate a plain-language narrative for an RCA card. No role-play
+    intros, no "As a [X] consultant" filler — just the finding + cause +
+    action.
 
     Returns (prompt, fallback). Fallback is the existing cause+recommendation
     rendered as a single sentence (deterministic, no AI required)."""
     metric_lines = "\n".join(f"  - {k}: {v}" for k, v in (metrics or {}).items())
-    prompt = f"""You are a senior procurement consultant briefing a CPO. Write a 2-3 sentence
-narrative for this root-cause finding. Specific. Quantified. No fluff.
+    prompt = f"""Write a 2-3 sentence root-cause finding for a procurement assessment report.
+Plain language. No role-play intros, no "As a senior consultant", no "my interpretation",
+no "It is worth noting" — just the finding, the cause, and the action.
 
 Pillar: {pillar}
 Theme: {theme}
@@ -242,13 +245,12 @@ Computed metrics:
 Engine's template cause: {cause}
 Engine's template recommendation: {recommendation}
 
-Write a single paragraph (60-90 words) that:
-1. States the finding with the specific number from metrics above
-2. Diagnoses WHY it's happening (root cause — not just what's happening)
-3. Recommends one concrete action
+Structure your 60-90 word paragraph as:
+- Sentence 1: state the finding with the actual number from metrics above (e.g. "Tail spend is 28% of total — over twice the typical 5-12% band").
+- Sentence 2: diagnose the cause — say WHY this is happening, with the specific mechanism, not a generic restatement.
+- Sentence 3: one concrete action (the action verb first; specific to this client's situation).
 
-Cite the benchmark source by name (e.g. "vs APQC-2024 typical 2-4%") if a
-benchmark is provided. Avoid filler. Use active voice. Cite numbers."""
+Cite the benchmark source by name (e.g. "vs APQC-2024 typical 2-4%") when one is provided. Active voice. No hedging words ("may", "could potentially", "perhaps"). No corporate filler ("going forward", "leverage", "ensure alignment")."""
     fallback = f"{cause} {recommendation}".strip()
     return prompt, fallback
 
@@ -258,12 +260,13 @@ def theme_insight(*, pillar: str, theme_id: str, theme_label: str,
                     benchmark: dict | None = None,
                     data_scope: dict | None = None,
                     industry: str = "steel") -> tuple[str, str]:
-    """Per-theme interpretation paragraph. 1 paragraph (50-80 words) that
-    explains what the theme score MEANS for maturity, ties to industry
-    context, and cites the benchmark source by name when available."""
+    """Per-theme interpretation paragraph (50-80 words). Plain language,
+    no role-play, no filler. The reader is a consultant who wants to
+    know: what does this score mean, what's the driver, what's the next step."""
     metric_lines = "\n".join(f"  - {k}: {v}" for k, v in (metrics or {}).items())
-    prompt = f"""You are a senior procurement consultant. Write a 1-paragraph (50-80 words)
-interpretation of this theme score for the {industry} industry.
+    prompt = f"""Write a 50-80 word interpretation of this theme score for a procurement
+assessment. Plain language. No "As a consultant", no "my interpretation",
+no "It is important to note" — just the explanation.
 
 Pillar: {pillar}
 Theme: {theme_label} ({theme_id})
@@ -273,10 +276,14 @@ Computed score: {score} / 5 ({band})
 Computed metrics:
 {metric_lines or "  (no metrics)"}
 
-Explain what this score means in plain language — what's working, what isn't,
-and what the team should focus on next. Be specific about the metrics. Cite
-the benchmark source by name (e.g. "APQC-2024 typical 2-4%") if provided.
-No bullet points; one short paragraph."""
+Structure (one paragraph, no bullets):
+- Start by stating what the metric actually shows (use the number — not the band label).
+- Explain what's driving the band — be specific about which metric pushed it up or down.
+- End with what the team should focus on next, in concrete terms.
+
+Cite the benchmark source by name (e.g. "APQC-2024 typical 2-4%") when one is provided.
+Active voice. No hedging ("may", "could perhaps"). No corporate filler.
+{industry.capitalize()} industry context — apply it only when it materially changes the read."""
     fallback = f"{theme_label} sits in the {band} band (score {score}/5)."
     return prompt, fallback
 
@@ -299,8 +306,9 @@ def pillar_narrative(*, pillar: str, pillar_label: str, pillar_score: float,
                        if b.get("source")})
         if srcs:
             bench_block = f"\nBenchmark sources used: {', '.join(srcs)}"
-    prompt = f"""You are a senior procurement consultant. Write a 2-3 sentence pillar
-verdict for an executive dashboard.
+    prompt = f"""Write a 60-90 word executive verdict for a procurement assessment pillar.
+Plain language. No "As a consultant", no "my analysis suggests", no
+"It is worth highlighting" — just the verdict.
 
 Pillar: {pillar_label} ({pillar})
 Overall score: {pillar_score} / 5 ({pillar_band})
@@ -310,12 +318,12 @@ Industry: {industry}
 Theme breakdown:
 {theme_lines}
 
-Write 60-90 words that:
-1. State the overall verdict for {pillar_label}
-2. Name the strongest theme and the weakest theme by their values
-3. End with a single recommended priority for the next phase
+Structure (one paragraph, no bullets):
+- Open with the verdict, citing the overall score and what the {pillar_band} band means concretely (not just the label).
+- Name the strongest theme (by score) and the weakest, with their numbers.
+- Close with ONE concrete priority for the next phase — verb-first, specific, not a generic "improve X".
 
-Active voice. Cite numbers. No filler."""
+Active voice. No hedging, no corporate filler ("ensure", "leverage", "going forward")."""
     fallback = (f"{pillar_label} maturity sits at {pillar_score}/5 ({pillar_band}). "
                  f"{len(theme_summaries or [])} themes assessed.")
     return prompt, fallback

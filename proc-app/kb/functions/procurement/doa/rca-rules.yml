@@ -67,11 +67,11 @@ rules:
   - id: rca.doa.r06_low_seventy_rule
     theme: po-compliance
     trigger: |
-      seventy_rule_pct < 60
+      seventy_rule_pct < 60       # < 60% of PO VOLUME at operational tiers 1-3 (count-based)
     root_causes:
-      - "Spend distribution outgrew bucket thresholds (inflation / scale-up)"
-      - "Categories spanning multiple tiers default to highest approval"
-      - "Buyers escalate everything as a control habit"
+      - "Tier thresholds outdated — cost inflation pushed routine purchases above the operational ceiling"
+      - "Buyers escalate as a defensive habit (everything to senior approval 'just to be safe')"
+      - "Operational tiers lack the authority limits to handle the volume of routine POs"
     confidence: medium
     references: {pattern: rca-pat-doa-06, recommendation: rec-doa-rebucket-thresholds}
 

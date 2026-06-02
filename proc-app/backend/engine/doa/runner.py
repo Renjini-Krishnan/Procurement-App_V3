@@ -21,12 +21,18 @@ from ..availability import (require_qre, unavailable_theme, unavailable_score,
 
 # --------------------------------------------------------------------------
 
-def run_doa(df_gold: pd.DataFrame, df_mg: pd.DataFrame, qre_responses: Optional[dict] = None) -> dict:
+def run_doa(df_gold: pd.DataFrame, df_mg: pd.DataFrame,
+             qre_responses: Optional[dict] = None,
+             doa_tier_thresholds: Optional[list] = None) -> dict:
     """Run all 5 DoA themes. Returns full pillar output.
 
     df_gold: classified Stage 9 PO data
     df_mg:    per-MG aggregations from Stage 10
-    qre_responses: {responses: [{id, score, ...}]} from synthetic_data.generate_qre_responses
+    qre_responses: {responses: [{id, score, ...}]} indexed QRE answers
+    doa_tier_thresholds: client's actual DoA tier matrix (list of
+        {label, max_inr}). When None, the po-compliance theme returns
+        'data not available' instead of falling back to an illustrative
+        tier structure.
     """
     qre = _index_qre(qre_responses)
     reference = _load_reference_template()
@@ -34,7 +40,7 @@ def run_doa(df_gold: pd.DataFrame, df_mg: pd.DataFrame, qre_responses: Optional[
 
     t1 = _theme1_document_audit(qre, df_mg, reference)
     t2 = _theme2_robustness(qre, reference)
-    t3 = _theme3_po_compliance(df_gold)
+    t3 = _theme3_po_compliance(df_gold, doa_tier_thresholds=doa_tier_thresholds)
     t4 = _theme4_system_enforcement(qre)
     t5 = _theme5_bucket_optimisation(df_gold)
 
@@ -158,21 +164,55 @@ def _theme2_robustness(qre: dict, reference: dict) -> dict:
 # Theme 3 — PO Compliance & Distribution
 # --------------------------------------------------------------------------
 
-def _theme3_po_compliance(df_gold: pd.DataFrame) -> dict:
+def _theme3_po_compliance(df_gold: pd.DataFrame, doa_tier_thresholds: Optional[list] = None) -> dict:
+    """PO Compliance & Distribution — requires the client's actual DoA tier
+    thresholds. Returns 'data not available' if no DoA matrix has been
+    supplied (V1 used hard-coded illustrative tiers; that was a fabrication
+    fix — thresholds are CLIENT inputs, not engine defaults).
+
+    `doa_tier_thresholds` shape:
+      [
+        {"label": "Tier 1 — Manager", "max_inr": 500000},
+        {"label": "Tier 2 — Sr Mgr",  "max_inr": 5000000},
+        ...
+        {"label": "Tier 5 — Board",   "max_inr": null},  # null = no upper limit
+      ]
+    Each tier's lower bound = previous tier's max (0 for the first).
+
+    KEY METRIC CHANGE (v1.2): seventy_rule_pct is now VOLUME-based
+    (% of POs handled by operational tiers 1-3), not spend-based. The
+    DoA design principle is that the MAJORITY of transactions should be
+    approved at lower levels, freeing senior management for strategic
+    decisions. A spend-weighted seventy-rule inverts the meaning — a
+    handful of large POs at higher tiers would always make the metric
+    look bad even when 95% of transactions are correctly delegated."""
+
     if "net_value_inr" not in df_gold.columns or len(df_gold) == 0:
-        return {"theme": "po-compliance", "headline": "PO data missing", "metrics": {}, "components": {}}
+        return unavailable_theme("PO Compliance & Distribution",
+            required=["PO net_value_inr column"], reason="columns",
+            theme_id="po-compliance")
+    if not doa_tier_thresholds:
+        return unavailable_theme("PO Compliance & Distribution",
+            required=["doa.tier_thresholds_inr (engagement override or DoA matrix upload)"],
+            reason="engagement",
+            theme_id="po-compliance",
+            note=("Tier thresholds are a client-specific input. V1 previously used "
+                  "illustrative thresholds (Tier 1=₹5L, Tier 2=₹50L, etc.) which were "
+                  "fabricated. Provide the actual DoA matrix via engagement override "
+                  "key 'doa.tier_thresholds_inr' to compute this theme."))
 
-    # Reference tier structure (illustrative; in production sourced from
-    # client's DoA matrix):
-    tiers = [
-        {"label": "Tier 1 — Manager",  "min": 0,         "max": 500_000},      # ₹5 L
-        {"label": "Tier 2 — Sr Mgr",   "min": 500_000,   "max": 5_000_000},    # ₹50 L
-        {"label": "Tier 3 — Director", "min": 5_000_000, "max": 25_000_000},   # ₹2.5 Cr
-        {"label": "Tier 4 — CXO",      "min": 25_000_000, "max": 100_000_000}, # ₹10 Cr
-        {"label": "Tier 5 — Board",    "min": 100_000_000, "max": float("inf")},
-    ]
+    # Materialise tiers with lower + upper bounds
+    tiers = []
+    prev_max = 0
+    for t in doa_tier_thresholds:
+        upper = t.get("max_inr")
+        tiers.append({
+            "label": t.get("label", f"Tier {len(tiers)+1}"),
+            "min": prev_max,
+            "max": float("inf") if upper is None else float(upper),
+        })
+        prev_max = float("inf") if upper is None else float(upper)
 
-    # Spend distribution by tier
     distribution = []
     for t in tiers:
         mask = (df_gold["net_value_inr"] >= t["min"]) & (df_gold["net_value_inr"] < t["max"])
@@ -180,6 +220,7 @@ def _theme3_po_compliance(df_gold: pd.DataFrame) -> dict:
         count = int(mask.sum())
         distribution.append({
             "tier": t["label"],
+            "min_inr": t["min"], "max_inr": t["max"] if t["max"] != float("inf") else None,
             "spend_inr_cr": round(spend / 1e7, 2),
             "po_count": count,
         })
@@ -187,36 +228,59 @@ def _theme3_po_compliance(df_gold: pd.DataFrame) -> dict:
     total_spend = sum(d["spend_inr_cr"] for d in distribution)
     total_count = sum(d["po_count"] for d in distribution)
 
-    # 70% rule: % of spend in tiers 1-3 (operational) is healthy. Cap breach: spend in tier 5 (CXO/Board level)
+    # VOLUME-based seventy-rule: % of TRANSACTIONS handled at Tier 1-3
+    # (operational levels). Higher = healthier delegation.
+    operational_tiers = distribution[:3]
+    if total_count > 0:
+        seventy_rule_pct = round(sum(d["po_count"] for d in operational_tiers) / total_count * 100, 1)
+    else:
+        seventy_rule_pct = 0
+
+    # Cap-breach remains spend-based: % of SPEND that lands at the top tier
+    # (board level). Captures concentration of high-value approvals.
     if total_spend > 0:
-        operational_pct = round(sum(d["spend_inr_cr"] for d in distribution[:3]) / total_spend * 100, 1)
         cap_breach_pct = round(distribution[-1]["spend_inr_cr"] / total_spend * 100, 1)
     else:
-        operational_pct = 0
         cap_breach_pct = 0
 
-    # Approver spread (if PR_Approver was joined; not in V1 — leave placeholder)
-    approver_spread = "PR_Approver join required for full analysis"
+    # Side metric (kept for audit / explainability): the OLD spend-weighted
+    # operational %, so consultants can see both views.
+    if total_spend > 0:
+        operational_spend_pct = round(sum(d["spend_inr_cr"] for d in operational_tiers) / total_spend * 100, 1)
+    else:
+        operational_spend_pct = 0
 
     headline = (
-        f"Spend distribution: {operational_pct}% within operational tiers (1-3). "
-        f"Cap-breach (>₹10 Cr): {cap_breach_pct}%."
+        f"Volume distribution: {seventy_rule_pct}% of POs handled at operational tiers (1-3). "
+        f"Cap-breach (top tier spend share): {cap_breach_pct}%."
     )
 
     return {
         "theme": "po-compliance",
+        "available": True,
         "headline": headline,
         "metrics": {
-            "seventy_rule_pct": operational_pct,
+            "seventy_rule_pct": seventy_rule_pct,
+            "seventy_rule_basis": "volume (po_count)",
+            "operational_spend_share_pct": operational_spend_pct,
             "cap_breach_pct": cap_breach_pct,
             "total_spend_inr_cr": round(total_spend, 1),
             "total_po_count": total_count,
+            "tier_count": len(tiers),
         },
         "components": {
-            "pc1_seventy_rule": {"value": operational_pct},
-            "pc2_cap_breaches": {"value": cap_breach_pct},
+            "pc1_seventy_rule": {
+                "value": seventy_rule_pct,
+                "basis": "volume",
+                "note": "% of POs handled at operational tiers 1-3 (count-based, not spend-based)",
+            },
+            "pc2_cap_breaches": {
+                "value": cap_breach_pct,
+                "basis": "spend",
+                "note": "% of spend in the top tier (board / CXO level)",
+            },
             "pc3_distribution_by_value_band": distribution,
-            "pc4_approver_spread": approver_spread,
+            "pc4_approver_spread": "PR_Approver join required for full analysis",
         },
     }
 
@@ -350,18 +414,30 @@ def _score_robustness(t: dict, benchmarks: dict) -> dict:
 
 
 def _score_po_compliance(t: dict, benchmarks: dict) -> dict:
+    """Volume-based scoring: % of POs at operational tiers + spend-based
+    cap-breach. Healthy DoA design = ~70-90% of TRANSACTIONS approved at
+    Tier 1-3 (delegated routine work), with the top tier holding
+    strategic decisions only (low single-digit % of spend)."""
+    if not t.get("available", True):
+        return unavailable_score(t.get("missing_reason", "engagement"),
+                                  t.get("missing_inputs", []))
     m = t["metrics"]
-    op_pct = m.get("seventy_rule_pct", 0)
+    vol_pct = m.get("seventy_rule_pct", 0)         # now volume-based
     breach = m.get("cap_breach_pct", 0)
-    if op_pct < 40 or breach > 20:
-        return {"score": 1, "label": "Initial", "rationale": "Severe non-compliance with DoA tier structure."}
-    if op_pct < 60 or breach > 10:
-        return {"score": 2, "label": "Developing", "rationale": "Material non-compliance."}
-    if op_pct < 75 or breach > 5:
-        return {"score": 3, "label": "Defined", "rationale": "Most spend compliant; outliers manageable."}
-    if op_pct < 90 or breach > 2:
-        return {"score": 4, "label": "Managed", "rationale": "Strong compliance."}
-    return {"score": 5, "label": "Optimised", "rationale": "Best-in-class compliance."}
+    if vol_pct < 40 or breach > 20:
+        return {"score": 1, "label": "Initial",
+                "rationale": "Most transactions escalating to senior tiers — operational delegation is breaking down."}
+    if vol_pct < 60 or breach > 10:
+        return {"score": 2, "label": "Developing",
+                "rationale": "Many routine POs reaching senior approval; cap-breach concentration is high."}
+    if vol_pct < 75 or breach > 5:
+        return {"score": 3, "label": "Defined",
+                "rationale": "Majority of POs handled at operational tiers; some over-escalation remains."}
+    if vol_pct < 90 or breach > 2:
+        return {"score": 4, "label": "Managed",
+                "rationale": "Operational tiers handle most transactional volume; senior tiers focused on strategic spend."}
+    return {"score": 5, "label": "Optimised",
+            "rationale": "Best-practice delegation: routine volume at lower tiers, strategic decisions at the top."}
 
 
 def _score_system_enforcement(t: dict, benchmarks: dict) -> dict:

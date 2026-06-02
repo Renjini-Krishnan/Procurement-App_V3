@@ -20,7 +20,9 @@ def fresh_kpi_engagement():
     from backend import config, db
     importlib.reload(config); importlib.reload(db)
     db.init_db()
-    eng = db.create_engagement(client_name="KPI Test", industry="steel")
+    # Engagement-level fields the org-structure pillar uses for fte-sizing
+    eng = db.create_engagement(client_name="KPI Test", industry="steel",
+                                  fte_count=50, annual_spend_inr_cr=250)
     from backend.services import upload_service
     result = upload_service.use_seed_dataset(eng["id"])
     upid = result["upload_id"]
@@ -37,6 +39,14 @@ def fresh_kpi_engagement():
         answered = [r for r in d.get("responses", []) if r.get("score") is not None]
         if answered:
             db.upsert_qre_responses(eng["id"], answered)
+    # Seed a DoA tier matrix so the po-compliance theme can produce KPIs.
+    db.upsert_override(eng["id"], "doa.tier_thresholds_inr", [
+        {"label": "Tier 1 — Manager",  "max_inr": 500000},
+        {"label": "Tier 2 — Sr Mgr",   "max_inr": 5000000},
+        {"label": "Tier 3 — Director", "max_inr": 25000000},
+        {"label": "Tier 4 — CXO",      "max_inr": 100000000},
+        {"label": "Tier 5 — Board",    "max_inr": None},
+    ], override_type="threshold")
     yield {"engagement_id": eng["id"], "upload_id": upid}
     if test_db.exists(): test_db.unlink()
 

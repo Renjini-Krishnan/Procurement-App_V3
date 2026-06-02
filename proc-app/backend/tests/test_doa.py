@@ -38,6 +38,15 @@ def fresh_doa_engagement():
         answered = [r for r in d.get("responses", []) if r.get("score") is not None]
         if answered:
             db.upsert_qre_responses(eng["id"], answered)
+    # Seed a DoA tier matrix so the po-compliance theme has its required
+    # input (without it, the theme correctly returns 'data not available').
+    db.upsert_override(eng["id"], "doa.tier_thresholds_inr", [
+        {"label": "Tier 1 — Manager",  "max_inr": 500000},
+        {"label": "Tier 2 — Sr Mgr",   "max_inr": 5000000},
+        {"label": "Tier 3 — Director", "max_inr": 25000000},
+        {"label": "Tier 4 — CXO",      "max_inr": 100000000},
+        {"label": "Tier 5 — Board",    "max_inr": None},
+    ], override_type="threshold")
     yield {"engagement_id": eng["id"], "upload_id": upid}
     if test_db.exists(): test_db.unlink()
 
@@ -54,7 +63,14 @@ def test_doa_pillar_runs(fresh_doa_engagement):
     assert len(result["themes"]) == 5
     for theme_id in ["document-audit", "robustness", "po-compliance", "system-enforcement", "bucket-optimisation"]:
         assert theme_id in result["themes"]
-        assert "headline" in result["themes"][theme_id]
+        # Either the theme is available (must have headline) or explicitly
+        # unavailable (must say so + list missing inputs).
+        t = result["themes"][theme_id]
+        if t.get("available") is False:
+            assert t.get("missing_inputs"), f"{theme_id} unavailable but no missing_inputs listed"
+            assert t.get("note"), f"{theme_id} unavailable but no note explaining why"
+        else:
+            assert "headline" in t, f"{theme_id} available but no headline"
 
 
 def test_doa_pillar_score_in_range(fresh_doa_engagement):
@@ -65,9 +81,17 @@ def test_doa_pillar_score_in_range(fresh_doa_engagement):
         industry="steel",
     )
     ps = result["pillar_score"]
-    assert 1.0 <= ps["score"] <= 5.0
+    # Pillar score is None when no themes are available; otherwise 1-5.
+    if ps["score"] is None:
+        assert ps["label"].startswith("Data not available")
+    else:
+        assert 1.0 <= ps["score"] <= 5.0
     for tname, s in result["theme_scores"].items():
-        assert 1 <= s["score"] <= 5
+        sc = s.get("score")
+        if sc is None:
+            assert s.get("label") == "Data not available"
+        else:
+            assert 1 <= sc <= 5
 
 
 def test_doa_reference_template_loaded(fresh_doa_engagement):
@@ -77,6 +101,7 @@ def test_doa_reference_template_loaded(fresh_doa_engagement):
         upload_id=fresh_doa_engagement["upload_id"],
         industry="steel",
     )
-    # Robustness theme reads the reference template
+    # Robustness theme reads the reference template — only when available.
     rb = result["themes"]["robustness"]
-    assert rb["metrics"]["reference_mandatory_cases_count"] > 0
+    if rb.get("available", True):
+        assert rb["metrics"]["reference_mandatory_cases_count"] > 0
