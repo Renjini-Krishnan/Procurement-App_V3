@@ -143,10 +143,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ upload_id: uploadId, industry }),
     }),
-  runKpiDashboard: (id, uploadId, industry = "steel") =>
+  runKpiDashboard: (id, uploadId, industry = "steel", filters = {}) =>
     request(`/engagement/${id}/run-kpi-dashboard`, {
       method: "POST",
-      body: JSON.stringify({ upload_id: uploadId, industry }),
+      body: JSON.stringify({
+        upload_id: uploadId, industry,
+        filter_plants: filters.plants && filters.plants.length ? filters.plants : null,
+        filter_material_groups: filters.material_groups && filters.material_groups.length ? filters.material_groups : null,
+        filter_period_start: filters.period_start || null,
+        filter_period_end: filters.period_end || null,
+      }),
     }),
   runIntel: (id, uploadId, industry = "steel") =>
     request(`/engagement/${id}/run-intel`, {

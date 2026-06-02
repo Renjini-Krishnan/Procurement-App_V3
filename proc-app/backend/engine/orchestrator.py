@@ -584,13 +584,54 @@ def run_org_structure_pillar(engagement_id: str, upload_id: str, industry: str =
 
 
 def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel",
-                       qre_responses: Optional[dict] = None) -> dict:
-    """Stage 30 — KPI Dashboard. Runs all 4 pillars, assembles unified KPI list."""
+                       qre_responses: Optional[dict] = None,
+                       filter_plants: Optional[list[str]] = None,
+                       filter_material_groups: Optional[list[str]] = None,
+                       filter_period_start: Optional[str] = None,
+                       filter_period_end: Optional[str] = None) -> dict:
+    """Stage 30 — KPI Dashboard. Runs all 4 pillars, assembles unified KPI list.
+
+    Filter params apply a subset of the PO data BEFORE Stage 9/10 — so the
+    resulting KPIs reflect only the consultant's drill-down (e.g. "only HIS1
+    plant, only FY24, only Industrial Gases category"). Filters are
+    optional; passing none returns the full-portfolio view.
+    """
     timings = {}
     t0 = time.time()
 
     # Stage 8/9/10 once
     df_gold = gold_data.build_gold_dataframe(upload_id, lookback_months=_load_scope_lookback(engagement_id))
+
+    # Apply drill-down filters on Gold before classification so all
+    # downstream computations operate on the requested subset.
+    pre_rows = len(df_gold)
+    filter_meta = {"applied": False, "rows_before": pre_rows}
+    if filter_plants:
+        df_gold = df_gold[df_gold["plant"].astype(str).isin(filter_plants)].copy()
+        filter_meta["plants"] = filter_plants
+        filter_meta["applied"] = True
+    if filter_material_groups:
+        # match either material_group code OR material_group_desc
+        mask = pd.Series(False, index=df_gold.index)
+        if "material_group" in df_gold.columns:
+            mask = mask | df_gold["material_group"].astype(str).isin(filter_material_groups)
+        if "material_group_desc" in df_gold.columns:
+            mask = mask | df_gold["material_group_desc"].astype(str).isin(filter_material_groups)
+        df_gold = df_gold[mask].copy()
+        filter_meta["material_groups"] = filter_material_groups
+        filter_meta["applied"] = True
+    if filter_period_start or filter_period_end:
+        if "po_creation_date" in df_gold.columns:
+            dt = pd.to_datetime(df_gold["po_creation_date"], errors="coerce")
+            if filter_period_start:
+                df_gold = df_gold[dt >= pd.to_datetime(filter_period_start)].copy()
+                filter_meta["period_start"] = filter_period_start
+            if filter_period_end:
+                df_gold = df_gold[dt <= pd.to_datetime(filter_period_end)].copy()
+                filter_meta["period_end"] = filter_period_end
+            filter_meta["applied"] = True
+    filter_meta["rows_after"] = len(df_gold)
+
     timings["stage8_gold"] = round(time.time() - t0, 2)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
@@ -685,6 +726,16 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     db.set_stage_status(engagement_id, 30, "done", {"kpi_count": len(kpis)})
     db.update_engagement_stage(engagement_id, 30)
 
+    # Available filter values — surface what plants / categories / period
+    # the consultant can drill into. Always computed from the FULL gold
+    # (pre-filter) so the dropdowns stay consistent across drill-down state.
+    filter_options = _kpi_filter_options(upload_id, _load_scope_lookback(engagement_id))
+
+    # Per-plant + per-category breakdowns — surface as separate panels
+    # for the Trend view + drill-down navigation, computed from the
+    # CURRENTLY FILTERED dataframe so they reflect the active drill.
+    breakdowns = _kpi_breakdowns(df_classified)
+
     return {
         "engagement_id": engagement_id,
         "upload_id": upload_id,
@@ -693,8 +744,89 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
         "kpis": kpis,
         "pillar_summary": pillar_summary,
         "pillar_results": pillar_results,
+        "filter_options": filter_options,
+        "filter_applied": filter_meta,
+        "breakdowns": breakdowns,
         "timings_seconds": timings,
     }
+
+
+def _kpi_filter_options(upload_id: str, lookback_months: Optional[int]) -> dict:
+    """Return distinct plants, material groups, + period bounds the
+    consultant can choose from in the KPI dashboard filter chips."""
+    try:
+        df = gold_data.build_gold_dataframe(upload_id, lookback_months=lookback_months)
+    except Exception:
+        return {"plants": [], "material_groups": [], "period_min": None, "period_max": None}
+    plants = sorted(df["plant"].dropna().astype(str).unique().tolist()) if "plant" in df.columns else []
+    # Material groups — show description if present, else code; surface up
+    # to 30 by spend so the dropdown stays usable.
+    mg_label_col = "material_group_desc" if "material_group_desc" in df.columns else "material_group"
+    mgs = []
+    if mg_label_col in df.columns and "net_value_inr" in df.columns:
+        by_mg = (df.groupby(mg_label_col)["net_value_inr"].sum()
+                   .sort_values(ascending=False).head(30))
+        mgs = [str(x) for x in by_mg.index.tolist()]
+    period_min, period_max = None, None
+    if "po_creation_date" in df.columns:
+        dt = pd.to_datetime(df["po_creation_date"], errors="coerce").dropna()
+        if len(dt):
+            period_min = dt.min().strftime("%Y-%m-%d")
+            period_max = dt.max().strftime("%Y-%m-%d")
+    return {
+        "plants": plants,
+        "material_groups": mgs,
+        "period_min": period_min,
+        "period_max": period_max,
+    }
+
+
+def _kpi_breakdowns(df_classified: pd.DataFrame) -> dict:
+    """Per-plant + per-category breakdowns for the Trend view.
+    All derived from the filtered classified dataframe — no benchmarks."""
+    if df_classified is None or len(df_classified) == 0:
+        return {"by_plant": [], "by_material_group": [], "by_month": []}
+    by_plant, by_mg, by_month = [], [], []
+    if "plant" in df_classified.columns and "net_value_inr" in df_classified.columns:
+        grp = df_classified.groupby("plant").agg(
+            po_count=("plant", "size"),
+            total_spend_inr=("net_value_inr", "sum"),
+        ).sort_values("total_spend_inr", ascending=False).reset_index()
+        by_plant = [
+            {"plant": str(r["plant"]),
+             "po_count": int(r["po_count"]),
+             "total_spend_inr_cr": round(float(r["total_spend_inr"]) / 1e7, 2)}
+            for _, r in grp.iterrows()
+        ]
+    mg_col = "material_group_desc" if "material_group_desc" in df_classified.columns else "material_group"
+    if mg_col in df_classified.columns and "net_value_inr" in df_classified.columns:
+        grp = df_classified.groupby(mg_col).agg(
+            po_count=(mg_col, "size"),
+            total_spend_inr=("net_value_inr", "sum"),
+        ).sort_values("total_spend_inr", ascending=False).head(15).reset_index()
+        by_mg = [
+            {"material_group": str(r[mg_col]),
+             "po_count": int(r["po_count"]),
+             "total_spend_inr_cr": round(float(r["total_spend_inr"]) / 1e7, 2)}
+            for _, r in grp.iterrows()
+        ]
+    if "po_creation_date" in df_classified.columns:
+        dfx = df_classified.copy()
+        dfx["_dt"] = pd.to_datetime(dfx["po_creation_date"], errors="coerce")
+        dfx = dfx.dropna(subset=["_dt"])
+        if len(dfx) > 0:
+            dfx["_month"] = dfx["_dt"].dt.to_period("M").astype(str)
+            grp = dfx.groupby("_month").agg(
+                po_count=("_month", "size"),
+                total_spend_inr=("net_value_inr", "sum"),
+            ).reset_index()
+            by_month = [
+                {"month": r["_month"],
+                 "po_count": int(r["po_count"]),
+                 "total_spend_inr_cr": round(float(r["total_spend_inr"]) / 1e7, 2)}
+                for _, r in grp.iterrows()
+            ]
+    return {"by_plant": by_plant, "by_material_group": by_mg, "by_month": by_month}
 
 
 def _record_run(engagement_id: str, pillar: str, result: dict) -> None:

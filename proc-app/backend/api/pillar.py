@@ -16,6 +16,17 @@ class RunPillarRequest(BaseModel):
     industry: str = "steel"
 
 
+class RunKpiDashboardRequest(BaseModel):
+    upload_id: str
+    industry: str = "steel"
+    # Optional drill-down filters applied to the gold dataframe before
+    # KPIs are computed. Empty / None means "no filter".
+    filter_plants: list[str] | None = None
+    filter_material_groups: list[str] | None = None
+    filter_period_start: str | None = None   # "YYYY-MM-DD"
+    filter_period_end: str | None = None
+
+
 @router.post("/{engagement_id}/run-pillar/op-model")
 def run_op_model(engagement_id: str, payload: RunPillarRequest):
     eng = db.get_engagement(engagement_id)
@@ -132,7 +143,7 @@ def run_supplier(engagement_id: str, payload: RunPillarRequest):
 
 
 @router.post("/{engagement_id}/run-kpi-dashboard")
-def run_kpi_dashboard(engagement_id: str, payload: RunPillarRequest):
+def run_kpi_dashboard(engagement_id: str, payload: RunKpiDashboardRequest):
     eng = db.get_engagement(engagement_id)
     if not eng:
         raise HTTPException(404, f"Engagement {engagement_id} not found")
@@ -144,6 +155,10 @@ def run_kpi_dashboard(engagement_id: str, payload: RunPillarRequest):
             engagement_id=engagement_id,
             upload_id=payload.upload_id,
             industry=payload.industry,
+            filter_plants=payload.filter_plants or None,
+            filter_material_groups=payload.filter_material_groups or None,
+            filter_period_start=payload.filter_period_start,
+            filter_period_end=payload.filter_period_end,
         )
     except Exception as e:
         raise HTTPException(500, f"KPI dashboard run failed: {e}")
