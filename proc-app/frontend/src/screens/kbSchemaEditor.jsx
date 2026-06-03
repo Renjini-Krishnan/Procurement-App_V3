@@ -39,10 +39,8 @@ const SchemaEditor = ({ yamlText, onChange }) => {
     }
   };
 
-  if (parseError) return <ParseErrorBanner error={parseError} />;
-  if (!data) return <div style={{ padding: 16, color: "var(--ink-500)" }}>Loading…</div>;
-
-  const fields = data.fields || [];
+  // Hooks must run on every render. Keep useMemo above the early returns.
+  const fields = data?.fields || [];
   const filtered = useMemo(() => {
     if (!search.trim()) return fields.map((f, i) => ({ f, idx: i }));
     const q = search.toLowerCase();
@@ -53,6 +51,9 @@ const SchemaEditor = ({ yamlText, onChange }) => {
         (f.description || "").toLowerCase().includes(q) ||
         ((f.aliases || []).join(" ").toLowerCase().includes(q)));
   }, [fields, search]);
+
+  if (parseError) return <ParseErrorBanner error={parseError} />;
+  if (!data) return <div style={{ padding: 16, color: "var(--ink-500)" }}>Loading…</div>;
 
   const updateField = (idx, patch) => {
     const next = { ...data, fields: fields.map((f, i) => i === idx ? { ...f, ...patch } : f) };

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout, Tabs } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner, AiNarrativeBlock, PillarAttributionStrip } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, NeedsQreBanner, AiNarrativeBlock, PillarAttributionStrip, ExplainBlock } from "../design/patterns.jsx";
+import { useLocation } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
@@ -116,7 +117,8 @@ const OrgStructure = () => {
       {activeTheme === "overview" && <Overview data={data} themes={themes} setActiveTheme={setActiveTheme} />}
       {activeTheme !== "overview" && activeTheme !== "settings" && (
         <>
-          <ThemeView theme={data.themes[activeTheme]} score={data.theme_scores[activeTheme]} themeId={activeTheme} />
+          <ThemeView theme={data.themes[activeTheme]} score={data.theme_scores[activeTheme]} themeId={activeTheme}
+                       explain={data.theme_explainability?.[activeTheme]} />
           {data.ai_theme_insights?.[activeTheme] && (
             <div style={{ marginTop: 16 }}>
               <AiNarrativeBlock title={`AI insight · ${activeTheme}`}
@@ -228,8 +230,10 @@ const Overview = ({ data, themes, setActiveTheme }) => (
   </div>
 );
 
-const ThemeView = ({ theme, score, themeId }) => {
+const ThemeView = ({ theme, score, themeId, explain }) => {
   const unavailable = theme?.available === false || score?.score == null;
+  const loc = useLocation();
+  const returnPath = loc.pathname + (loc.search || "");
   return (
   <div>
     <Card padding={22} style={{ marginBottom: 20,
@@ -283,6 +287,7 @@ const ThemeView = ({ theme, score, themeId }) => {
         </table>
       </Card>
     )}
+    <ExplainBlock explain={explain} returnPath={returnPath} defaultOpen={false} />
   </div>
   );
 };

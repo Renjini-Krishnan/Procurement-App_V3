@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Card, Badge, Callout } from "../design/components.jsx";
 import { I } from "../design/icons.jsx";
-import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, AiNarrativeBlock, PillarAttributionStrip } from "../design/patterns.jsx";
+import { ScoreBadge, MaturityGauge, RCACard, DataQualityContext, AiNarrativeBlock, PillarAttributionStrip, ExplainBlock } from "../design/patterns.jsx";
+import { useLocation } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 
@@ -36,6 +37,8 @@ const PILLAR_META = {
 };
 
 const V2Pillar = ({ pillarId }) => {
+  const _loc = useLocation();
+  const _returnPath = _loc.pathname + (_loc.search || "");
   const meta = PILLAR_META[pillarId];
   const { engagement, loading: engLoading } = useEngagement();
   const [data, setData] = useState(null);
@@ -122,7 +125,9 @@ const V2Pillar = ({ pillarId }) => {
           {Object.entries(themes).map(([id, t]) => (
             <ThemeCard key={id} id={id} t={t}
                        insight={data.ai_theme_insights?.[id]}
-                       attribution={data.ai_theme_attributions?.[id]} />
+                       attribution={data.ai_theme_attributions?.[id]}
+                       explain={data.theme_explainability?.[id]}
+                       returnPath={_returnPath} />
           ))}
         </div>
       </div>
@@ -158,7 +163,7 @@ const V2Pillar = ({ pillarId }) => {
   );
 };
 
-const ThemeCard = ({ id, t, insight, attribution }) => {
+const ThemeCard = ({ id, t, insight, attribution, explain, returnPath }) => {
   const unavailable = t.score === null || t.score === undefined;
   const tone = unavailable
     ? "var(--ink-300)"
@@ -196,6 +201,7 @@ const ThemeCard = ({ id, t, insight, attribution }) => {
           <AiNarrativeBlock title="AI insight" narrative={insight} attribution={attribution} />
         </div>
       )}
+      <ExplainBlock explain={explain} returnPath={returnPath} />
     </Card>
   );
 };

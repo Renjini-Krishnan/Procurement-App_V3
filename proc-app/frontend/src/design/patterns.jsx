@@ -1,7 +1,8 @@
 /* Domain patterns — ported from /tmp/design_system/ds-patterns.jsx.
    ScoreBadge, MaturityGauge, CitationChip, BenchmarkCascade, RCACard,
    VolumeValueQuadrant, PerCategoryMatrix. */
-import React from "react";
+import React, { useState } from "react";
+import { Link as _RouterLink } from "react-router-dom";
 import { Card, Badge } from "./components.jsx";
 
 export const MATURITY_DESCRIPTORS = [
@@ -672,4 +673,248 @@ export const PillarAttributionStrip = ({ attribution }) => {
       )}
     </div>
   );
+};
+
+
+/* ===========================================================================
+ * ExplainBlock — collapsible "How was this computed?" panel rendered under
+ * every theme card / KPI card / RCA card. Reads the explainability payload
+ * stamped by backend/engine/explain.py:
+ *   {
+ *     theme_id, status ("computed" | "data_not_available"),
+ *     method (1 sentence),
+ *     data_columns_used: [...],
+ *     thresholds: { 'c1.threshold_min_plants': 2, ... },
+ *     derivation: ["c1 — Detect multi-plant MGs: threshold ≥2 plants ...", ...],
+ *     benchmark: { source, year, value_range, unit, sample_size, confidence, layer },
+ *     kb_files_consulted: ["op-model/benchmarks.yml", ...],
+ *     pending_inputs: [{type, id, reason}, ...],
+ *   }
+ *
+ * Every section is rendered only if its data is present. KB file paths
+ * become deep-links to the KB editor.
+ * ======================================================================== */
+
+export const ExplainBlock = ({ explain, returnPath, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  if (!explain) return null;
+  const isUnavail = explain.status === "data_not_available";
+  return (
+    <details open={open} onToggle={(e) => setOpen(e.target.open)}
+             style={{ marginTop: 10, fontSize: "var(--fs-12)",
+                        border: "1px solid var(--border-subtle)",
+                        borderRadius: "var(--r-md)",
+                        background: "var(--surface-sunk)" }}>
+      <summary style={{ cursor: "pointer", padding: "8px 12px",
+                          fontSize: "var(--fs-12)", fontWeight: 600,
+                          color: "var(--ink-700)", listStyle: "none",
+                          display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 11 }}>{open ? "▾" : "▸"}</span>
+        How was this computed?
+        {isUnavail && (
+          <span style={{ marginLeft: "auto", fontSize: "var(--fs-10)", color: "var(--warn-700)",
+                            background: "var(--warn-50, #fff5e6)", padding: "1px 6px",
+                            borderRadius: "var(--r-pill)" }}>
+            Data not available
+          </span>
+        )}
+      </summary>
+      <div style={{ padding: "0 14px 14px 14px", display: "grid", gap: 10 }}>
+
+        {/* Method — what algorithm */}
+        {explain.method && (
+          <ExplainRow label="Method">
+            <span style={{ color: "var(--ink-800)", lineHeight: 1.5 }}>{explain.method}</span>
+          </ExplainRow>
+        )}
+
+        {/* Input data — which columns the engine read */}
+        {(explain.data_columns_used || explain.data_columns_required || []).length > 0 && (
+          <ExplainRow label={isUnavail ? "Required data columns" : "Data columns used"}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {(explain.data_columns_used || explain.data_columns_required).map((c) => (
+                <code key={c} style={chipStyle}>{c}</code>
+              ))}
+            </div>
+          </ExplainRow>
+        )}
+
+        {/* Required QRE answers */}
+        {(explain.qre_required || []).length > 0 && (
+          <ExplainRow label={isUnavail ? "Required QRE answers" : "QRE answers used"}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {explain.qre_required.map((q) => (
+                <code key={q} style={chipStyle}>{q}</code>
+              ))}
+            </div>
+          </ExplainRow>
+        )}
+
+        {/* Required engagement fields */}
+        {(explain.engagement_required || []).length > 0 && (
+          <ExplainRow label="Required engagement fields">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {explain.engagement_required.map((f) => (
+                <code key={f} style={chipStyle}>{f}</code>
+              ))}
+            </div>
+          </ExplainRow>
+        )}
+
+        {/* Required files (V2 pillars) */}
+        {(explain.file_required || []).length > 0 && (
+          <ExplainRow label="Required file uploads">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {explain.file_required.map((f) => (
+                <code key={f} style={chipStyle}>{f}</code>
+              ))}
+            </div>
+          </ExplainRow>
+        )}
+
+        {/* Thresholds the engine applied */}
+        {Object.keys(explain.thresholds || {}).length > 0 && (
+          <ExplainRow label="Thresholds applied">
+            <div style={{ display: "grid", gap: 2 }}>
+              {Object.entries(explain.thresholds).map(([k, v]) => (
+                <div key={k}>
+                  <code style={chipStyle}>{k}</code> = <strong>{String(v)}</strong>
+                </div>
+              ))}
+            </div>
+          </ExplainRow>
+        )}
+
+        {/* Derivation chain */}
+        {(explain.derivation || []).length > 0 && (
+          <ExplainRow label="Derivation">
+            <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 4 }}>
+              {explain.derivation.map((step, i) => (
+                <li key={i} style={{ color: "var(--ink-800)", lineHeight: 1.5 }}>{step}</li>
+              ))}
+            </ol>
+          </ExplainRow>
+        )}
+
+        {/* Benchmark cited */}
+        {explain.benchmark && (explain.benchmark.source || explain.benchmark.value_range) && (
+          <ExplainRow label="Benchmark cited">
+            <BenchmarkLine b={explain.benchmark} />
+          </ExplainRow>
+        )}
+
+        {/* KB files consulted — deep-links to the editor */}
+        {(explain.kb_files_consulted || []).length > 0 && (
+          <ExplainRow label="KB files consulted">
+            <div style={{ display: "grid", gap: 3 }}>
+              {explain.kb_files_consulted.map((path) => (
+                <KBLink key={path} path={path} returnPath={returnPath} />
+              ))}
+            </div>
+          </ExplainRow>
+        )}
+
+        {/* Pending inputs that would refine the score */}
+        {(explain.pending_inputs || []).length > 0 && (
+          <ExplainRow label="Pending inputs · would refine this score">
+            <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 3, color: "var(--ink-700)" }}>
+              {explain.pending_inputs.map((p, i) => (
+                <li key={i}>
+                  {p.type === "qre" && p.id && <code style={chipStyle}>{p.id}</code>}
+                  {p.type === "qre" && p.component && <code style={chipStyle}>{p.component}</code>}
+                  <span style={{ marginLeft: 6 }}>{p.reason}</span>
+                </li>
+              ))}
+            </ul>
+          </ExplainRow>
+        )}
+
+        {/* For unavailable themes — surface the note explaining why */}
+        {isUnavail && explain.note && (
+          <ExplainRow label="Why this is unavailable">
+            <span style={{ color: "var(--ink-700)", lineHeight: 1.5 }}>{explain.note}</span>
+          </ExplainRow>
+        )}
+      </div>
+    </details>
+  );
+};
+
+const ExplainRow = ({ label, children }) => (
+  <div>
+    <div style={{ fontSize: "var(--fs-10)", textTransform: "uppercase", letterSpacing: "0.08em",
+                    color: "var(--ink-500)", fontWeight: 600, marginBottom: 4 }}>
+      {label}
+    </div>
+    <div>{children}</div>
+  </div>
+);
+
+const BenchmarkLine = ({ b }) => {
+  const band = Array.isArray(b.value_range) && b.value_range.length === 2
+    ? `${b.value_range[0]}–${b.value_range[1]}${b.unit || ""}` : null;
+  const src = b.source
+    ? `${b.source}${b.year ? ` (${b.year})` : ""}${b.sample_size ? `, n=${b.sample_size}` : ""}${b.confidence ? `, ${b.confidence} confidence` : ""}`
+    : null;
+  const layer = b.layer && b.layer !== "function" ? b.layer : null;
+  return (
+    <div style={{ color: "var(--ink-800)", lineHeight: 1.5 }}>
+      {band && <strong>typical {band}</strong>}
+      {band && src && <span> · </span>}
+      {src && <span>{src}</span>}
+      {layer && (
+        <span style={{ marginLeft: 8, fontSize: "var(--fs-10)", padding: "1px 6px",
+                          background: "var(--brand-50)", color: "var(--brand-700)",
+                          borderRadius: "var(--r-pill)", fontWeight: 600,
+                          textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          {layer} overlay
+        </span>
+      )}
+      {b.overridden && (
+        <span style={{ marginLeft: 8, fontSize: "var(--fs-10)", padding: "1px 6px",
+                          background: "var(--warn-50)", color: "var(--warn-700)",
+                          borderRadius: "var(--r-pill)", fontWeight: 600,
+                          textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          engagement override
+        </span>
+      )}
+    </div>
+  );
+};
+
+const KBLink = ({ path, returnPath }) => {
+  // Build /kb?root=&file=&return= URL. Heuristic: function-kb paths start
+  // with the pillar slug (op-model/, doa/, etc.); industry overlays start
+  // with industries/.
+  let root = "function", rel = path;
+  if (path.startsWith("industries/")) {
+    root = "industries";
+    rel = path.substring("industries/".length);
+  } else if (path.startsWith("data-templates/") || path.startsWith("standards/")) {
+    root = path.split("/")[0];
+    rel = path.substring(root.length + 1);
+  }
+  const url = `/kb?root=${root}&file=${encodeURIComponent(rel)}${returnPath ? `&return=${encodeURIComponent(returnPath)}` : ""}`;
+  return (
+    <_RouterLink to={url} style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)",
+      color: "var(--brand-700)", textDecoration: "none",
+    }}>
+      <span>📄</span>
+      <span>{path}</span>
+      <span style={{ color: "var(--ink-400)", fontSize: 10 }}>→</span>
+    </_RouterLink>
+  );
+};
+
+const chipStyle = {
+  display: "inline-block",
+  padding: "1px 6px",
+  fontSize: "var(--fs-11)",
+  fontFamily: "var(--font-mono)",
+  background: "var(--surface-card)",
+  border: "1px solid var(--border-subtle)",
+  borderRadius: 3,
+  color: "var(--ink-800)",
 };

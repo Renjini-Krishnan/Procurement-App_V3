@@ -4,8 +4,9 @@ import { I } from "../design/icons.jsx";
 import {
   ScoreBadge, MaturityGauge, RCACard, CitationChip,
   BenchmarkCascade, VolumeValueQuadrant, PerCategoryMatrix,
-  DataQualityContext, AiNarrativeBlock, PillarAttributionStrip,
+  DataQualityContext, AiNarrativeBlock, PillarAttributionStrip, ExplainBlock,
 } from "../design/patterns.jsx";
+import { useLocation } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
 import SignoffWidget from "./SignoffWidget.jsx";
@@ -115,6 +116,16 @@ const OpModel = () => {
           pillar="op-model"
           title="Op Model benchmarks"
           kbHref={`/kb?root=function&file=op-model/benchmarks.yml&return=${encodeURIComponent(`/engagement/${engagement.id}/op-model`)}`} />
+      )}
+
+      {/* Explainability — derivation chain + sources + KB-file deep-links
+          for the currently-active theme. Renders only for actual theme
+          tabs (not overview / settings). */}
+      {activeTheme !== "overview" && activeTheme !== "settings" && data.theme_explainability?.[activeTheme] && (
+        <div style={{ marginTop: 12 }}>
+          <ExplainBlock explain={data.theme_explainability[activeTheme]}
+                          returnPath={`/engagement/${engagement.id}/op-model`} />
+        </div>
       )}
 
       {/* Per-theme AI insight (when a theme tab is active) */}

@@ -54,10 +54,8 @@ const QreBankEditor = ({ yamlText, onChange }) => {
     } catch (e) { setParseError(e.message); }
   };
 
-  if (parseError) return <ParseErrorBanner error={parseError} />;
-  if (!data) return <div style={{ padding: 16, color: "var(--ink-500)" }}>Loading…</div>;
-
-  const qres = data.qres;
+  // Hooks must run on every render. Keep useMemo above the early returns.
+  const qres = data?.qres || [];
   const filtered = useMemo(() => {
     let list = qres;
     if (pillarFilter !== "All") list = list.filter((q) => q.pillar === pillarFilter);
@@ -70,6 +68,9 @@ const QreBankEditor = ({ yamlText, onChange }) => {
     }
     return list;
   }, [qres, pillarFilter, search]);
+
+  if (parseError) return <ParseErrorBanner error={parseError} />;
+  if (!data) return <div style={{ padding: 16, color: "var(--ink-500)" }}>Loading…</div>;
 
   const selected = qres.find((q) => q.id === selectedId);
 
