@@ -2,7 +2,6 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useViewMode, CLIENT_VIEW_ALLOWED_STAGES } from "./hooks/useViewMode.js";
 import Landing from "./screens/Landing.jsx";
-import NewEngagement from "./screens/NewEngagement.jsx";
 import KBEditor from "./screens/KBEditor.jsx";
 import WorkspaceShell from "./screens/WorkspaceShell.jsx";
 import StagePlaceholder from "./screens/StagePlaceholder.jsx";
@@ -93,8 +92,10 @@ const App = () => (
         }
       />
 
-      <Route path="/engagement/new" element={<NewEngagement />} />
       <Route path="/kb" element={<KBEditor />} />
+      {/* Stage 1 (Client) is the only create+edit page. /engagement/new
+          and /engagement/<id> both redirect to .../client which renders
+          either the create form (when id=='new') or the edit form. */}
       <Route path="/engagement/:engagementId" element={<Navigate to="client" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

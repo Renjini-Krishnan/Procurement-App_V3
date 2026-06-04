@@ -16,6 +16,12 @@ export function useEngagement() {
       setLoading(true);
       setError(null);
       try {
+        // 'new' = the host screen will collect inputs and call
+        // createEngagement on save. Return null engagement.
+        if (engagementId === "new") {
+          if (!cancelled) { setEngagement(null); setLoading(false); }
+          return;
+        }
         // For the "demo" alias, look up the first engagement OR create one
         if (engagementId === "demo") {
           const all = await api.listEngagements();

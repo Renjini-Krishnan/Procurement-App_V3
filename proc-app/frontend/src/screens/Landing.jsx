@@ -147,7 +147,7 @@ const Landing = () => {
                 size="lg"
                 iconRight={<I.Arrow size={16} />}
                 style={{ background: "white", color: "var(--ink-900)", border: "1px solid white" }}
-                onClick={() => navigate("/engagement/new")}
+                onClick={() => navigate("/engagement/new/client")}
               >
                 Start new engagement
               </Button>
