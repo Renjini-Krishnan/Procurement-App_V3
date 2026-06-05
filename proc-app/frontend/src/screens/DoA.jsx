@@ -98,6 +98,7 @@ const DoA = () => {
         <div style={{ marginTop: 16 }}>
           <AiNarrativeBlock title="AI verdict · DoA"
                               narrative={data.ai_pillar_narrative}
+                              citations={data.ai_pillar_citations}
                               attribution={{ benchmark: null, data_scope: data.attribution?.data_scope }} />
         </div>
       )}

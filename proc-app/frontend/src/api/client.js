@@ -62,6 +62,31 @@ export const api = {
     request(`/engagement/${id}/overrides/${encodeURIComponent(key)}`, { method: "DELETE" }),
   listPillarBenchmarks: (id, pillar) =>
     request(`/engagement/${id}/benchmarks/${pillar}`),
+
+  // Reference documents (SOP / DoA / process flows / etc.)
+  listDocuments: (id) => request(`/engagement/${id}/documents`),
+  uploadDocument: async (id, file, kind) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("kind", kind);
+    const res = await fetch(`/api/engagement/${id}/documents`, { method: "POST", body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  },
+  deleteDocument: (id, docId) =>
+    request(`/engagement/${id}/documents/${docId}`, { method: "DELETE" }),
+  updateDocumentKind: (id, docId, kind) =>
+    request(`/engagement/${id}/documents/${docId}`, {
+      method: "PATCH", body: JSON.stringify({ kind }),
+    }),
+  reingestDocument: (id, docId) =>
+    request(`/engagement/${id}/documents/${docId}/reingest`, { method: "POST", body: "{}" }),
+  downloadDocumentUrl: (id, docId) => `/api/engagement/${id}/documents/${docId}/download`,
+  listDocumentChunks: (id, docId) =>
+    request(`/engagement/${id}/documents/${docId}/chunks`),
   getStages: (id) => request(`/engagement/${id}/stages`),
   setStageStatus: (id, stageId, payload) =>
     request(`/engagement/${id}/stages/${stageId}`, { method: "POST", body: JSON.stringify(payload) }),

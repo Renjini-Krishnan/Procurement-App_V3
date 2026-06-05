@@ -4,6 +4,7 @@ import { Card, Button, Input, Select, Badge, Callout } from "../design/component
 import { I } from "../design/icons.jsx";
 import { api } from "../api/client.js";
 import { useEngagement } from "../hooks/useEngagement.js";
+import DocumentsShelf from "./DocumentsShelf.jsx";
 
 /* Stage 1 — Client profile.
    - When the URL is /engagement/new/client we render the create form
@@ -261,6 +262,11 @@ const Client = () => {
 
       {/* Primer (overview + categories) */}
       <Primer autofillResult={autofillResult} categories={categories} industry={form.industry} sources={sources} />
+
+      {/* Reference documents shelf — Phase 1 of the document-grounded
+          insights feature. Engagement must exist (not 'new') to enable
+          uploads. */}
+      <DocumentsShelf engagementId={isNew ? null : engagement.id} />
     </div>
   );
 };

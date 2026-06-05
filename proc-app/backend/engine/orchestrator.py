@@ -1138,6 +1138,99 @@ def _data_scope_for_engagement(engagement_id: str) -> dict:
     return scope
 
 
+_RAG_CONFIG_CACHE: Optional[dict] = None
+
+
+def _load_rag_config() -> dict:
+    """Load kb/_meta/rag-config.yml — which doc kinds each pillar uses
+    for grounding. Cached; first call reads from disk."""
+    global _RAG_CONFIG_CACHE
+    if _RAG_CONFIG_CACHE is not None:
+        return _RAG_CONFIG_CACHE
+    try:
+        import yaml
+        from .. import config
+        p = config.PROC_KB_ROOT / "_meta" / "rag-config.yml"
+        if p.exists():
+            _RAG_CONFIG_CACHE = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        else:
+            _RAG_CONFIG_CACHE = {}
+    except Exception:
+        _RAG_CONFIG_CACHE = {}
+    return _RAG_CONFIG_CACHE
+
+
+def _kinds_for(pillar: str, scope: str, theme_id: Optional[str] = None) -> list[str]:
+    """scope ∈ {'pillar_narrative', 'theme_insight', 'rca_narrative'}.
+    Returns the list of doc kinds the corresponding prompt should retrieve
+    from. theme_id only applies to scope='theme_insight'."""
+    cfg = _load_rag_config()
+    pillar_cfg = (cfg.get("pillars") or {}).get(pillar) or {}
+    defaults = cfg.get("defaults") or {}
+    if scope == "pillar_narrative":
+        return pillar_cfg.get("pillar_narrative_kinds") or defaults.get("pillar_narrative_kinds", [])
+    if scope == "theme_insight":
+        per_theme = pillar_cfg.get("per_theme") or {}
+        if theme_id and theme_id in per_theme:
+            return per_theme[theme_id]
+        return defaults.get("theme_insight_kinds", [])
+    if scope == "rca_narrative":
+        return pillar_cfg.get("rca_narrative_kinds") or defaults.get("rca_narrative_kinds", [])
+    return []
+
+
+def _retrieve_grounding(engagement_id: str, query: str, kinds: list[str], k: int = 5):
+    """Run retrieve.top_k with safe defaults. Returns a list of Hit dataclasses
+    (may be empty). Never raises."""
+    if not kinds or not engagement_id or not query:
+        return []
+    try:
+        from ..services.docs import retrieve
+        return retrieve.top_k(
+            engagement_id=engagement_id, query=query, kinds=kinds, k=k,
+        )
+    except Exception:
+        import logging
+        logging.getLogger("procvault.orchestrator").warning(
+            "Retrieval failed silently for %s/%s — falling back to no grounding",
+            engagement_id, query[:40], exc_info=True)
+        return []
+
+
+def _append_grounding(prompt: str, hits) -> str:
+    """Append a CLIENT-DOCUMENTS section to the prompt with each retrieved
+    chunk and citation instructions. Returns the augmented prompt."""
+    if not hits:
+        return prompt
+    lines = ["\n\nCLIENT-DOCUMENT CONTEXT (this engagement's uploaded SOPs / DoA / policies / etc.):"]
+    for i, h in enumerate(hits, 1):
+        # Cap each chunk at ~700 chars to keep prompt size in check
+        txt = (h.text or "").strip()
+        if len(txt) > 700:
+            txt = txt[:680] + "…"
+        lines.append(f"[{h.doc_short_label}] (chunk-id={h.chunk_id})\n{txt}")
+    lines.append(
+        "\nIf any of the above are directly relevant, weave them into your response "
+        "with a bracketed citation in the form [SOP §X] or [DoA p.Y] using the "
+        "exact label provided. If none are relevant, do not cite them. Do not "
+        "invent citations."
+    )
+    return prompt + "\n".join(lines)
+
+
+def _citation_payload(hits) -> list[dict]:
+    """Compact per-hit metadata for the frontend to render chips."""
+    out = []
+    for h in hits:
+        out.append({
+            "chunk_id": h.chunk_id, "doc_id": h.doc_id,
+            "label": h.doc_short_label, "page": h.page, "heading": h.heading,
+            "kind": h.kind, "text_preview": (h.text or "")[:240],
+            "distance": round(h.distance, 4),
+        })
+    return out
+
+
 def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
     """Mutate `result` in-place to attach AI narratives + attribution context.
     Safe to call on any pillar result shape. Skips when PROCVAULT_LLM_PILLAR_AI=0
@@ -1176,7 +1269,8 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
         "industry": industry,
     }
 
-    # 1. RCA card narratives
+    # 1. RCA card narratives — with RAG grounding from uploaded docs
+    rca_kinds = _kinds_for(pillar, "rca_narrative")
     for card in (result.get("rca_cards") or []):
         if not isinstance(card, dict):
             continue
@@ -1190,11 +1284,17 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
             benchmark=bench, data_scope=data_scope,
             industry=industry,
         )
+        # Retrieve doc grounding using the RCA card's identity
+        rca_query = f"{card.get('theme','?')} {card.get('cause','')}"
+        rca_hits = _retrieve_grounding(engagement_id, rca_query, rca_kinds, k=4)
+        prompt = _append_grounding(prompt, rca_hits)
         narrative = llm.generate_text(prompt, fallback,
                                          call_site=f"rca_narrative.{pillar}",
                                          engagement_id=engagement_id,
                                          temperature=0.3)
         card["ai_narrative"] = narrative
+        if rca_hits:
+            card["ai_citations"] = _citation_payload(rca_hits)
         if bench:
             card["ai_attribution"] = {
                 "benchmark": {"name": bench["name"], "source": bench.get("source"),
@@ -1225,20 +1325,30 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
             for k in ("po_count", "vendor_count", "total_spend_inr_cr", "row_count", "share_pct"):
                 if k in theme_data: metrics[k] = theme_data[k]
         bench = _benchmark_for_theme(benchmarks, theme_id)
+        theme_label = (theme_data.get("label", theme_id) if isinstance(theme_data, dict) else theme_id)
         prompt, fallback = llm_prompts.theme_insight(
             pillar=pillar_label, theme_id=theme_id,
-            theme_label=(theme_data.get("label", theme_id) if isinstance(theme_data, dict) else theme_id),
+            theme_label=theme_label,
             score=score, band=band, metrics=metrics,
             benchmark=bench, data_scope=data_scope,
             industry=industry,
         )
+        # Retrieve doc grounding using theme headline + metric values
+        ti_kinds = _kinds_for(pillar, "theme_insight", theme_id)
+        headline = theme_data.get("headline", "") if isinstance(theme_data, dict) else ""
+        ti_query = f"{theme_label} {headline} {' '.join(str(v) for v in metrics.values())}"
+        ti_hits = _retrieve_grounding(engagement_id, ti_query, ti_kinds, k=5)
+        prompt = _append_grounding(prompt, ti_hits)
         narrative = llm.generate_text(prompt, fallback,
                                          call_site=f"theme_insight.{pillar}",
                                          engagement_id=engagement_id,
                                          temperature=0.3)
         theme_insights[theme_id] = narrative
+        if ti_hits:
+            theme_attributions.setdefault(theme_id, {})["citations"] = _citation_payload(ti_hits)
         if bench:
             theme_attributions[theme_id] = {
+                **(theme_attributions.get(theme_id) or {}),
                 "benchmark": {"name": bench["name"], "source": bench.get("source"),
                               "year": bench.get("year"),
                               "value_range": bench.get("value_range"),
@@ -1276,10 +1386,23 @@ def _ai_enrich_pillar(result: dict, engagement_id: str, industry: str) -> dict:
             data_scope=data_scope,
             industry=industry,
         )
+        # Pillar verdict — broader retrieval across the pillar's preferred kinds
+        pn_kinds = _kinds_for(pillar, "pillar_narrative")
+        weakest = min(
+            (t for t in theme_summaries if isinstance(t.get("score"), (int, float))),
+            key=lambda t: t["score"], default=None
+        )
+        pn_query_parts = [pillar_label, str(pillar_band)]
+        if weakest: pn_query_parts += [weakest.get("label",""), str(weakest.get("score",""))]
+        pn_query = " ".join(p for p in pn_query_parts if p)
+        pn_hits = _retrieve_grounding(engagement_id, pn_query, pn_kinds, k=6)
+        prompt = _append_grounding(prompt, pn_hits)
         narrative = llm.generate_text(prompt, fallback,
                                          call_site=f"pillar_narrative.{pillar}",
                                          engagement_id=engagement_id,
                                          temperature=0.3)
         result["ai_pillar_narrative"] = narrative
+        if pn_hits:
+            result["ai_pillar_citations"] = _citation_payload(pn_hits)
 
     return result

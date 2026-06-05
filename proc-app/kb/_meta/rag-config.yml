@@ -1,0 +1,81 @@
+# =============================================================================
+# RAG configuration — which document kinds each pillar / theme retrieves from.
+# =============================================================================
+# Consumed by orchestrator._ai_enrich_pillar before each Gemini narrative call.
+# Retrieval query is the theme headline + key metric names.
+# Empty `kinds` list = no document grounding for that pillar (LLM behaves as
+# pre-Phase-1).
+#
+# Valid kinds (from services/docs/store.py:VALID_KINDS):
+#   sop · dop · proc_policy · org_chart · asis_flow · cat_strategy ·
+#   contract_doc · past_report · annual_report · other
+# =============================================================================
+
+metadata:
+  version: 1.0
+  layer: function-default
+  last_updated: 2026-06-05
+
+# Default settings if a pillar has no entry
+defaults:
+  top_k: 5
+  min_chunks_for_grounding: 1
+  pillar_narrative_kinds: [proc_policy, past_report, annual_report]
+  theme_insight_kinds: []        # overridden per pillar
+  rca_narrative_kinds: []
+
+pillars:
+
+  op-model:
+    # Op Model: SOPs explain governance, policies explain centralisation
+    # principles, category strategies list tier-A categories, org charts
+    # reveal whether a CoE / SSC team exists. Past reports show prior
+    # advisor recommendations.
+    pillar_narrative_kinds: [proc_policy, past_report, sop]
+    per_theme:
+      centralisation:    [sop, proc_policy, cat_strategy, past_report]
+      shared-services:   [sop, asis_flow, org_chart, past_report]
+      coe:               [proc_policy, cat_strategy, org_chart, past_report]
+      tail-spend:        [sop, dop, proc_policy, past_report]
+    rca_narrative_kinds:   [sop, dop, proc_policy, cat_strategy]
+
+  doa:
+    pillar_narrative_kinds: [dop, proc_policy, past_report]
+    per_theme:
+      document-audit:    [dop, proc_policy]
+      robustness:        [dop, proc_policy, sop]
+      po-compliance:     [dop, sop]
+      system-enforcement:[sop, asis_flow]
+      bucket-optimisation:[dop, sop]
+    rca_narrative_kinds: [dop, sop]
+
+  buying-channel:
+    pillar_narrative_kinds: [sop, contract_doc, proc_policy]
+    per_theme:
+      buying-channel-strategy: [sop, contract_doc, proc_policy, cat_strategy]
+    rca_narrative_kinds: [sop, contract_doc]
+
+  org-structure:
+    pillar_narrative_kinds: [org_chart, sop, proc_policy]
+    per_theme:
+      organisation-posture:        [org_chart, proc_policy, sop]
+      fte-sizing-role-composition: [org_chart, sop]
+      spend-fte-distribution:      [org_chart, proc_policy]
+      hierarchy-span:              [org_chart, sop, proc_policy]
+    rca_narrative_kinds: [org_chart, sop, proc_policy]
+
+  material-master:
+    pillar_narrative_kinds: [cat_strategy, sop]
+    rca_narrative_kinds: [cat_strategy, sop]
+
+  pr-to-po:
+    pillar_narrative_kinds: [sop, asis_flow]
+    rca_narrative_kinds: [sop, asis_flow, dop]
+
+  post-po:
+    pillar_narrative_kinds: [sop, asis_flow]
+    rca_narrative_kinds: [sop, asis_flow]
+
+  supplier:
+    pillar_narrative_kinds: [proc_policy, contract_doc]
+    rca_narrative_kinds: [proc_policy, contract_doc]

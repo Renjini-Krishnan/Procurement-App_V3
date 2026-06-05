@@ -98,6 +98,7 @@ const BuyingChannel = () => {
         <div style={{ marginTop: 16 }}>
           <AiNarrativeBlock title="AI verdict · Buying Channel"
                               narrative={data.ai_pillar_narrative}
+                              citations={data.ai_pillar_citations}
                               attribution={{ benchmark: null, data_scope: data.attribution?.data_scope }} />
         </div>
       )}

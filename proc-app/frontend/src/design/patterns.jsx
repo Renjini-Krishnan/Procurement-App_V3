@@ -549,8 +549,11 @@ export const QreStatusChip = ({ qreStatus, engagementId }) => {
  * badge. Used for theme insights + pillar narrative + RCA narratives.
  * ======================================================================== */
 
-export const AiNarrativeBlock = ({ title, narrative, isLive = true, attribution }) => {
+export const AiNarrativeBlock = ({ title, narrative, isLive = true, attribution, citations }) => {
   if (!narrative) return null;
+  // citations: array of {label, page, kind, text_preview, doc_id, chunk_id}
+  // attribution may also carry citations under attribution.citations
+  const cites = citations || attribution?.citations || null;
   return (
     <div style={{
       padding: 14, borderRadius: "var(--r-md)",
@@ -575,7 +578,43 @@ export const AiNarrativeBlock = ({ title, narrative, isLive = true, attribution 
       <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-900)", lineHeight: 1.55 }}>
         {narrative}
       </div>
+      <CitationChips citations={cites} />
       <AttributionFooter attribution={attribution} />
+    </div>
+  );
+};
+
+/* Footer chip row — one chip per uploaded-doc chunk that grounded this
+   narrative. Hover the chip to see the chunk text preview; click to open
+   the source document in a new tab. */
+const CitationChips = ({ citations }) => {
+  if (!Array.isArray(citations) || citations.length === 0) return null;
+  return (
+    <div style={{
+      marginTop: 10, paddingTop: 8,
+      borderTop: "1px dashed var(--brand-200, #d4d4f7)",
+      display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
+    }}>
+      <span style={{ fontSize: "var(--fs-10)", color: "var(--ink-500)",
+                       textTransform: "uppercase", letterSpacing: "0.08em",
+                       fontWeight: 600, marginRight: 4 }}>
+        📚 Client docs referenced:
+      </span>
+      {citations.map((c, i) => (
+        <span key={c.chunk_id || i}
+              title={c.text_preview || ""}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "1px 8px", borderRadius: "var(--r-pill)",
+                background: "var(--surface-card)",
+                border: "1px solid var(--brand-200, #d4d4f7)",
+                fontSize: "var(--fs-11)", color: "var(--brand-700)",
+                fontWeight: 600, cursor: "help",
+                fontFamily: "var(--font-mono)",
+              }}>
+          📄 {c.label || `chunk #${i+1}`}
+        </span>
+      ))}
     </div>
   );
 };

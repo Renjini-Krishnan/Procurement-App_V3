@@ -111,13 +111,87 @@ CREATE TABLE IF NOT EXISTS engagement_overrides (
     PRIMARY KEY (engagement_id, key),
     FOREIGN KEY (engagement_id) REFERENCES engagements(id)
 );
+
+-- Reference documents uploaded per engagement (SOP, DoA, process flows, etc.)
+-- Drives RAG-grounded AI narratives across all pillars.
+CREATE TABLE IF NOT EXISTS engagement_documents (
+    id                  TEXT PRIMARY KEY,
+    engagement_id       TEXT NOT NULL,
+    kind                TEXT NOT NULL,            -- sop / dop / proc_policy / org_chart / asis_flow / cat_strategy / contract_doc / past_report / annual_report / other
+    original_filename   TEXT NOT NULL,
+    stored_path         TEXT NOT NULL,
+    content_hash        TEXT NOT NULL,            -- SHA256, for dedup
+    size_bytes          INTEGER NOT NULL,
+    mime_type           TEXT,
+    page_count          INTEGER,
+    parsed_method       TEXT,                     -- pdfplumber / docx / image / md / txt
+    chunk_count         INTEGER DEFAULT 0,
+    status              TEXT NOT NULL,            -- pending | parsing | embedding | ready | failed
+    error_message       TEXT,
+    ingest_started_at   TEXT,
+    ingest_finished_at  TEXT,
+    uploaded_at         TEXT NOT NULL,
+    FOREIGN KEY (engagement_id) REFERENCES engagements(id)
+);
+CREATE INDEX IF NOT EXISTS idx_eng_docs_eng ON engagement_documents(engagement_id);
+CREATE INDEX IF NOT EXISTS idx_eng_docs_status ON engagement_documents(status);
+
+-- Metadata table for chunks. The vector embeddings live in a sqlite-vec
+-- virtual table 'engagement_doc_chunks_vec' that's created on first
+-- connection (vec0 needs the extension loaded). Chunk_id is the join key.
+CREATE TABLE IF NOT EXISTS engagement_doc_chunks_meta (
+    chunk_id            TEXT PRIMARY KEY,
+    engagement_id       TEXT NOT NULL,
+    doc_id              TEXT NOT NULL,
+    kind                TEXT NOT NULL,
+    page                INTEGER,
+    heading             TEXT,
+    text                TEXT NOT NULL,
+    token_count         INTEGER,
+    created_at          TEXT NOT NULL,
+    FOREIGN KEY (doc_id) REFERENCES engagement_documents(id)
+);
+CREATE INDEX IF NOT EXISTS idx_chunks_meta_eng ON engagement_doc_chunks_meta(engagement_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_meta_doc ON engagement_doc_chunks_meta(doc_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_meta_kind ON engagement_doc_chunks_meta(kind);
 """
+
+
+_VEC_DIM = 768   # Vertex text-embedding-005 output
+
+
+def _load_sqlite_vec(conn) -> bool:
+    """Load the sqlite-vec extension on a connection. Returns True if
+    successful. We make this a soft dependency — if loading fails (e.g.
+    on a Python build without enable_load_extension) the docs feature is
+    disabled with a clear log message, but the rest of the app still
+    works."""
+    import logging
+    log = logging.getLogger("procvault.db")
+    try:
+        import sqlite_vec
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
+        return True
+    except Exception as e:
+        log.warning("sqlite-vec extension unavailable: %s. "
+                     "Document ingestion + RAG features will be disabled.", e)
+        return False
 
 
 def init_db() -> None:
     config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(config.DB_PATH) as conn:
         conn.executescript(SCHEMA)
+        # Try to load the vec extension so we can CREATE the virtual
+        # table. If it's unavailable, the vec table simply isn't created
+        # and the documents-ingestion path detects that at runtime.
+        if _load_sqlite_vec(conn):
+            conn.execute(
+                f"""CREATE VIRTUAL TABLE IF NOT EXISTS engagement_doc_chunks_vec
+                    USING vec0(chunk_id TEXT PRIMARY KEY, embedding FLOAT[{_VEC_DIM}])"""
+            )
         _apply_idempotent_migrations(conn)
         conn.commit()
 
@@ -154,6 +228,10 @@ def _apply_idempotent_migrations(conn) -> None:
 def db_connection():
     conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
+    # Load sqlite-vec on every connection so queries against the vec0
+    # virtual table work without surprise. No-op if the extension isn't
+    # available (silently degrades).
+    _load_sqlite_vec(conn)
     try:
         yield conn
         conn.commit()
