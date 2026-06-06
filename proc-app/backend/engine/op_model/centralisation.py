@@ -1,8 +1,12 @@
 """Centralisation theme (C0-C5).
 
-C1 Multi-plant detection — categories bought by ≥2 plants with material spend
+Operates on Stage 9 canonical categories (df_canonical, one row per
+canonical_id) rather than raw MATKLs. Each output row carries the
+underlying MATKLs as `members` for UI drill-down.
+
+C1 Multi-plant detection — canonicals bought by ≥2 plants with material spend
 C2 Vendor pattern insight — vendor overlap across plants
-C3 Industry knowledge filter — tag categories naturally_local / _central / centre_led
+C3 Recommendation tagging — KB-driven centralise / centre_led / keep_local
 C4 Savings quantification — apply industry benchmark rate to candidate spend
 C5 Reconciliation — qualitative cross-check (stub for V1; needs QRE)
 """
@@ -18,24 +22,38 @@ MATERIAL_SPEND_THRESHOLD_INR_CR = 3   # Steel default per centralisation-filters
 MIN_PLANTS_FOR_CENTRALISATION = 2
 
 
-def run_centralisation(df_mg: pd.DataFrame, industry: str = "steel") -> dict:
-    """Run all 6 centralisation components against per-MG metrics."""
+def run_centralisation(df_canonical: pd.DataFrame, industry: str = "steel",
+                          taxonomy: dict | None = None) -> dict:
+    """Run all 6 centralisation components against per-canonical metrics.
+
+    df_canonical: one row per Stage 9 canonical_id (from
+        stage10_kpis.precompute_canonical_metrics). Carries spend/po/
+        vendor/plant aggregates + a `members` array of underlying MATKLs.
+    taxonomy: optional Stage 9 taxonomy dict (load_taxonomy output) used
+        to read per-canonical `recommendation` overrides from KB.
+    """
 
     benchmarks = kb_loader.resolve_pillar_benchmarks("op-model", industry=industry)["benchmarks"]
     filters = _load_industry_filters(industry)
 
+    # Drop the UNCLASSIFIED bucket from theme analysis — surfaces separately
+    # in the UI via stage10_kpis.unclassified_bucket(df_canonical).
+    df_analysed = df_canonical[
+        df_canonical["canonical_id"].astype(str).str.upper() != "UNCLASSIFIED"
+    ].copy() if len(df_canonical) else df_canonical
+
     # C0 — Baseline (stub for V1 without QRE)
-    c0 = _c0_baseline_stub(df_mg)
+    c0 = _c0_baseline_stub(df_analysed)
 
     # C1 — Multi-plant candidates
-    c1 = _c1_multi_plant(df_mg)
+    c1 = _c1_multi_plant(df_analysed)
     candidates = c1["candidates"]
 
     # C2 — Vendor pattern insight
-    c2 = _c2_vendor_pattern(df_mg, candidates)
+    c2 = _c2_vendor_pattern(df_analysed, candidates)
 
-    # C3 — Industry filter tagging
-    c3 = _c3_industry_filter(df_mg, candidates, filters)
+    # C3 — Recommendation tagging (KB canonical → tag, with archetype + filter fallback)
+    c3 = _c3_recommendation_tag(df_analysed, candidates, filters, taxonomy or {})
 
     # C4 — Savings quantification
     c4 = _c4_savings_quantification(c3, benchmarks)
@@ -48,11 +66,12 @@ def run_centralisation(df_mg: pd.DataFrame, industry: str = "steel") -> dict:
 
     return {
         "theme": "centralisation",
+        "unit_of_analysis": "canonical_category",
         "components": {
             "c0_baseline": c0,
             "c1_multi_plant_detection": c1,
             "c2_vendor_pattern_insight": c2,
-            "c3_industry_knowledge_filter": c3,
+            "c3_recommendation_tag": c3,
             "c4_savings_quantification": c4,
             "c5_reconciliation": c5,
         },
@@ -70,7 +89,7 @@ def run_centralisation(df_mg: pd.DataFrame, industry: str = "steel") -> dict:
 
 # --------------------------------------------------------------------------
 
-def _c0_baseline_stub(df_mg: pd.DataFrame) -> dict:
+def _c0_baseline_stub(df_canonical: pd.DataFrame) -> dict:
     """Stub — without QRE, we cannot compute spend_central_pct. Returns placeholder."""
     return {
         "component_id": "c0_baseline",
@@ -81,37 +100,61 @@ def _c0_baseline_stub(df_mg: pd.DataFrame) -> dict:
     }
 
 
-def _c1_multi_plant(df_mg: pd.DataFrame) -> dict:
-    """Identify MGs bought by ≥2 plants with material spend."""
+def _c1_multi_plant(df_canonical: pd.DataFrame) -> dict:
+    """Identify canonical categories bought by ≥2 plants with material spend."""
     threshold_inr = MATERIAL_SPEND_THRESHOLD_INR_CR * 10_000_000  # ₹ Cr → ₹
 
-    candidates_df = df_mg[
-        (df_mg["plant_count"] >= MIN_PLANTS_FOR_CENTRALISATION)
-        & (df_mg["total_spend_inr"] >= threshold_inr)
+    if df_canonical.empty or "plant_count" not in df_canonical.columns:
+        return {
+            "component_id": "c1_multi_plant_detection",
+            "decision_driving": True,
+            "candidate_count": 0, "candidates": [],
+            "candidate_spend_inr_cr": 0,
+            "threshold_min_plants": MIN_PLANTS_FOR_CENTRALISATION,
+            "threshold_material_spend_inr_cr": MATERIAL_SPEND_THRESHOLD_INR_CR,
+            "top_candidates": [],
+        }
+
+    candidates_df = df_canonical[
+        (df_canonical["plant_count"] >= MIN_PLANTS_FOR_CENTRALISATION)
+        & (df_canonical["total_spend_inr"] >= threshold_inr)
     ].copy()
+
+    # Top-candidate dict includes members for UI drill-down
+    top_records = []
+    for _, row in candidates_df.head(10).iterrows():
+        top_records.append({
+            "canonical_id": row["canonical_id"],
+            "canonical_label": row.get("canonical_label", row["canonical_id"]),
+            "archetype": row.get("archetype"),
+            "total_spend_inr": float(row["total_spend_inr"]),
+            "total_spend_inr_cr": round(float(row["total_spend_inr"]) / 10_000_000, 2),
+            "plant_count": int(row["plant_count"]),
+            "vendor_count": int(row.get("vendor_count", 0)),
+            "matkl_count": int(row.get("matkl_count", 0)),
+            "members": row.get("members") or [],
+        })
 
     return {
         "component_id": "c1_multi_plant_detection",
         "decision_driving": True,
         "candidate_count": len(candidates_df),
-        "candidates": candidates_df["material_group"].tolist(),
+        "candidates": candidates_df["canonical_id"].tolist(),
         "candidate_spend_inr_cr": round(candidates_df["total_spend_inr"].sum() / 10_000_000, 1),
         "threshold_min_plants": MIN_PLANTS_FOR_CENTRALISATION,
         "threshold_material_spend_inr_cr": MATERIAL_SPEND_THRESHOLD_INR_CR,
-        "top_candidates": candidates_df.head(10)[
-            ["material_group", "material_group_desc", "archetype", "total_spend_inr", "plant_count", "vendor_count"]
-        ].to_dict(orient="records"),
+        "top_candidates": top_records,
     }
 
 
-def _c2_vendor_pattern(df_mg: pd.DataFrame, candidates: list[str]) -> dict:
-    """For each candidate, compute vendor overlap across plants.
+def _c2_vendor_pattern(df_canonical: pd.DataFrame, candidates: list[str]) -> dict:
+    """For each canonical candidate, compute vendor overlap across plants.
 
-    overlap = (sum of plants whose top vendor matches the MG-level top vendor) / plant_count
-    Range 0-1; high overlap = same-vendor across plants = strong centralisation signal.
+    overlap = (share of plants whose top vendor matches the canonical-level top vendor)
+    High overlap = same-vendor across plants = strong centralisation signal.
     """
     out = []
-    if not candidates:
+    if not candidates or df_canonical.empty:
         return {
             "component_id": "c2_vendor_pattern_insight",
             "decision_driving": False,
@@ -119,26 +162,23 @@ def _c2_vendor_pattern(df_mg: pd.DataFrame, candidates: list[str]) -> dict:
             "details": [],
         }
 
-    cand_df = df_mg[df_mg["material_group"].isin(candidates)]
+    cand_df = df_canonical[df_canonical["canonical_id"].isin(candidates)]
     for _, row in cand_df.iterrows():
         plants_data = row.get("plants_data") or {}
         if not plants_data or len(plants_data) < 2:
             continue
-        # Top vendor across all plants for this MG
-        # Aggregate per-plant top vendors; "overlap" = share of plants whose top vendor matches MG top vendor
-        plant_top_vendors = [pd_data.get("top_vendor") for pd_data in plants_data.values()]
-        # MG-level top vendor approximation: most common per-plant top vendor
         from collections import Counter
+        plant_top_vendors = [pd_data.get("top_vendor") for pd_data in plants_data.values()]
         c = Counter(v for v in plant_top_vendors if v)
         if not c:
             continue
-        mg_top = c.most_common(1)[0][0]
-        overlap_pct = (c[mg_top] / len(plants_data)) * 100
+        top = c.most_common(1)[0][0]
+        overlap_pct = (c[top] / len(plants_data)) * 100
         out.append({
-            "material_group": row["material_group"],
-            "material_group_desc": row["material_group_desc"],
+            "canonical_id": row["canonical_id"],
+            "canonical_label": row.get("canonical_label", row["canonical_id"]),
             "plant_count": int(row["plant_count"]),
-            "mg_top_vendor": mg_top,
+            "top_vendor": top,
             "vendor_overlap_pct": round(overlap_pct, 1),
         })
 
@@ -151,33 +191,65 @@ def _c2_vendor_pattern(df_mg: pd.DataFrame, candidates: list[str]) -> dict:
     }
 
 
-def _c3_industry_filter(df_mg: pd.DataFrame, candidates: list[str], filters: dict) -> dict:
-    """Tag each candidate with Centralise / Centre-Led / Keep Local using filters.
+# Archetype → default recommendation fallback (when KB has no per-canonical override)
+ARCHETYPE_DEFAULT_TAG = {
+    "BULK": "centralise",
+    "DIRECT": "centralise",
+    "INDIRECT": "centre_led",
+    "SERVICE": "review",
+    "CAPEX": "review",
+    "UNKNOWN": "review",
+}
 
-    Steel filters list category_patterns matching MG description keywords.
+
+def _c3_recommendation_tag(df_canonical: pd.DataFrame, candidates: list[str],
+                              filters: dict, taxonomy: dict) -> dict:
+    """Tag each candidate canonical with centralise / centre_led / keep_local.
+
+    Resolution order:
+      1. KB explicit `recommendation` field on the canonical (taxonomy.by_id)
+      2. Filter-pattern match on canonical_label (legacy fallback)
+      3. Archetype default (BULK/DIRECT → centralise, INDIRECT → centre_led)
     """
     naturally_local = filters.get("naturally_local", [])
     naturally_central = filters.get("naturally_central", [])
-    centre_led = filters.get("centre_led", [])
+    centre_led_filter = filters.get("centre_led", [])
+    by_id = (taxonomy.get("by_id") or {})
 
     tags: list[dict] = []
     centralise_spend = 0.0
     centre_led_spend = 0.0
     keep_local_spend = 0.0
 
-    cand_df = df_mg[df_mg["material_group"].isin(candidates)]
-    for _, row in cand_df.iterrows():
-        desc = (row.get("material_group_desc") or "").upper()
-        tag = _match_filter_tag(desc, naturally_local, naturally_central, centre_led)
+    if df_canonical.empty or not candidates:
+        return {
+            "component_id": "c3_recommendation_tag",
+            "decision_driving": True,
+            "centralise_count": 0, "centralise_spend_inr_cr": 0,
+            "centre_led_count": 0, "centre_led_spend_inr_cr": 0,
+            "keep_local_count": 0, "keep_local_spend_inr_cr": 0,
+            "review_count": 0, "addressable_spend_inr_cr": 0, "tags": [],
+        }
 
-        # Default if no match: tag by archetype + plant pattern
+    cand_df = df_canonical[df_canonical["canonical_id"].isin(candidates)]
+    for _, row in cand_df.iterrows():
+        cid = str(row["canonical_id"])
+        canon_def = by_id.get(cid) or {}
+        kb_tag = str(canon_def.get("recommendation") or "").strip().lower() or None
+        archetype = row.get("archetype") or canon_def.get("archetype") or "UNKNOWN"
+
+        tag = "no_match"
+        source = None
+        if kb_tag in ("centralise", "centre_led", "keep_local", "review"):
+            tag, source = kb_tag, "kb_canonical_recommendation"
         if tag == "no_match":
-            if row.get("archetype") == "BULK":
-                tag = "centralise"
-            elif row.get("archetype") == "INDIRECT":
-                tag = "centre_led"
-            else:
-                tag = "review"
+            label_upper = (row.get("canonical_label") or cid).upper()
+            tag = _match_filter_tag(label_upper, naturally_local, naturally_central, centre_led_filter)
+            if tag != "no_match":
+                source = "filter_pattern_match"
+        if tag == "no_match":
+            tag = ARCHETYPE_DEFAULT_TAG.get(str(archetype).upper(), "review")
+            source = "archetype_default"
 
         spend = float(row["total_spend_inr"])
         if tag == "centralise":
@@ -188,11 +260,16 @@ def _c3_industry_filter(df_mg: pd.DataFrame, candidates: list[str], filters: dic
             keep_local_spend += spend
 
         tags.append({
-            "material_group": row["material_group"],
-            "material_group_desc": row["material_group_desc"],
-            "archetype": row.get("archetype"),
+            "canonical_id": cid,
+            "canonical_label": row.get("canonical_label", cid),
+            "archetype": archetype,
             "tag": tag,
+            "tag_source": source,
             "total_spend_inr_cr": round(spend / 10_000_000, 2),
+            "plant_count": int(row.get("plant_count", 0)),
+            "vendor_count": int(row.get("vendor_count", 0)),
+            "matkl_count": int(row.get("matkl_count", 0)),
+            "members": row.get("members") or [],
         })
 
     centralise_count = sum(1 for t in tags if t["tag"] == "centralise")
@@ -203,7 +280,7 @@ def _c3_industry_filter(df_mg: pd.DataFrame, candidates: list[str], filters: dic
     addressable_spend_inr_cr = round((centralise_spend + centre_led_spend) / 10_000_000, 1)
 
     return {
-        "component_id": "c3_industry_knowledge_filter",
+        "component_id": "c3_recommendation_tag",
         "decision_driving": True,
         "centralise_count": centralise_count,
         "centralise_spend_inr_cr": round(centralise_spend / 10_000_000, 1),

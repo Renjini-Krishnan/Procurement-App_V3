@@ -30,7 +30,7 @@ THEME_METHOD = {
                     "(KB: archetype-overrides.yml), then quantify savings using the "
                     "function-default + industry-overlay savings-rate benchmark cascade."),
         "decision_components": ["c1_multi_plant_detection", "c2_vendor_pattern_insight",
-                                 "c3_industry_knowledge_filter", "c4_savings_quantification"],
+                                 "c3_recommendation_tag", "c4_savings_quantification"],
         "qre_baseline": ["c0_baseline", "c5_reconciliation"],
         "kb_files": ["op-model/benchmarks.yml",
                      "industries/<industry>/by-function/procurement/op-model/archetype-overrides.yml",
@@ -388,7 +388,7 @@ def _build_derivation(theme_id: str, metrics: dict, components: dict,
 
     if theme_id == "centralisation":
         c1 = components.get("c1_multi_plant_detection") or {}
-        c3 = components.get("c3_industry_knowledge_filter") or {}
+        c3 = components.get("c3_recommendation_tag") or components.get("c3_industry_knowledge_filter") or {}
         c4 = components.get("c4_savings_quantification") or {}
         if c1:
             steps.append(f"c1 — Detect multi-plant MGs: threshold ≥{c1.get('threshold_min_plants','?')} plants "

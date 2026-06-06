@@ -39,21 +39,31 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     gold_summary = gold_data.summarise(df_gold)
     timings["stage8_gold"] = round(time.time() - t0, 2)
 
-    # Stage 9 — Classify
+    # Stage 9 — Classify (archetype + canonical with manual overrides)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
     classify_summary = stage9_classify.summarise(df_classified)
+    from . import stage9_canonical_classify
+    _stage9_overrides = db.get_stage9_overrides_grouped(engagement_id)
+    df_classified, canonical_report = stage9_canonical_classify.classify_canonical(
+        df_classified, industry=industry, manual_overrides=_stage9_overrides,
+    )
+    canonical_taxonomy = stage9_canonical_classify.load_taxonomy(industry)
     timings["stage9_classify"] = round(time.time() - t1, 2)
 
-    # Stage 10 — KPIs (per-MG metrics)
+    # Stage 10 — KPIs (per-MG + per-canonical)
     t2 = time.time()
     df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    df_canonical = stage10_kpis.precompute_canonical_metrics(df_classified)
+    unclassified = stage10_kpis.unclassified_bucket(df_canonical)
     portfolio = stage10_kpis.portfolio_summary(df_mg)
     timings["stage10_kpis"] = round(time.time() - t2, 2)
 
     # Stage 12 — Op Model themes
+    # Centralisation flipped to canonical-as-unit; SS/CoE/Tail still consume
+    # df_mg pending their own refactor.
     t3 = time.time()
-    cent = run_centralisation(df_mg, industry=industry)
+    cent = run_centralisation(df_canonical, industry=industry, taxonomy=canonical_taxonomy)
     ss = run_shared_services(df_mg, industry=industry)
     coe_out = run_coe(df_mg, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
     tail = run_tail_spend(df_mg, df_classified, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
@@ -92,6 +102,8 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
         "gold_summary": gold_summary,
         "classify_summary": classify_summary,
         "portfolio": portfolio,
+        "canonical_classification": canonical_report.get("stats", {}),
+        "unclassified_bucket": unclassified,
         "themes": theme_outputs,
         "theme_scores": theme_scores,
         "pillar_score": pillar_score,
@@ -639,15 +651,20 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     timings["stage8_gold"] = round(time.time() - t0, 2)
     t1 = time.time()
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
+    from . import stage9_canonical_classify as _scc
+    _ovr = db.get_stage9_overrides_grouped(engagement_id)
+    df_classified, _ = _scc.classify_canonical(df_classified, industry=industry, manual_overrides=_ovr)
+    _canon_taxo = _scc.load_taxonomy(industry)
     timings["stage9_classify"] = round(time.time() - t1, 2)
     t2 = time.time()
     df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
+    df_canonical = stage10_kpis.precompute_canonical_metrics(df_classified)
     portfolio = stage10_kpis.portfolio_summary(df_mg)
     timings["stage10_kpis"] = round(time.time() - t2, 2)
 
     # Op Model
     t3 = time.time()
-    cent = run_centralisation(df_mg, industry=industry)
+    cent = run_centralisation(df_canonical, industry=industry, taxonomy=_canon_taxo)
     ss = run_shared_services(df_mg, industry=industry)
     coe_out = run_coe(df_mg, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
     tail = run_tail_spend(df_mg, df_classified, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
