@@ -12,8 +12,10 @@ V1 core tiers wired:
        learned maps which are V2)
   C — Text match (keywords + synonyms against PO text columns)
   D — Vendor anchor (vendor_specialisation_examples)
-  E — G/L anchor (requires gl_account column; silent skip if missing)
   F — LLM fallback — V2
+
+  (Tier E "G/L anchor" was dropped — gl_account is rarely populated in
+  real client PO dumps, so the tier added noise without coverage.)
 
 Output per row: canonical_id, confidence_tier, signal_trace (list).
 
@@ -37,7 +39,7 @@ from .. import config
 # Tier weights (per framework section 5 confidence-on-conflict spec)
 # --------------------------------------------------------------------------
 
-TIER_WEIGHTS = {"A": 3, "B": 3, "C": 2, "D": 2, "E": 2, "F": 1}
+TIER_WEIGHTS = {"A": 3, "B": 3, "C": 2, "D": 2, "F": 1}
 
 # Text columns scanned for Tier C, in priority order
 TEXT_COLUMNS = ("material_group_desc", "short_text")  # MAKT (long text) not in V1 PO schema
@@ -97,12 +99,6 @@ def load_taxonomy(industry: str) -> dict:
         if subs:
             vendor_index.append((c["id"], subs))
 
-    # GL prefix index: list of (gl_pattern, canonical_id). Pattern uses '%' wildcard.
-    gl_index: list[tuple[str, str]] = []
-    for c in canonicals:
-        for pat in ((c.get("sap_signals") or {}).get("gl_patterns") or []):
-            gl_index.append((str(pat).strip(), c["id"]))
-
     _taxonomy_cache[key] = {
         "canonicals": canonicals,
         "by_id": by_id,
@@ -110,7 +106,6 @@ def load_taxonomy(industry: str) -> dict:
             "hsn_to_canon": hsn_to_canon,
             "text_index": text_index,
             "vendor_index": vendor_index,
-            "gl_index": gl_index,
         },
     }
     return _taxonomy_cache[key]
@@ -222,25 +217,6 @@ def _tier_d_vendor(row: dict, idx: dict) -> list[tuple[str, dict]]:
     return hits
 
 
-def _tier_e_gl(row: dict, idx: dict) -> list[tuple[str, dict]]:
-    """G/L account prefix match. Skips silently if gl_account column absent."""
-    gl = str(row.get("gl_account") or "").strip()
-    if not gl:
-        return []
-    hits: list[tuple[str, dict]] = []
-    for pat, canon_id in idx["gl_index"]:
-        # Pattern is 'NNNN%' — strip % and prefix-match
-        prefix = pat.replace("%", "")
-        if prefix and gl.startswith(prefix):
-            hits.append((canon_id, {
-                "tier": "E",
-                "signal": f"G/L {gl} matches pattern {pat}",
-                "value": pat,
-                "weight": "corroboration",
-            }))
-    return hits
-
-
 # --------------------------------------------------------------------------
 # Score + confidence
 # --------------------------------------------------------------------------
@@ -277,16 +253,15 @@ def _aggregate(signals: list[tuple[str, dict]]) -> tuple[Optional[str], str, lis
     canon_id, info = winner
 
     # Confidence assignment per framework:
-    #   HIGH if Tier A in winner's tier set OR (C + (D or E))
-    #   HIGH if Tier B (inherited from MG map)
-    #   MEDIUM if C alone, D alone, E alone
-    #   LOW if only F (V2)
+    #   HIGH if Tier A (HSN), Tier B (clean-MG inherit), or (Tier C + Tier D)
+    #   MEDIUM if Tier C alone or Tier D alone
+    #   LOW if only Tier F (LLM fallback, V2)
     tiers = set(info["tiers"])
     if "A" in tiers or "B" in tiers:
         confidence = "HIGH"
-    elif "C" in tiers and ({"D", "E"} & tiers):
+    elif "C" in tiers and "D" in tiers:
         confidence = "HIGH"
-    elif tiers & {"C", "D", "E"}:
+    elif tiers & {"C", "D"}:
         confidence = "MEDIUM"
     elif tiers == {"F"}:
         confidence = "LOW"
@@ -296,7 +271,7 @@ def _aggregate(signals: list[tuple[str, dict]]) -> tuple[Optional[str], str, lis
     # Sort signal trace: primary tiers first, then corroboration
     trace = sorted(info["signals"], key=lambda s: (
         0 if s["weight"] == "primary" else 1,
-        list("ABCDEF").index(s["tier"]) if s["tier"] in "ABCDEF" else 99,
+        list("ABCDF").index(s["tier"]) if s["tier"] in "ABCDF" else 99,
     ))
 
     # Candidate alternatives (top 3 other canonicals)
@@ -341,7 +316,7 @@ def classify_canonical(df: pd.DataFrame, industry: str = "steel") -> tuple[pd.Da
 
     import json
 
-    # --- Pass 1: classify every row with Tiers A, C, D, E ---
+    # --- Pass 1: classify every row with Tiers A, C, D ---
     pass1_results: list[dict] = []
     for r in df.to_dict(orient="records"):
         mtart = str(r.get("material_type") or "").upper().strip() or None
@@ -349,7 +324,6 @@ def classify_canonical(df: pd.DataFrame, industry: str = "steel") -> tuple[pd.Da
         signals.extend(_tier_a_hsn(r, idx))
         signals.extend(_tier_c_text(r, idx, mtart_filter=mtart))
         signals.extend(_tier_d_vendor(r, idx))
-        signals.extend(_tier_e_gl(r, idx))
         canon, conf, trace, candidates = _aggregate(signals)
         pass1_results.append({"canonical_id": canon, "confidence": conf,
                                 "trace": trace, "candidates": candidates,
@@ -419,7 +393,7 @@ def classify_canonical(df: pd.DataFrame, industry: str = "steel") -> tuple[pd.Da
     confidence_counts: dict[str, int] = {}
     for r in final_results:
         confidence_counts[r["confidence"]] = confidence_counts.get(r["confidence"], 0) + 1
-    tier_fired_counts: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0}
+    tier_fired_counts: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
     for r in final_results:
         for s in r["trace"]:
             tier_fired_counts[s["tier"]] = tier_fired_counts.get(s["tier"], 0) + 1

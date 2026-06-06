@@ -119,7 +119,6 @@ const OverviewTab = ({ data, cc }) => {
             ["B", "Clean-MG inherit"],
             ["C", "Text keywords"],
             ["D", "Vendor anchor"],
-            ["E", "G/L anchor"],
             ["F", "LLM (V2)"],
           ].map(([k, label]) => (
             <div key={k} style={{ background: "var(--surface-sunk)", padding: 10, borderRadius: "var(--r-md)" }}>

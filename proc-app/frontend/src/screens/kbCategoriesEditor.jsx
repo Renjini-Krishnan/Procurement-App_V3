@@ -113,7 +113,7 @@ const CategoriesMasterView = ({ yamlText, onChange }) => {
       synonyms: [],
       hsn_codes: [],
       vendor_specialisation_examples: [],
-      sap_signals: { mtart: [], pstyp_excluded: [], gl_patterns: [] },
+      sap_signals: { mtart: [], pstyp_excluded: [] },
       typical_spend_share_pct: [0, 0],
       typical_kpis: [],
       notes: "",
@@ -390,11 +390,6 @@ const CanonicalForm = ({ canonical, onChange, onRename, onDuplicate, onDelete })
         <Label>PSTYP allowed (item categories valid for this canonical)</Label>
         <ChipSelect options={PSTYP_OPTIONS} values={sapSignals.pstyp_allowed || []}
                      onChange={(v) => updateSap({ pstyp_allowed: v })} />
-        <div style={{ height: 10 }} />
-        <TagList label="G/L patterns"
-                  hint="LIKE patterns to match gl_account (e.g. '5101%' matches 5101001, 5101002). Used by Tier E."
-                  values={sapSignals.gl_patterns || []}
-                  onChange={(v) => updateSap({ gl_patterns: v })} />
       </Section>
 
       {/* Informational fields */}
