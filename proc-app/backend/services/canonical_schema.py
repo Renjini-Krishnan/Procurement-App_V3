@@ -57,6 +57,13 @@ PO_SCHEMA = {
         {"field": "material_type",     "aliases": ["Material_Type", "Material Type", "MTART"],                     "type": "string",  "required": False, "description": "SAP MTART — DIEN=Service, ANLZ=Asset, ERSA=Spare."},
         {"field": "cost_center",       "aliases": ["Cost_Center", "Cost Center", "KOSTL"],                         "type": "string",  "required": False, "description": "Cost centre."},
         {"field": "uom",               "aliases": ["UoM", "Unit", "MEINS"],                                         "type": "string",  "required": False, "description": "Unit of measure."},
+        # Additional text + classification fields recognised by Stage 9 multi-source cascade
+        {"field": "external_material_group",      "aliases": ["External_Material_Group", "External Material Group", "Ext_Material_Group", "Ext.Mat.Group", "Ext Mat Group", "External MG", "Customer Material Group", "EXTWG"], "type": "string", "required": False, "description": "SAP MARA.EXTWG — external/customer-facing material classification. Stage 9 Tier B2."},
+        {"field": "external_material_group_desc", "aliases": ["External_Material_Group_Desc", "External Material Group Description", "Ext Mat Group Desc", "EXTWG Desc", "EXTWG_Description"], "type": "string", "required": False, "description": "EXTWG description. Stage 9 Tier C."},
+        {"field": "material_long_text",           "aliases": ["Material_Long_Text", "Material Long Text", "Long Description", "Long Text", "MAKT", "LTXT"], "type": "string", "required": False, "description": "SAP MAKT/LTXT — long material description. Highest-weight Tier C column."},
+        {"field": "material_master_desc",         "aliases": ["Material_Master_Description", "Material Master Description", "Material Description", "MAKTX"], "type": "string", "required": False, "description": "SAP MARA.MAKTX — material master description. Stage 9 Tier C."},
+        {"field": "old_material_number",          "aliases": ["Old_Material_Number", "Old Material Number", "Legacy Material Number", "Legacy Material Code", "BISMT"], "type": "string", "required": False, "description": "SAP MARA.BISMT — legacy material code. Stage 9 Tier B3 (prefix rollup) + Tier C."},
+        {"field": "item_note",                    "aliases": ["Item_Note", "Item Note", "Item Text", "PO Item Text", "EKPO_TXZ02", "TXZ02"], "type": "string", "required": False, "description": "Free-text PO line note. Stage 9 Tier C."},
     ],
 }
 

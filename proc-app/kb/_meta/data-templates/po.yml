@@ -289,6 +289,70 @@ fields:
   type: string
   required: false
   description: Unit of measure.
+- field: external_material_group
+  aliases:
+  - External_Material_Group
+  - External Material Group
+  - Ext_Material_Group
+  - Ext.Mat.Group
+  - Ext Mat Group
+  - External MG
+  - Customer Material Group
+  - EXTWG
+  type: string
+  required: false
+  description: SAP MARA.EXTWG. External / customer-facing material classification, often cleaner than internal MATKL. Read by Stage 9 Tier B2 (multi-source clean rollup).
+- field: external_material_group_desc
+  aliases:
+  - External_Material_Group_Desc
+  - External Material Group Description
+  - Ext Mat Group Desc
+  - EXTWG Desc
+  - EXTWG_Description
+  type: string
+  required: false
+  description: Description for external_material_group. Read by Stage 9 Tier C text scan.
+- field: material_long_text
+  aliases:
+  - Material_Long_Text
+  - Material Long Text
+  - Long Description
+  - Long Text
+  - MAKT
+  - LTXT
+  type: string
+  required: false
+  description: SAP MAKT/LTXT. Long material description, richer than short_text. Highest-weight column for Stage 9 Tier C text scan.
+- field: material_master_desc
+  aliases:
+  - Material_Master_Description
+  - Material Master Description
+  - Material Description
+  - MAKTX
+  type: string
+  required: false
+  description: SAP MARA.MAKTX. Material-master-level description (distinct from line short_text). Read by Stage 9 Tier C.
+- field: old_material_number
+  aliases:
+  - Old_Material_Number
+  - Old Material Number
+  - Legacy Material Number
+  - Legacy Material Code
+  - BISMT
+  type: string
+  required: false
+  description: SAP MARA.BISMT. Legacy material code carried over from pre-migration ERPs; prefix often encodes original category. Read by Stage 9 Tier B3 (prefix rollup) + Tier C.
+- field: item_note
+  aliases:
+  - Item_Note
+  - Item Note
+  - Item Text
+  - PO Item Text
+  - EKPO_TXZ02
+  - TXZ02
+  type: string
+  required: false
+  description: Free-text note attached to the PO line. Read by Stage 9 Tier C text scan.
 guidelines:
   lookback_months_recommended: 18
   minimum_months_required: 12
