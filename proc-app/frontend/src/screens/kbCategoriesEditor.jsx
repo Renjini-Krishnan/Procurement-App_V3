@@ -113,6 +113,8 @@ const CategoriesMasterView = ({ yamlText, onChange }) => {
       synonyms: [],
       hsn_codes: [],
       vendor_specialisation_examples: [],
+      external_mg_codes: [],
+      bismt_prefixes: [],
       sap_signals: { mtart: [], pstyp_excluded: [] },
       typical_spend_share_pct: [0, 0],
       typical_kpis: [],
@@ -353,7 +355,7 @@ const CanonicalForm = ({ canonical, onChange, onRename, onDuplicate, onDelete })
       {/* Classification signals — keywords + synonyms */}
       <Section title="Text-classification signals (Tier C)">
         <TagList label="Keywords"
-                  hint="Matched against material_group_desc + short_text (case-insensitive, word-boundary)"
+                  hint="Matched across 8 text columns (long text, short text, MG desc, EXTWG desc, item note, mat number, BISMT). Case-insensitive, word-boundary. Long text matches count 1.5x."
                   values={canonical.keywords || []}
                   onChange={(v) => onChange({ keywords: v })} />
         <div style={{ height: 8 }} />
@@ -372,13 +374,26 @@ const CanonicalForm = ({ canonical, onChange, onRename, onDuplicate, onDelete })
                   validator={(s) => /^\d{4,8}$/.test(s) ? null : "must be 4-8 digits"} />
         <div style={{ height: 8 }} />
         <TagList label="Vendor specialisation examples"
-                  hint="Vendor-name substrings that indicate this category (e.g. 'BEARINGS' → bearings)"
+                  hint="Vendor-name substrings that indicate this category (e.g. 'BEARINGS' → bearings). Used by Tier D."
                   values={canonical.vendor_specialisation_examples || []}
                   onChange={(v) => onChange({ vendor_specialisation_examples: v })} />
       </Section>
 
+      {/* Multi-source rollup anchors (Tier B2 + B3) */}
+      <Section title="Multi-source clean-rollup anchors (Tier B2 + B3)">
+        <TagList label="External Material Group codes (EXTWG)"
+                  hint="Exact EXTWG values that belong to this canonical. Used by Tier B2 as a direct (highest-priority) lookup before clean-rollup inference."
+                  values={canonical.external_mg_codes || []}
+                  onChange={(v) => onChange({ external_mg_codes: v })} />
+        <div style={{ height: 8 }} />
+        <TagList label="Legacy material number prefixes (BISMT)"
+                  hint="Leading prefixes of the old material code that map to this canonical (e.g. 'RM-STL-' for raw-material steel). Used by Tier B3."
+                  values={canonical.bismt_prefixes || []}
+                  onChange={(v) => onChange({ bismt_prefixes: v })} />
+      </Section>
+
       {/* SAP signals */}
-      <Section title="SAP signals (Tiers A/B partition + E)">
+      <Section title="SAP signals (Tier 0 archetype hint + Tier C partition)">
         <Label>MTART (Material Type partition — narrows candidate canonicals)</Label>
         <ChipSelect options={MTART_OPTIONS} values={sapSignals.mtart || []}
                      onChange={(v) => updateSap({ mtart: v })} />

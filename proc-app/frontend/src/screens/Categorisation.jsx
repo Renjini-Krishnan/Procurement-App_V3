@@ -116,9 +116,10 @@ const OverviewTab = ({ data, cc }) => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginTop: 8 }}>
           {[
             ["A", "HSN/SAC"],
-            ["B", "Clean-MG inherit"],
-            ["C", "Text keywords"],
+            ["B", "Clean rollup (MATKL+EXTWG+BISMT)"],
+            ["C", "Text (8 cols, weighted)"],
             ["D", "Vendor anchor"],
+            ["E", "Buyer-group anchor"],
             ["F", "LLM (V2)"],
           ].map(([k, label]) => (
             <div key={k} style={{ background: "var(--surface-sunk)", padding: 10, borderRadius: "var(--r-md)" }}>
