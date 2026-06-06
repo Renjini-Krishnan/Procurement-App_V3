@@ -15,7 +15,8 @@ TAIL_PO_THRESHOLD_INR_LAKH = 1
 MIN_AGGREGATOR_ADDRESSABLE_SPEND_INR_CR = 0.5
 
 
-def run_tail_spend(df_mg: pd.DataFrame, df_gold: pd.DataFrame, ss1: dict, industry: str = "steel") -> dict:
+def run_tail_spend(df_canonical: pd.DataFrame, df_gold: pd.DataFrame, ss1: dict,
+                       industry: str = "steel", taxonomy: dict | None = None) -> dict:
     benchmarks = kb_loader.resolve_pillar_benchmarks("op-model", industry=industry)["benchmarks"]
     filters = _load_industry_filters(industry)
 
@@ -33,8 +34,8 @@ def run_tail_spend(df_mg: pd.DataFrame, df_gold: pd.DataFrame, ss1: dict, indust
     # TS2 — Vendor footprint (Pareto)
     ts2 = _ts2_vendor_footprint(df_gold)
 
-    # TS3 — Industry filter
-    ts3 = _ts3_industry_filter(ts1["q3_categories"], filters)
+    # TS3 — Industry filter (canonical-level on Q3)
+    ts3 = _ts3_industry_filter(ss1.get("q3_categories") or [], filters, taxonomy or {})
 
     # TS4 — Outsourcing savings
     ts4 = _ts4_outsourcing_savings(ts3, benchmarks)
@@ -51,6 +52,7 @@ def run_tail_spend(df_mg: pd.DataFrame, df_gold: pd.DataFrame, ss1: dict, indust
 
     return {
         "theme": "tail-spend",
+        "unit_of_analysis": "canonical_category",
         "components": {
             "ts0_current_tail_management": ts0,
             "ts1_quantification": ts1,
@@ -72,16 +74,19 @@ def run_tail_spend(df_mg: pd.DataFrame, df_gold: pd.DataFrame, ss1: dict, indust
 # --------------------------------------------------------------------------
 
 def _ts1_quantification(df_gold: pd.DataFrame, ss1: dict) -> dict:
-    """Method A: POs below ₹1 lakh each.
-       Method B: Spend in Q3 categories from SS1."""
+    """Method A: POs below ₹1 lakh each (per-transaction).
+       Method B: Spend in Q3 canonical categories from SS1."""
     threshold_inr = TAIL_PO_THRESHOLD_INR_LAKH * 100_000
     total = float(df_gold["net_value_inr"].sum())
 
     method_a_spend = float(df_gold.loc[df_gold["net_value_inr"] < threshold_inr, "net_value_inr"].sum())
     method_a_pos = int((df_gold["net_value_inr"] < threshold_inr).sum())
 
-    q3_mgs = {c["material_group"] for c in (ss1.get("q3_categories") or [])}
-    method_b_spend = float(df_gold[df_gold["material_group"].isin(q3_mgs)]["net_value_inr"].sum()) if q3_mgs else 0.0
+    q3_ids = {c["canonical_id"] for c in (ss1.get("q3_categories") or [])}
+    if q3_ids and "canonical_id" in df_gold.columns:
+        method_b_spend = float(df_gold[df_gold["canonical_id"].isin(q3_ids)]["net_value_inr"].sum())
+    else:
+        method_b_spend = 0.0
 
     # Combined tail spend (take max of two methods — not additive)
     combined = max(method_a_spend, method_b_spend)
@@ -93,11 +98,11 @@ def _ts1_quantification(df_gold: pd.DataFrame, ss1: dict) -> dict:
         "method_a_threshold_inr_lakh": TAIL_PO_THRESHOLD_INR_LAKH,
         "method_a_spend_inr_cr": round(method_a_spend / 10_000_000, 1),
         "method_a_po_count": method_a_pos,
-        "method_b_q3_count": len(q3_mgs),
+        "method_b_q3_count": len(q3_ids),
         "method_b_spend_inr_cr": round(method_b_spend / 10_000_000, 1),
         "combined_tail_spend_inr_cr": round(combined / 10_000_000, 1),
         "tail_spend_share_pct": tail_share_pct,
-        "q3_categories": list(q3_mgs),
+        "q3_canonicals": list(q3_ids),
     }
 
 
@@ -128,25 +133,76 @@ def _ts2_vendor_footprint(df_gold: pd.DataFrame) -> dict:
     }
 
 
-def _ts3_industry_filter(q3_categories: list[str], filters: dict) -> dict:
-    """For Q3 categories (and beyond), tag as aggregator-suitable / consolidate / not-addressable.
-    For V1 we use the Q3 MGs from SS1 as the universe (cheaper)."""
+def _ts3_industry_filter(q3_categories: list[dict], filters: dict, taxonomy: dict) -> dict:
+    """Tag each Q3 canonical as aggregator-suitable / consolidate / not-addressable.
+
+    Resolution: KB `tail_recommendation` per canonical → filter pattern on label
+    → archetype default (INDIRECT → aggregator_suitable, else review).
+    Each tag entry carries members[] for UI drill-down.
+    """
     aggregator_suitable = filters.get("aggregator_suitable", [])
     consolidate = filters.get("consolidate_internally", [])
     not_addressable = filters.get("not_addressable", [])
+    by_id = (taxonomy.get("by_id") or {})
 
-    # We don't have rich MG data here — Q3 is just MG IDs; let aggregator-suitable be the default for INDIRECT
-    # In a real run we'd join with df_mg. For V1, return rough counts.
+    tags = []
+    aggregator_spend_inr_cr = 0.0
+    aggregator_count = 0
+
+    for c in q3_categories:
+        cid = c["canonical_id"]
+        canon_def = by_id.get(cid) or {}
+        kb_tag = str(canon_def.get("tail_recommendation") or "").strip().lower() or None
+        label = (c.get("canonical_label") or cid).upper()
+
+        tag = "no_match"
+        source = None
+        if kb_tag in ("aggregator_suitable", "consolidate_internally", "not_addressable", "review"):
+            tag, source = kb_tag, "kb_canonical_recommendation"
+        if tag == "no_match":
+            for pat in aggregator_suitable:
+                if _leaf(pat) in label: tag, source = "aggregator_suitable", "filter_pattern_match"; break
+        if tag == "no_match":
+            for pat in consolidate:
+                if _leaf(pat) in label: tag, source = "consolidate_internally", "filter_pattern_match"; break
+        if tag == "no_match":
+            for pat in not_addressable:
+                if _leaf(pat) in label: tag, source = "not_addressable", "filter_pattern_match"; break
+        if tag == "no_match":
+            if str(c.get("archetype") or "").upper() == "INDIRECT":
+                tag, source = "aggregator_suitable", "archetype_default"
+            else:
+                tag, source = "review", "archetype_default"
+
+        spend_cr = float(c.get("total_spend_inr", 0)) / 10_000_000
+        if tag == "aggregator_suitable":
+            aggregator_count += 1
+            aggregator_spend_inr_cr += spend_cr
+
+        tags.append({
+            "canonical_id": cid,
+            "canonical_label": c.get("canonical_label", cid),
+            "archetype": c.get("archetype"),
+            "tag": tag,
+            "tag_source": source,
+            "total_spend_inr_cr": round(spend_cr, 2),
+            "po_count": int(c.get("po_count", 0)),
+            "matkl_count": c.get("matkl_count", 0),
+            "members": c.get("members") or [],
+        })
+
     return {
         "component_id": "ts3_industry_filter",
         "decision_driving": True,
-        "q3_mg_count": len(q3_categories),
-        # Stub: approximate that half of Q3 is aggregator-suitable for tagging signal
-        "aggregator_addressable_spend_inr_cr": 0.0,  # populated by orchestrator if needed
-        "aggregator_suitable_patterns_in_kb": len(aggregator_suitable),
-        "consolidate_patterns_in_kb": len(consolidate),
-        "not_addressable_patterns_in_kb": len(not_addressable),
+        "q3_canonical_count": len(q3_categories),
+        "aggregator_addressable_spend_inr_cr": round(aggregator_spend_inr_cr, 2),
+        "aggregator_count": aggregator_count,
+        "tags": tags,
     }
+
+
+def _leaf(pattern: str) -> str:
+    return pattern.split(".")[-1].replace("_", " ").upper()
 
 
 def _ts4_outsourcing_savings(ts3: dict, benchmarks: dict) -> dict:

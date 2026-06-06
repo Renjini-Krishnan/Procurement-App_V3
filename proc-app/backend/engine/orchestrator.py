@@ -59,14 +59,15 @@ def run_op_model(engagement_id: str, upload_id: str, industry: str = "steel") ->
     portfolio = stage10_kpis.portfolio_summary(df_mg)
     timings["stage10_kpis"] = round(time.time() - t2, 2)
 
-    # Stage 12 — Op Model themes
-    # Centralisation flipped to canonical-as-unit; SS/CoE/Tail still consume
-    # df_mg pending their own refactor.
+    # Stage 12 — Op Model themes (all 4 on canonical-as-unit)
     t3 = time.time()
     cent = run_centralisation(df_canonical, industry=industry, taxonomy=canonical_taxonomy)
-    ss = run_shared_services(df_mg, industry=industry)
-    coe_out = run_coe(df_mg, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
-    tail = run_tail_spend(df_mg, df_classified, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
+    ss = run_shared_services(df_canonical, industry=industry, taxonomy=canonical_taxonomy)
+    coe_out = run_coe(df_canonical, ss["components"]["ss1_volume_value_quadrant"],
+                         industry=industry, taxonomy=canonical_taxonomy)
+    tail = run_tail_spend(df_canonical, df_classified,
+                              ss["components"]["ss1_volume_value_quadrant"],
+                              industry=industry, taxonomy=canonical_taxonomy)
     timings["stage12_op_model"] = round(time.time() - t3, 2)
 
     # Scoring
@@ -665,9 +666,12 @@ def run_kpi_dashboard(engagement_id: str, upload_id: str, industry: str = "steel
     # Op Model
     t3 = time.time()
     cent = run_centralisation(df_canonical, industry=industry, taxonomy=_canon_taxo)
-    ss = run_shared_services(df_mg, industry=industry)
-    coe_out = run_coe(df_mg, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
-    tail = run_tail_spend(df_mg, df_classified, ss["components"]["ss1_volume_value_quadrant"], industry=industry)
+    ss = run_shared_services(df_canonical, industry=industry, taxonomy=_canon_taxo)
+    coe_out = run_coe(df_canonical, ss["components"]["ss1_volume_value_quadrant"],
+                         industry=industry, taxonomy=_canon_taxo)
+    tail = run_tail_spend(df_canonical, df_classified,
+                              ss["components"]["ss1_volume_value_quadrant"],
+                              industry=industry, taxonomy=_canon_taxo)
     op_theme_scores = {
         "centralisation": scoring.score_centralisation(cent),
         "shared-services": scoring.score_shared_services(ss),

@@ -16,9 +16,14 @@ HIGH_CONCENTRATION_TOP_VENDOR_THRESHOLD = 70  # %
 MIN_COE_ADDRESSABLE_SPEND_INR_CR = 50         # Steel default per coe-filters.yml
 
 
-def run_coe(df_mg: pd.DataFrame, ss1: dict, industry: str = "steel") -> dict:
+def run_coe(df_canonical: pd.DataFrame, ss1: dict, industry: str = "steel",
+              taxonomy: dict | None = None) -> dict:
     benchmarks = kb_loader.resolve_pillar_benchmarks("op-model", industry=industry)["benchmarks"]
     filters = _load_industry_filters(industry)
+
+    df_analysed = df_canonical[
+        df_canonical["canonical_id"].astype(str).str.upper() != "UNCLASSIFIED"
+    ].copy() if len(df_canonical) else df_canonical
 
     # CE0 — Current state (stub)
     ce0 = {
@@ -28,11 +33,11 @@ def run_coe(df_mg: pd.DataFrame, ss1: dict, industry: str = "steel") -> dict:
         "reason": "Requires QRE Q-OM-COE-01-04. Stub for V1.",
     }
 
-    # CE1 — Strategic identification
-    ce1 = _ce1_strategic_identification(df_mg, ss1, filters)
+    # CE1 — Strategic identification (canonical-level)
+    ce1 = _ce1_strategic_identification(df_analysed, ss1, filters)
 
     # CE2 — Industry filter
-    ce2 = _ce2_industry_filter(ce1["strategic_candidates"], filters)
+    ce2 = _ce2_industry_filter(ce1["strategic_candidates"], filters, taxonomy or {})
 
     # CE3 — Coverage gap (without QRE, full coe-suitable list is the gap)
     ce3 = _ce3_coverage_gap_stub(ce2)
@@ -52,6 +57,7 @@ def run_coe(df_mg: pd.DataFrame, ss1: dict, industry: str = "steel") -> dict:
 
     return {
         "theme": "coe",
+        "unit_of_analysis": "canonical_category",
         "components": {
             "ce0_current_state": ce0,
             "ce1_strategic_identification": ce1,
@@ -72,38 +78,42 @@ def run_coe(df_mg: pd.DataFrame, ss1: dict, industry: str = "steel") -> dict:
 
 # --------------------------------------------------------------------------
 
-def _ce1_strategic_identification(df_mg: pd.DataFrame, ss1: dict, filters: dict) -> dict:
+def _ce1_strategic_identification(df_canonical: pd.DataFrame, ss1: dict, filters: dict) -> dict:
     """Strategic candidates = Q4 from SS1 UNION strategic_by_nature filter.
 
-    Strategic-by-nature: even if not in Q4 quadrant, certain categories are
-    always strategic for the industry (refractories, mill rolls, ferro alloys).
+    Strategic-by-nature: even if not in Q4 quadrant, certain canonical
+    categories are always strategic for the industry (refractories, mill
+    rolls, ferro alloys).
     """
     strategic_by_nature = filters.get("strategic_by_nature", [])
 
-    q4_mgs = {c["material_group"] for c in (ss1.get("q4_categories") or [])}
-    nature_mgs = set()
-    for _, row in df_mg.iterrows():
-        desc = (row.get("material_group_desc") or "").upper()
+    q4_ids = {c["canonical_id"] for c in (ss1.get("q4_categories") or [])}
+    nature_ids = set()
+    for _, row in df_canonical.iterrows():
+        label = (row.get("canonical_label") or row["canonical_id"]).upper()
         for pat in strategic_by_nature:
-            if _leaf(pat) in desc:
-                nature_mgs.add(row["material_group"])
+            if _leaf(pat) in label:
+                nature_ids.add(row["canonical_id"])
                 break
 
-    all_candidates = q4_mgs | nature_mgs
-    cand_df = df_mg[df_mg["material_group"].isin(all_candidates)]
+    all_candidates = q4_ids | nature_ids
+    cand_df = df_canonical[df_canonical["canonical_id"].isin(all_candidates)]
 
     candidates_list = []
     for _, row in cand_df.iterrows():
+        cid = row["canonical_id"]
         candidates_list.append({
-            "material_group": row["material_group"],
-            "material_group_desc": row["material_group_desc"],
-            "archetype": row["archetype"],
+            "canonical_id": cid,
+            "canonical_label": row.get("canonical_label", cid),
+            "archetype": row.get("archetype"),
             "total_spend_inr_cr": round(row["total_spend_inr"] / 10_000_000, 2),
-            "vendor_count": int(row["vendor_count"]),
-            "top_vendor_share_pct": round(row["top_vendor_share_pct"], 1),
-            "high_concentration": row["top_vendor_share_pct"] >= HIGH_CONCENTRATION_TOP_VENDOR_THRESHOLD,
-            "from_q4": row["material_group"] in q4_mgs,
-            "from_strategic_by_nature": row["material_group"] in nature_mgs,
+            "vendor_count": int(row.get("vendor_count", 0)),
+            "top_vendor_share_pct": round(float(row.get("top_vendor_share_pct", 0)), 1),
+            "high_concentration": float(row.get("top_vendor_share_pct", 0)) >= HIGH_CONCENTRATION_TOP_VENDOR_THRESHOLD,
+            "from_q4": cid in q4_ids,
+            "from_strategic_by_nature": cid in nature_ids,
+            "matkl_count": int(row.get("matkl_count", 0)),
+            "members": row.get("members") or [],
         })
 
     candidates_list.sort(key=lambda x: -x["total_spend_inr_cr"])
@@ -117,35 +127,47 @@ def _ce1_strategic_identification(df_mg: pd.DataFrame, ss1: dict, filters: dict)
     }
 
 
-def _ce2_industry_filter(strategic_candidates: list[dict], filters: dict) -> dict:
-    """Tag each strategic candidate: CoE-Suitable / Already-Strategic / Plant-Owned."""
+def _ce2_industry_filter(strategic_candidates: list[dict], filters: dict, taxonomy: dict) -> dict:
+    """Tag each strategic candidate: CoE-Suitable / Already-Strategic / Plant-Owned.
+
+    Resolution order: KB explicit `coe_recommendation` field on canonical →
+    filter pattern match on label → 'coe_suitable' default.
+    """
     coe_suitable = filters.get("coe_suitable", [])
     already_strategic = filters.get("already_strategic_no_coe_need", [])
     plant_owned = filters.get("plant_owned", [])
+    by_id = (taxonomy.get("by_id") or {})
 
     tags = []
     suitable_count = 0
     suitable_spend = 0.0
 
     for c in strategic_candidates:
-        desc = (c.get("material_group_desc") or "").upper()
+        canon_def = by_id.get(c["canonical_id"]) or {}
+        kb_tag = str(canon_def.get("coe_recommendation") or "").strip().lower() or None
+        label = (c.get("canonical_label") or c["canonical_id"]).upper()
+
         tag = "no_match"
-        for pat in coe_suitable:
-            if _leaf(pat) in desc: tag = "coe_suitable"; break
+        source = None
+        if kb_tag in ("coe_suitable", "already_strategic", "plant_owned"):
+            tag, source = kb_tag, "kb_canonical_recommendation"
+        if tag == "no_match":
+            for pat in coe_suitable:
+                if _leaf(pat) in label: tag, source = "coe_suitable", "filter_pattern_match"; break
         if tag == "no_match":
             for pat in already_strategic:
-                if _leaf(pat) in desc: tag = "already_strategic"; break
+                if _leaf(pat) in label: tag, source = "already_strategic", "filter_pattern_match"; break
         if tag == "no_match":
             for pat in plant_owned:
-                if _leaf(pat) in desc: tag = "plant_owned"; break
+                if _leaf(pat) in label: tag, source = "plant_owned", "filter_pattern_match"; break
         if tag == "no_match":
-            tag = "coe_suitable"  # default for unmatched strategic candidates
+            tag, source = "coe_suitable", "default"
 
         if tag == "coe_suitable":
             suitable_count += 1
             suitable_spend += c["total_spend_inr_cr"]
 
-        tags.append({**c, "tag": tag})
+        tags.append({**c, "tag": tag, "tag_source": source})
 
     return {
         "component_id": "ce2_industry_filter",
