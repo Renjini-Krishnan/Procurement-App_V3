@@ -126,8 +126,10 @@ def run_intel(engagement_id: str, upload_id: str, industry: str = "steel") -> di
     # the V1 archetype classifier — adds canonical_id + signal_trace columns
     # without disturbing downstream pillars that key off archetype.
     from . import stage9_canonical_classify
+    from .. import db as _db
+    _stage9_overrides = _db.get_stage9_overrides_grouped(engagement_id)
     df_classified, canonical_report = stage9_canonical_classify.classify_canonical(
-        df_classified, industry=industry,
+        df_classified, industry=industry, manual_overrides=_stage9_overrides,
     )
 
     df_mg = stage10_kpis.precompute_mg_metrics(df_classified)
@@ -366,10 +368,12 @@ def _build_intel_context(df_classified: 'pd.DataFrame', industry: str,
     classification stats + portfolio summary + (optionally) cached DQS.
     Runs the canonical classifier on the already-classified df."""
     from . import stage9_canonical_classify
+    from .. import db as _db
     out: dict = {"industry": industry}
     try:
+        _stage9_overrides = _db.get_stage9_overrides_grouped(engagement_id)
         df_w_canon, canon_report = stage9_canonical_classify.classify_canonical(
-            df_classified, industry=industry,
+            df_classified, industry=industry, manual_overrides=_stage9_overrides,
         )
         out["canonical_classification"] = {
             "industry": industry,
@@ -923,8 +927,10 @@ def _v2_run_pillar(engagement_id: str, upload_id: str, industry: str,
     df_classified = stage9_classify.classify_dataframe(df_gold, industry=industry)
     # Add canonical classification for intel_context
     from . import stage9_canonical_classify
+    from .. import db as _db
+    _stage9_overrides = _db.get_stage9_overrides_grouped(engagement_id)
     df_classified, canon_report = stage9_canonical_classify.classify_canonical(
-        df_classified, industry=industry,
+        df_classified, industry=industry, manual_overrides=_stage9_overrides,
     )
 
     if pillar_kind == "material-master":

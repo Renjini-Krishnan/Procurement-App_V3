@@ -21,7 +21,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config, db, kb_loader
-from .api import documents, engagement, exports, health, jobs, kb, kb_files, llm as llm_api, pillar, qre, upload
+from .api import documents, engagement, exports, health, jobs, kb, kb_files, llm as llm_api, pillar, qre, stage9_overrides, upload
 
 
 # ---------- Logging configuration ----------
@@ -115,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(jobs.router)
     app.include_router(llm_api.router)
     app.include_router(documents.router)
+    app.include_router(stage9_overrides.router)
 
     @app.on_event("startup")
     def on_startup():

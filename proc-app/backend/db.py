@@ -154,6 +154,25 @@ CREATE TABLE IF NOT EXISTS engagement_doc_chunks_meta (
 CREATE INDEX IF NOT EXISTS idx_chunks_meta_eng ON engagement_doc_chunks_meta(engagement_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_meta_doc ON engagement_doc_chunks_meta(doc_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_meta_kind ON engagement_doc_chunks_meta(kind);
+
+-- Stage 9 manual canonical assignments.
+-- Consultant can reassign UNCLASSIFIED (or any) MATKL/EXTWG/MATNR scope to a
+-- canonical. Re-running Stage 9 picks these up as Tier B0 (highest priority
+-- after Tier A HSN — even Tier A loses if the consultant has set a manual
+-- override). One row per (engagement, scope_type, scope_value).
+CREATE TABLE IF NOT EXISTS stage9_canonical_overrides (
+    engagement_id   TEXT NOT NULL,
+    scope_type      TEXT NOT NULL,           -- material_group | external_material_group | material_number | old_material_number
+    scope_value     TEXT NOT NULL,           -- the actual MATKL/EXTWG/MATNR/BISMT value
+    canonical_id    TEXT NOT NULL,
+    set_by          TEXT,
+    note            TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    PRIMARY KEY (engagement_id, scope_type, scope_value),
+    FOREIGN KEY (engagement_id) REFERENCES engagements(id)
+);
+CREATE INDEX IF NOT EXISTS idx_stage9_overrides_eng ON stage9_canonical_overrides(engagement_id);
 """
 
 
@@ -352,6 +371,69 @@ def delete_override(engagement_id: str, key: str) -> bool:
         cur = conn.execute(
             "DELETE FROM engagement_overrides WHERE engagement_id = ? AND key = ?",
             (engagement_id, key),
+        )
+    return cur.rowcount > 0
+
+
+# --------------------------------------------------------------------------
+# Stage 9 manual canonical overrides (read by classifier as Tier B0)
+# --------------------------------------------------------------------------
+
+_VALID_OVERRIDE_SCOPES = {
+    "material_group", "external_material_group",
+    "material_number", "old_material_number",
+}
+
+
+def upsert_stage9_override(engagement_id: str, scope_type: str, scope_value: str,
+                              canonical_id: str, set_by: Optional[str] = None,
+                              note: Optional[str] = None) -> None:
+    if scope_type not in _VALID_OVERRIDE_SCOPES:
+        raise ValueError(f"Invalid scope_type '{scope_type}'. Allowed: {_VALID_OVERRIDE_SCOPES}")
+    now = datetime.utcnow().isoformat()
+    sv = str(scope_value).strip()
+    if scope_type in ("external_material_group", "old_material_number"):
+        sv = sv.upper()
+    with db_connection() as conn:
+        conn.execute(
+            """INSERT INTO stage9_canonical_overrides
+               (engagement_id, scope_type, scope_value, canonical_id, set_by, note, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(engagement_id, scope_type, scope_value) DO UPDATE SET
+                 canonical_id = excluded.canonical_id,
+                 set_by       = excluded.set_by,
+                 note         = excluded.note,
+                 updated_at   = excluded.updated_at""",
+            (engagement_id, scope_type, sv, canonical_id, set_by, note, now, now),
+        )
+
+
+def list_stage9_overrides(engagement_id: str) -> list[dict]:
+    with db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM stage9_canonical_overrides WHERE engagement_id = ? ORDER BY scope_type, scope_value",
+            (engagement_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_stage9_overrides_grouped(engagement_id: str) -> dict[str, dict[str, str]]:
+    """Return {scope_type: {scope_value: canonical_id}} for fast in-memory lookup
+    by the Stage 9 classifier."""
+    out: dict[str, dict[str, str]] = {}
+    for r in list_stage9_overrides(engagement_id):
+        out.setdefault(r["scope_type"], {})[r["scope_value"]] = r["canonical_id"]
+    return out
+
+
+def delete_stage9_override(engagement_id: str, scope_type: str, scope_value: str) -> bool:
+    sv = str(scope_value).strip()
+    if scope_type in ("external_material_group", "old_material_number"):
+        sv = sv.upper()
+    with db_connection() as conn:
+        cur = conn.execute(
+            "DELETE FROM stage9_canonical_overrides WHERE engagement_id = ? AND scope_type = ? AND scope_value = ?",
+            (engagement_id, scope_type, sv),
         )
     return cur.rowcount > 0
 

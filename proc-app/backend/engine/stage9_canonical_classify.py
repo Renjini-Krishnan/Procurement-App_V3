@@ -49,7 +49,7 @@ from .. import config
 # corroboration tiers (D, E) require another primary to reach HIGH.
 # --------------------------------------------------------------------------
 
-TIER_WEIGHTS = {"A": 3, "B": 3, "C": 2, "D": 2, "E": 1, "F": 1}
+TIER_WEIGHTS = {"B0": 5, "A": 3, "B": 3, "C": 2, "D": 2, "E": 1, "F": 1}
 
 # Text columns scanned for Tier C with per-column weight multipliers.
 # Higher weight = stronger contribution to the canonical's score.
@@ -203,6 +203,34 @@ def _tier_a_hsn(row: dict, idx: dict) -> list[tuple[str, dict]]:
             return [(hsn_map[key],
                       {"tier": "A", "signal": f"HSN {key} → exact match",
                        "value": key, "weight": "primary"})]
+    return []
+
+
+def _tier_b0_manual_override(row: dict, overrides: dict[str, dict[str, str]]) -> list[tuple[str, dict]]:
+    """Tier B0 — engagement-level manual canonical assignment.
+
+    Highest priority — overrides every automated tier. Consultant assigns
+    a MATKL/EXTWG/MATNR/BISMT scope to a canonical via the Stage 9 review
+    UI or the Op Model unclassified bucket. Stored in
+    stage9_canonical_overrides table; retrieved as a dict here.
+
+    overrides format: {scope_type: {scope_value: canonical_id}}
+    """
+    if not overrides:
+        return []
+    for scope_type in ("material_group", "external_material_group",
+                        "material_number", "old_material_number"):
+        scope_map = overrides.get(scope_type)
+        if not scope_map:
+            continue
+        v = str(row.get(scope_type) or "").strip()
+        if scope_type in ("external_material_group", "old_material_number"):
+            v = v.upper()
+        if v and v in scope_map:
+            return [(scope_map[v],
+                      {"tier": "B0", "subtier": "B0",
+                       "signal": f"Manual override on {scope_type} '{v}'",
+                       "value": v, "weight": "primary"})]
     return []
 
 
@@ -418,7 +446,9 @@ def _aggregate(signals: list[tuple[str, dict]]) -> tuple[Optional[str], str, lis
     b_subs = set(info.get("b_subtiers") or [])
     c_match_count = info.get("c_match_count", 0)
 
-    if "A" in tiers:
+    if "B0" in tiers:
+        confidence = "HIGH"
+    elif "A" in tiers:
         confidence = "HIGH"
     elif len(b_subs) >= 2:
         confidence = "HIGH"
@@ -531,19 +561,28 @@ def _build_buyer_anchor(pass1_results: list[dict], records: list[dict],
 # Public entrypoint
 # --------------------------------------------------------------------------
 
-def classify_canonical(df: pd.DataFrame, industry: str = "steel") -> tuple[pd.DataFrame, dict]:
-    """Run the 6-tier classifier on a PO DataFrame. Returns (df, report).
+def classify_canonical(df: pd.DataFrame, industry: str = "steel",
+                          manual_overrides: Optional[dict[str, dict[str, str]]] = None
+                          ) -> tuple[pd.DataFrame, dict]:
+    """Run the multi-tier classifier on a PO DataFrame. Returns (df, report).
 
     The df gets these new columns:
         canonical_id          — taxonomy id (or 'UNCLASSIFIED')
         canonical_label       — human label
+        archetype             — BULK/DIRECT/INDIRECT/SERVICE/CAPEX/UNKNOWN
         confidence_tier       — HIGH / MEDIUM / LOW / UNCLASSIFIED
         signal_trace_json     — JSON-serialised list of signal dicts
         winner_score          — aggregated tier-weight score for the winner
         alternative_canonicals — JSON-serialised top alternatives
 
-    Report carries: counts by tier/confidence, clean-MG rollup, unclassified rate.
+    Args:
+        manual_overrides — optional {scope_type: {scope_value: canonical_id}}.
+            When provided, rows matching any override are classified at Tier
+            B0 with HIGH confidence regardless of other signals.
+
+    Report carries: counts by tier/confidence, clean rollups, unclassified rate.
     """
+    overrides = manual_overrides or {}
     tx = load_taxonomy(industry)
     idx = tx.get("indexes") or {}
     by_id = tx.get("by_id") or {}
@@ -565,10 +604,27 @@ def classify_canonical(df: pd.DataFrame, industry: str = "steel") -> tuple[pd.Da
 
     records = df.to_dict(orient="records")
 
-    # --- Pass 1: classify every row with Tier 0 (archetype hint) + A + C + D ---
+    # --- Pass 1: classify every row.
+    # B0 (manual override) is checked first and short-circuits if it fires.
+    # Otherwise Tier 0 (archetype hint) + A + C + D + B2 (direct) + B3 vote.
     pass1_results: list[dict] = []
     for r in records:
         archetype_hint = _tier_0_archetype_hint(r)
+        # Manual override short-circuit
+        b0_hit = _tier_b0_manual_override(r, overrides)
+        if b0_hit:
+            canon_id = b0_hit[0][0]
+            trace = [b0_hit[0][1]]
+            pass1_results.append({
+                "canonical_id": canon_id, "confidence": "HIGH",
+                "trace": trace,
+                "candidates": {"winner_score": TIER_WEIGHTS["B0"], "alternatives": []},
+                "material_group": r.get("material_group"),
+                "external_material_group": r.get("external_material_group"),
+                "archetype_hint": archetype_hint,
+            })
+            continue
+
         mtart = str(r.get("material_type") or "").upper().strip() or None
         signals: list[tuple[str, dict]] = []
         signals.extend(_tier_a_hsn(r, idx))
@@ -663,8 +719,8 @@ def classify_canonical(df: pd.DataFrame, industry: str = "steel") -> tuple[pd.Da
     confidence_counts: dict[str, int] = {}
     for r in final_results:
         confidence_counts[r["confidence"]] = confidence_counts.get(r["confidence"], 0) + 1
-    tier_fired_counts: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0}
-    b_subtier_fired: dict[str, int] = {"B1": 0, "B2": 0, "B3": 0}
+    tier_fired_counts: dict[str, int] = {"B0": 0, "A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0}
+    b_subtier_fired: dict[str, int] = {"B0": 0, "B1": 0, "B2": 0, "B3": 0}
     for r in final_results:
         for s in r["trace"]:
             tier_fired_counts[s["tier"]] = tier_fired_counts.get(s["tier"], 0) + 1
