@@ -392,6 +392,9 @@ def _build_intel_context(df_classified: 'pd.DataFrame', industry: str,
             "industry": industry,
             "taxonomy_canonicals": canon_report.get("taxonomy_canonicals"),
             "stats": canon_report.get("stats", {}),
+            # Taxonomy list {id, label, archetype} used by the OpModel
+            # unclassified-bucket dropdown to assign canonicals inline
+            "taxonomy": canon_report.get("taxonomy") or [],
         }
     except Exception:
         out["canonical_classification"] = {}

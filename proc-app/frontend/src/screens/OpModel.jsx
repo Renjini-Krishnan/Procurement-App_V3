@@ -21,6 +21,7 @@ const OpModel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTheme, setActiveTheme] = useState("overview");
+  const [reloadKey, setReloadKey] = useState(0);  // bump to re-run after override save
 
   useEffect(() => {
     if (!engagement) return;
@@ -46,7 +47,7 @@ const OpModel = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [engagement]);
+  }, [engagement, reloadKey]);
 
   if (engLoading || !engagement) return <div>Loading engagement...</div>;
 
@@ -88,6 +89,15 @@ const OpModel = () => {
       <Header phase="Analyze" stage={12} title="Op Model" subtitle="4 themes · 24 components · Steel industry overlay applied" />
 
       <DataQualityContext intel={data.intel_context} />
+
+      {/* Unclassified bucket — Stage 9 fix-it panel surfaced inline */}
+      {data.unclassified_bucket && (
+        <UnclassifiedBucketPanel
+          engagementId={engagement.id}
+          bucket={data.unclassified_bucket}
+          taxonomy={data.intel_context?.canonical_classification?.taxonomy || []}
+          onSaved={() => setReloadKey((k) => k + 1)} />
+      )}
 
       {/* Hero row: pillar score + key metrics */}
       <PillarHero data={data} />
@@ -244,28 +254,27 @@ const Overview = ({ data, setActiveTheme }) => {
 
 const CentralisationView = ({ data, score }) => {
   const c1 = data.components.c1_multi_plant_detection;
-  const c3 = data.components.c3_industry_knowledge_filter;
+  const c3 = data.components.c3_recommendation_tag || data.components.c3_industry_knowledge_filter;
   const c4 = data.components.c4_savings_quantification;
 
-  const verdictRows = (c3.tags || []).slice(0, 15).map((t) => ({
-    material_group: t.material_group,
-    material_group_desc: t.material_group_desc,
-    total_spend_inr_cr: t.total_spend_inr_cr,
-    plant_count: c1.top_candidates?.find((x) => x.material_group === t.material_group)?.plant_count,
-    verdict: t.tag === "centralise" ? "Centralise" :
-              t.tag === "centre_led" ? "Centre-Led" :
-              t.tag === "keep_local" ? "Keep Local" : "Review",
-  }));
+  const tagPalette = {
+    centralise: { bg: "var(--brand-50)", fg: "var(--brand-700)", label: "Centralise" },
+    centre_led: { bg: "var(--info-50)", fg: "var(--info-700)", label: "Centre-Led" },
+    keep_local: { bg: "var(--surface-sunk)", fg: "var(--ink-700)", label: "Keep Local" },
+    review: { bg: "var(--warn-50)", fg: "var(--warn-700)", label: "Review" },
+  };
+
+  const tags = (c3?.tags || []).slice(0, 25);
 
   return (
     <div>
       <ThemeHeader title="Centralisation" headline={data.headline} score={score} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-        <KPICard label="Multi-plant candidates" value={c1.candidate_count} />
+        <KPICard label="Multi-plant candidates" value={c1.candidate_count} sub="canonical categories" />
         <KPICard label="Addressable spend" value={`₹${c3.addressable_spend_inr_cr} Cr`} />
         <KPICard label="Savings range" value={`₹${c4.savings_range_inr_cr[0]}–${c4.savings_range_inr_cr[1]} Cr/yr`} />
-        <KPICard label="Industry-tagged" value={`${c3.centralise_count} Cent · ${c3.centre_led_count} Led · ${c3.keep_local_count} Local`} />
+        <KPICard label="Tag breakdown" value={`${c3.centralise_count} Cent · ${c3.centre_led_count} Led · ${c3.keep_local_count} Local`} />
       </div>
 
       <SectionHeader title="Benchmark cascade — Centralisation savings rate" />
@@ -280,8 +289,56 @@ const CentralisationView = ({ data, score }) => {
         </div>
       </Card>
 
-      <SectionHeader title={`Top candidates — verdict per material group (${verdictRows.length} of ${c3.tags?.length || 0})`} />
-      <PerCategoryMatrix rows={verdictRows} />
+      <SectionHeader title={`Recommendations — ${tags.length} canonical categories (expand to see member MATKLs)`} />
+      <Card padding={0}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+          <thead>
+            <tr>
+              {["Canonical category", "Archetype", "Spend (₹ Cr)", "Plants", "Verdict", "Source", ""].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "10px 12px",
+                                        fontSize: "var(--fs-11)", color: "var(--ink-500)",
+                                        textTransform: "uppercase", borderBottom: "1px solid var(--border-default)",
+                                        background: "var(--surface-sunk)" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tags.map((t) => (
+              <CanonicalRowWithMembers
+                key={t.canonical_id}
+                row={t}
+                columns={[
+                  { render: (r) => (
+                      <>
+                        <div style={{ fontWeight: 600 }}>{r.canonical_label}</div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>{r.canonical_id}</div>
+                      </>
+                    ) },
+                  { render: (r) => <span style={{ fontSize: "var(--fs-12)", color: "var(--ink-600)" }}>{r.archetype || "—"}</span> },
+                  { key: "total_spend_inr_cr", style: { fontFamily: "var(--font-mono)" } },
+                  { render: (r) => <span>{r.plant_count ?? "—"}</span> },
+                  { render: (r) => {
+                      const p = tagPalette[r.tag] || tagPalette.review;
+                      return (
+                        <span style={{ background: p.bg, color: p.fg, padding: "3px 8px",
+                                          borderRadius: "var(--r-sm)", fontSize: "var(--fs-12)", fontWeight: 600 }}>
+                          {p.label}
+                        </span>
+                      );
+                    } },
+                  { render: (r) => (
+                      <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-500)" }}>
+                        {r.tag_source === "kb_canonical_recommendation" ? "KB" :
+                         r.tag_source === "filter_pattern_match" ? "Filter" :
+                         r.tag_source === "archetype_default" ? "Archetype" : "—"}
+                      </span>
+                    ) },
+                ]}
+              />
+            ))}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 };
@@ -305,7 +362,7 @@ const SharedServicesView = ({ data, score, portfolio }) => {
     x: Math.min(0.95, c.po_count / maxPo),
     y: Math.min(0.95, c.avg_po_value / maxVal),
     size: Math.min(1, c.total_spend_inr / maxSpend),
-    label: (c.material_group_desc || c.material_group).slice(0, 16),
+    label: (c.canonical_label || c.canonical_id || "").slice(0, 16),
   }));
 
   return (
@@ -361,8 +418,8 @@ const CoEView = ({ data, score }) => {
       <SectionHeader title="Strategic candidates" />
       <PerCategoryMatrix
         rows={(ce1.strategic_candidates || []).slice(0, 20).map((c) => ({
-          material_group: c.material_group,
-          material_group_desc: c.material_group_desc,
+          material_group: c.canonical_id,
+          material_group_desc: c.canonical_label,
           total_spend_inr_cr: c.total_spend_inr_cr,
           plant_count: null,
           verdict: c.high_concentration ? "High concentration" : (c.from_q4 ? "Q4 strategic" : "Strategic by nature"),
@@ -428,7 +485,7 @@ const TailSpendView = ({ data, score }) => {
               Categories with low PO count AND low avg PO value
             </div>
             <div style={{ marginTop: 12 }}>
-              <Metric label="Q3 MGs" value={ts1.method_b_q3_count} />
+              <Metric label="Q3 canonicals" value={ts1.method_b_q3_count} />
             </div>
             <div style={{ marginTop: 8 }}>
               <Metric label="Spend (₹ Cr)" value={ts1.method_b_spend_inr_cr} />
@@ -510,5 +567,158 @@ const RCAPanel = ({ rca, themeFilter }) => {
     </div>
   );
 };
+
+// =============================================================================
+// Unclassified bucket — inline Stage 9 fix-it panel
+// =============================================================================
+const UnclassifiedBucketPanel = ({ engagementId, bucket, taxonomy, onSaved }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [assignments, setAssignments] = useState({});  // { material_group: canonical_id }
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  if (!bucket || bucket.matkl_count === 0) return null;
+
+  const pct = bucket.spend_share_pct?.toFixed(1) || "0";
+  const spendCr = (bucket.total_spend_inr / 1e7).toFixed(1);
+
+  const onChange = (mg, canonId) => setAssignments((a) => ({ ...a, [mg]: canonId }));
+
+  const onSave = async () => {
+    const items = Object.entries(assignments)
+      .filter(([_, cid]) => cid && cid !== "")
+      .map(([mg, cid]) => ({
+        scope_type: "material_group", scope_value: mg, canonical_id: cid,
+      }));
+    if (!items.length) return;
+    setSaving(true); setError(null);
+    try {
+      await api.bulkUpsertStage9Overrides(engagementId, items);
+      setAssignments({});
+      if (onSaved) onSaved();
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const pendingCount = Object.values(assignments).filter((v) => v && v !== "").length;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <Callout tone="warn"
+                title={`Unclassified spend: ${pct}% (₹${spendCr} Cr · ${bucket.matkl_count} material group${bucket.matkl_count === 1 ? "" : "s"})`}
+                icon={<I.AlertTriangle size={16} />}>
+        <div style={{ fontSize: "var(--fs-13)", marginBottom: 6 }}>
+          Stage 9 couldn't classify these material groups into a canonical category.
+          They're excluded from Op Model recommendations until assigned.
+        </div>
+        <button onClick={() => setExpanded((e) => !e)}
+                  style={{ background: "transparent", border: 0, color: "var(--brand-700)",
+                              fontWeight: 600, fontSize: "var(--fs-13)", cursor: "pointer", padding: 0 }}>
+          {expanded ? "Hide" : "Review & assign"} top {bucket.top_matkls?.length || 0} by spend →
+        </button>
+      </Callout>
+
+      {expanded && (
+        <Card padding={18} style={{ marginTop: 8 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-13)" }}>
+            <thead>
+              <tr>
+                {["MATKL", "Description", "Spend (₹ Cr)", "Top vendor", "Assign canonical"].map((h) => (
+                  <th key={h} style={{ textAlign: "left", padding: "6px 10px",
+                                          fontSize: "var(--fs-11)", color: "var(--ink-500)",
+                                          textTransform: "uppercase", borderBottom: "1px solid var(--border-default)" }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(bucket.top_matkls || []).map((m) => (
+                <tr key={m.material_group}>
+                  <td style={{ padding: "8px 10px", fontFamily: "var(--font-mono)" }}>{m.material_group}</td>
+                  <td style={{ padding: "8px 10px", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {m.material_group_desc || "—"}
+                  </td>
+                  <td style={{ padding: "8px 10px", fontFamily: "var(--font-mono)" }}>
+                    {(m.spend_inr / 1e7).toFixed(2)}
+                  </td>
+                  <td style={{ padding: "8px 10px", color: "var(--ink-600)" }}>
+                    {m.top_vendor_name || "—"}
+                  </td>
+                  <td style={{ padding: "8px 10px" }}>
+                    <select value={assignments[m.material_group] || ""}
+                              onChange={(e) => onChange(m.material_group, e.target.value)}
+                              style={{ padding: "4px 8px", fontSize: "var(--fs-12)",
+                                          border: "1px solid var(--border-default)",
+                                          borderRadius: "var(--r-sm)", minWidth: 220 }}>
+                      <option value="">— pick canonical —</option>
+                      {(taxonomy || []).map((t) => (
+                        <option key={t.id} value={t.id}>{t.label || t.id}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {error && (
+            <Callout tone="danger" title="Save failed" icon={<I.X size={16} />}>{error}</Callout>
+          )}
+
+          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <Button onClick={onSave} disabled={saving || pendingCount === 0}>
+              {saving ? "Saving…" : `Save ${pendingCount} assignment${pendingCount === 1 ? "" : "s"} & re-run`}
+            </Button>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+
+// =============================================================================
+// Canonical row with MATKL members drill-down
+// =============================================================================
+const CanonicalRowWithMembers = ({ row, columns, paletteFn }) => {
+  const [open, setOpen] = useState(false);
+  const palette = paletteFn ? paletteFn(row) : {};
+  const matklCount = row.matkl_count ?? (row.members || []).length;
+  return (
+    <>
+      <tr style={{ cursor: matklCount > 0 ? "pointer" : "default" }}
+            onClick={() => matklCount > 0 && setOpen((o) => !o)}>
+        {columns.map((col, i) => (
+          <td key={i} style={{ padding: "8px 10px", borderTop: "1px solid var(--border-subtle)",
+                                  ...(col.style || {}), ...(palette.cellStyle || {}) }}>
+            {col.render ? col.render(row) : row[col.key]}
+          </td>
+        ))}
+        <td style={{ padding: "8px 10px", textAlign: "right", color: "var(--ink-500)", fontSize: "var(--fs-11)",
+                       borderTop: "1px solid var(--border-subtle)" }}>
+          {matklCount > 0 && (open ? "▾" : "▸")}
+          {matklCount > 0 && <span style={{ marginLeft: 6 }}>{matklCount} MATKL{matklCount === 1 ? "" : "s"}</span>}
+        </td>
+      </tr>
+      {open && (row.members || []).map((m) => (
+        <tr key={m.material_group} style={{ background: "var(--surface-sunk)" }}>
+          <td colSpan={columns.length + 1} style={{ padding: "6px 10px 6px 36px", fontSize: "var(--fs-12)" }}>
+            <span style={{ fontFamily: "var(--font-mono)", color: "var(--ink-700)" }}>{m.material_group}</span>
+            <span style={{ marginLeft: 10, color: "var(--ink-600)" }}>{m.material_group_desc || "—"}</span>
+            <span style={{ marginLeft: 10, color: "var(--ink-500)" }}>
+              ₹{(m.spend_inr / 1e7).toFixed(2)} Cr · {m.po_count} POs · {m.vendor_count} vendors
+              {m.top_vendor_name ? ` · top: ${m.top_vendor_name}` : ""}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </>
+  );
+};
+
 
 export default OpModel;

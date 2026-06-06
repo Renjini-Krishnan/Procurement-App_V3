@@ -127,6 +127,24 @@ export const api = {
       body: JSON.stringify({ confirmed_mapping: confirmedMapping }),
     }),
 
+  // Stage 9 manual canonical overrides (Tier B0)
+  listStage9Overrides: (id) => request(`/engagement/${id}/stage9-overrides`),
+  upsertStage9Override: (id, scopeType, scopeValue, canonicalId, note = null) =>
+    request(`/engagement/${id}/stage9-overrides`, {
+      method: "POST",
+      body: JSON.stringify({ scope_type: scopeType, scope_value: scopeValue,
+                              canonical_id: canonicalId, note }),
+    }),
+  bulkUpsertStage9Overrides: (id, items) =>
+    request(`/engagement/${id}/stage9-overrides/bulk`, {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    }),
+  deleteStage9Override: (id, scopeType, scopeValue) =>
+    request(`/engagement/${id}/stage9-overrides/${scopeType}/${encodeURIComponent(scopeValue)}`, {
+      method: "DELETE",
+    }),
+
   // Pillar
   runOpModel: (id, uploadId, industry = "steel") =>
     request(`/engagement/${id}/run-pillar/op-model`, {
