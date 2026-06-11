@@ -254,8 +254,15 @@ def preview_upload(engagement_id: str, upload_id: str, limit: int = 20):
         raise HTTPException(404, "Upload not found")
 
     df = upload_service.read_upload_dataframe(upload_id)
-    raw_columns = [str(c).strip() for c in df.columns]
-    sample_rows = df.head(limit).fillna("").astype(str).values.tolist()
+    # Strip the multi-sheet meta column from the visible column list — it's
+    # not user-mappable, just a row tag downstream stages can groupby.
+    visible_cols = [c for c in df.columns if c != upload_service.SOURCE_SHEET_COL]
+    raw_columns = [str(c).strip() for c in visible_cols]
+    sample_df = df.head(limit).fillna("").astype(str)
+    # Surface _source_sheet as the first sample column when present so the
+    # consultant can see which FY tab each preview row came from.
+    sample_cols = ([upload_service.SOURCE_SHEET_COL] if upload_service.SOURCE_SHEET_COL in df.columns else []) + visible_cols
+    sample_rows = sample_df.reindex(columns=sample_cols).values.tolist()
     mapping_state = upload.get("column_mapping") or {}
 
     from ..services import canonical_schema
@@ -267,11 +274,15 @@ def preview_upload(engagement_id: str, upload_id: str, limit: int = 20):
         "original_filename": upload["original_filename"],
         "row_count": upload["row_count"],
         "columns": raw_columns,
+        "sample_columns": sample_cols,
         "sample_rows": sample_rows,
         "suggested_mapping": mapping_state.get("suggested") or suggestion["matches"],
         "confirmed_mapping": mapping_state.get("confirmed"),
         "missing_required": mapping_state.get("missing_required") or suggestion["missing_required"],
         "schema": suggestion["schema"],
+        # Multi-sheet panel — surfaces in the column-mapping UI
+        "sheets": mapping_state.get("sheets") or [],
+        "sheet_warnings": mapping_state.get("sheet_warnings") or [],
     }
 
 

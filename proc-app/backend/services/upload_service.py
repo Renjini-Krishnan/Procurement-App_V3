@@ -39,6 +39,110 @@ class DuplicateUploadError(ValueError):
         self.existing_upload_id = existing_upload_id
 
 
+# Meta-column added to multi-sheet Excel ingests so downstream stages can
+# slice/filter by source sheet (e.g. FY22 vs FY23 tabs). Reserved name —
+# never maps to a canonical schema field.
+SOURCE_SHEET_COL = "_source_sheet"
+
+
+def _read_excel_multi_sheet(file_source) -> tuple[pd.DataFrame, list[dict], list[str]]:
+    """Read every non-empty sheet in an Excel workbook and vertically concat
+    them into one DataFrame, adding a `_source_sheet` column tagged with the
+    sheet name. Returns (combined_df, sheet_info, warnings).
+
+    sheet_info: per-sheet metadata for the UI -
+        [{"sheet_name", "row_count", "column_count", "columns", "included"}, ...]
+    warnings: human-readable strings to surface to the consultant.
+        - "schema_drift": some sheets had columns the others didn't
+        - "header_anomaly": likely title-row above headers (heuristic flagged)
+
+    Strategy:
+      - sheet_name=None reads all sheets as {name: df}
+      - skip sheets that are empty (0 rows) or look like a cover page
+        (only 1-2 columns with NaN-heavy first row)
+      - union of all columns across sheets — sheets with fewer columns get
+        NaN-padded so the concat is well-defined
+      - sheet name is prepended as `_source_sheet`
+    """
+    sheets_dict = pd.read_excel(file_source, sheet_name=None)
+    sheet_info: list[dict] = []
+    warnings: list[str] = []
+    included_dfs: list[pd.DataFrame] = []
+    column_sets: list[set[str]] = []
+
+    for sheet_name, df_sheet in sheets_dict.items():
+        cols = [str(c).strip() for c in df_sheet.columns]
+        df_sheet.columns = cols
+        row_count = len(df_sheet)
+        info = {
+            "sheet_name": str(sheet_name),
+            "row_count": int(row_count),
+            "column_count": int(len(cols)),
+            "columns": cols,
+            "included": False,
+            "reason_excluded": None,
+        }
+        # Skip empty sheets
+        if row_count == 0:
+            info["reason_excluded"] = "empty"
+            sheet_info.append(info)
+            continue
+        # Skip cover-page-like sheets (very few columns + mostly NaN)
+        if len(cols) <= 2 and df_sheet.iloc[0].isna().sum() >= max(0, len(cols) - 1):
+            info["reason_excluded"] = "looks_like_cover_page"
+            sheet_info.append(info)
+            continue
+        df_sheet = df_sheet.copy()
+        df_sheet[SOURCE_SHEET_COL] = str(sheet_name)
+        info["included"] = True
+        sheet_info.append(info)
+        included_dfs.append(df_sheet)
+        column_sets.append(set(cols))
+
+    if not included_dfs:
+        # No usable sheet — return an empty df with the source-sheet column
+        return pd.DataFrame(columns=[SOURCE_SHEET_COL]), sheet_info, ["all_sheets_empty"]
+
+    # Schema-drift detection: if not all sheets share the same column set
+    union_cols = set().union(*column_sets)
+    sheets_with_full_cols = sum(1 for s in column_sets if s == union_cols)
+    if sheets_with_full_cols < len(column_sets):
+        missing_per_sheet = []
+        for i, s in enumerate(column_sets):
+            missing = sorted(union_cols - s)
+            if missing:
+                missing_per_sheet.append((sheet_info[i]["sheet_name"] if i < len(sheet_info) else f"#{i}",
+                                              missing))
+        warnings.append("schema_drift")
+
+    # Vertical concat (pandas pads missing columns with NaN automatically)
+    combined = pd.concat(included_dfs, ignore_index=True, sort=False)
+    # Push the _source_sheet column to the front for readability
+    cols = combined.columns.tolist()
+    if SOURCE_SHEET_COL in cols:
+        cols.remove(SOURCE_SHEET_COL)
+        combined = combined[[SOURCE_SHEET_COL] + cols]
+
+    return combined, sheet_info, warnings
+
+
+def _read_excel_or_csv(file_source, suffix: str) -> tuple[pd.DataFrame, list[dict], list[str]]:
+    """Format-aware reader. CSV/TSV/TXT → single DataFrame, no sheets.
+    Excel → multi-sheet collation."""
+    if suffix in (".csv", ".tsv", ".txt"):
+        if hasattr(file_source, "seek"):
+            file_source.seek(0)
+        df = pd.read_csv(file_source, low_memory=False)
+        df.columns = [str(c).strip() for c in df.columns]
+        # Synthetic single-sheet record so the UI sheet panel always renders
+        sheet_info = [{"sheet_name": "(csv)", "row_count": int(len(df)),
+                          "column_count": int(len(df.columns)),
+                          "columns": list(df.columns),
+                          "included": True, "reason_excluded": None}]
+        return df, sheet_info, []
+    return _read_excel_multi_sheet(file_source)
+
+
 def save_upload(
     engagement_id: str,
     file_type: str,
@@ -80,25 +184,31 @@ def save_upload(
     stored_path = engagement_dir / f"{upload_id}{suffix}"
     stored_path.write_bytes(file_bytes)
 
-    # Parse — CSV or Excel
+    # Parse — CSV (single df) or Excel (all sheets collated)
     try:
-        if suffix in (".csv", ".tsv", ".txt"):
-            df = pd.read_csv(io.BytesIO(file_bytes), low_memory=False)
-        else:
-            df = pd.read_excel(io.BytesIO(file_bytes))
+        df, sheet_info, sheet_warnings = _read_excel_or_csv(
+            io.BytesIO(file_bytes), suffix,
+        )
     except Exception as e:
-        # Clean up file + raise
         stored_path.unlink(missing_ok=True)
         raise ValueError(f"Could not parse file '{original_filename}': {e}") from e
 
-    raw_columns = [str(c).strip() for c in df.columns]
+    # Raw columns shown to the mapper — exclude the meta column we injected.
+    raw_columns = [c for c in df.columns if c != SOURCE_SHEET_COL]
     row_count = len(df)
     sample_rows = df.head(5).fillna("").astype(str).values.tolist()
 
     # Suggest column mapping
     suggestion = canonical_schema.suggest_mapping(raw_columns, file_type)
 
-    # Insert into uploads table
+    # Insert into uploads table. Sheet metadata + warnings ride along inside
+    # the column_mapping JSON blob so we don't need a schema migration.
+    column_mapping_blob = {
+        "suggested": suggestion["matches"],
+        "confirmed": None,
+        "sheets": sheet_info,
+        "sheet_warnings": sheet_warnings,
+    }
     ts = db.now_iso()
     with db.db_connection() as conn:
         conn.execute(
@@ -112,7 +222,7 @@ def save_upload(
             (
                 upload_id, engagement_id, file_type, original_filename,
                 str(stored_path), row_count,
-                json.dumps({"suggested": suggestion["matches"], "confirmed": None}),
+                json.dumps(column_mapping_blob),
                 content_hash, size_bytes, 1 if auto_classified else 0, ts,
             ),
         )
@@ -128,6 +238,8 @@ def save_upload(
         "suggested_mapping": suggestion["matches"],
         "missing_required": suggestion["missing_required"],
         "schema": suggestion["schema"],
+        "sheets": sheet_info,
+        "sheet_warnings": sheet_warnings,
         "uploaded_at": ts,
     }
 
@@ -236,15 +348,19 @@ def list_validation_status(engagement_id: str) -> dict:
 
 
 def read_upload_dataframe(upload_id: str) -> pd.DataFrame:
-    """Read the stored file back into a DataFrame for downstream stages."""
+    """Read the stored file back into a DataFrame for downstream stages.
+
+    For multi-sheet Excel: all sheets are vertically concatenated and a
+    `_source_sheet` column tags each row with its sheet name. CSV: single
+    DataFrame, no source-sheet column added (synthetic '(csv)' is only
+    stored for UI display)."""
     upload = get_upload(upload_id)
     if not upload:
         raise ValueError(f"Upload {upload_id} not found")
     path = Path(upload["stored_path"])
     suffix = path.suffix.lower()
-    if suffix in (".csv", ".tsv", ".txt"):
-        return pd.read_csv(path, low_memory=False)
-    return pd.read_excel(path)
+    df, _sheet_info, _warnings = _read_excel_or_csv(path, suffix)
+    return df
 
 
 SEED_DIR = Path(__file__).resolve().parents[1] / "data" / "seed"

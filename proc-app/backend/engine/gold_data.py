@@ -70,6 +70,10 @@ def build_gold_dataframe_with_report(upload_id: str, lookback_months: Optional[i
 
     df = df_raw.rename(columns=rename_map).copy()
     canonical_cols = [c for c in set(rename_map.values()) if c in df.columns]
+    # Preserve the multi-sheet meta column from upload_service so downstream
+    # stages can slice/filter by source sheet (FY tab) without losing the tag.
+    if "_source_sheet" in df.columns and "_source_sheet" not in canonical_cols:
+        canonical_cols.append("_source_sheet")
     df = df.loc[:, canonical_cols]
     if df.columns.duplicated().any():
         df = df.loc[:, ~df.columns.duplicated()]
