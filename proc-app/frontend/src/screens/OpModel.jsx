@@ -609,7 +609,7 @@ const UnclassifiedBucketPanel = ({ engagementId, bucket, taxonomy, onSaved }) =>
     <div style={{ marginBottom: 16 }}>
       <Callout tone="warn"
                 title={`Unclassified spend: ${pct}% (₹${spendCr} Cr · ${bucket.matkl_count} material group${bucket.matkl_count === 1 ? "" : "s"})`}
-                icon={<I.AlertTriangle size={16} />}>
+                icon={<I.Dot size={16} />}>
         <div style={{ fontSize: "var(--fs-13)", marginBottom: 6 }}>
           Stage 9 couldn't classify these material groups into a canonical category.
           They're excluded from Op Model recommendations until assigned.
