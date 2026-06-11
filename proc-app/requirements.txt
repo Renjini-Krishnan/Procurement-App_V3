@@ -1,0 +1,30 @@
+# Procvault backend — Python 3.11+
+# Pinned to the versions verified against the test suite (73 tests, all passing).
+
+# Web framework + server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+
+# Data pipeline
+pandas==2.2.3
+openpyxl==3.1.5            # Excel reader (multi-sheet PO/PR dumps)
+pyyaml==6.0.2              # KB YAML files
+
+# Vector DB (RAG, document embeddings)
+sqlite-vec==0.1.6          # Optional — app degrades gracefully if missing
+
+# Document parsers (Stage 4 client uploads — SOPs, DoA, process flows)
+pdfplumber==0.11.5
+python-docx==1.1.2
+
+# Reporting
+python-pptx==1.0.2         # PPT export
+
+# LLM (Vertex AI — optional). Without these the engine still runs end-to-end;
+# AI narratives just fall back to deterministic stubs.
+google-cloud-aiplatform==1.74.0
+# Note: 'vertexai' is part of google-cloud-aiplatform — no separate install.
+
+# Testing (dev only — comment out for prod images)
+pytest==9.0.3
